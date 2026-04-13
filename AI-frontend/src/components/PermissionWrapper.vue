@@ -1,18 +1,4 @@
-<!--
-  权限包装组件
-  用法：
-  <PermissionWrapper required="admin">
-    <button>管理员可见</button>
-  </PermissionWrapper>
 
-  <PermissionWrapper required="user">
-    <div>登录用户可见</div>
-  </PermissionWrapper>
-
-  <PermissionWrapper :custom-check="(user) => user.id === 123">
-    <div>自定义权限检查</div>
-  </PermissionWrapper>
--->
 <template>
   <slot v-if="hasPermission"></slot>
 </template>
