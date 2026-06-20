@@ -7,6 +7,7 @@ import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { userRegister } from '@/api/userController.ts'
+import { siteConfig } from '@/config/site'
 
 const router = useRouter()
 
@@ -40,9 +41,9 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
 </script>
 
 <template>
-  <div id="userRegisterPage">
-    <h2 class="title">鱼皮 AI 应用生成 - 用户注册</h2>
-    <div class="desc">创建账号后即可开始生成你的 AI 应用</div>
+  <div id="userRegisterPage" class="theme-glass-card">
+    <h2 class="title">{{ siteConfig.siteName }} · 用户注册</h2>
+    <div class="desc">创建账号后即可开始你的个人实验与记录</div>
 
     <a-form :model="formState" name="register" autocomplete="off" @finish="handleSubmit">
       <a-form-item
@@ -91,25 +92,41 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
 
 <style scoped>
 #userRegisterPage {
-  max-width: 360px;
-  margin: 0 auto;
+  max-width: 420px;
+  margin: 24px auto;
+  padding: 24px;
 }
 
 .title {
   text-align: center;
   margin-bottom: 16px;
+  color: var(--color-text-primary);
 }
 
 .desc {
   text-align: center;
-  color: #bbb;
+  color: var(--color-text-muted);
   margin-bottom: 16px;
 }
 
 .tips {
   margin-bottom: 16px;
-  color: #bbb;
+  color: var(--color-text-muted);
   font-size: 13px;
   text-align: right;
+}
+
+#userRegisterPage :deep(.ant-input),
+#userRegisterPage :deep(.ant-input-affix-wrapper),
+#userRegisterPage :deep(.ant-btn),
+#userRegisterPage :deep(.ant-input-password) {
+  border-radius: var(--radius-md);
+}
+
+#userRegisterPage :deep(.ant-input),
+#userRegisterPage :deep(.ant-input-affix-wrapper) {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
 }
 </style>

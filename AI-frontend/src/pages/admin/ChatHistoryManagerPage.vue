@@ -7,6 +7,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { listChatHistoryByPageForAdmin, deleteByAppId } from '@/api/chatHistoryController.ts'
+import '@/assets/admin-theme.css'
 
 const router = useRouter()
 const dataSource = ref<API.ChatHistoryVO[]>([])
@@ -96,7 +97,7 @@ onMounted(fetchData)
 </script>
 
 <template>
-  <div class="chat-history-manager-page">
+  <div class="chat-history-manager-page admin-theme-page">
     <!-- 搜索表单 -->
     <a-form layout="inline" :model="searchParams" style="margin-bottom: 16px" @finish="doSearch">
       <a-form-item label="应用 ID">

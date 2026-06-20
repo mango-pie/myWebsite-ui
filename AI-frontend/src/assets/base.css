@@ -1,53 +1,119 @@
-/* color palette from <https://github.com/vuejs/theme> */
 :root {
-  --vt-c-white: #ffffff;
-  --vt-c-white-soft: #f8f8f8;
-  --vt-c-white-mute: #f2f2f2;
+  --color-primary: #e879a9;
+  --color-primary-light: #f0a3c4;
+  --color-primary-dark: #d45d8f;
 
-  --vt-c-black: #181818;
-  --vt-c-black-soft: #222222;
-  --vt-c-black-mute: #282828;
+  --color-secondary: #7c9ce0;
+  --color-secondary-light: #9bb5eb;
+  --color-secondary-dark: #5a7fc9;
 
-  --vt-c-indigo: #2c3e50;
+  --color-accent: #f4b8c1;
+  --color-accent-light: #fad4da;
 
-  --vt-c-divider-light-1: rgba(60, 60, 60, 0.29);
-  --vt-c-divider-light-2: rgba(60, 60, 60, 0.12);
-  --vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
-  --vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
 
-  --vt-c-text-light-1: var(--vt-c-indigo);
-  --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
-  --vt-c-text-dark-1: var(--vt-c-white);
-  --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
-}
+  --color-bg-primary: #1a1625;
+  --color-bg-secondary: #2d2438;
+  --color-bg-card: rgba(45, 36, 56, 0.75);
+  --color-bg-surface: rgba(45, 36, 56, 0.65);
 
-/* semantic color variables for this project */
-:root {
-  --color-background: var(--vt-c-white);
-  --color-background-soft: var(--vt-c-white-soft);
-  --color-background-mute: var(--vt-c-white-mute);
+  --color-text-primary: #f5f0f8;
+  --color-text-secondary: #c4b8d0;
+  --color-text-muted: #8a7d9a;
 
-  --color-border: var(--vt-c-divider-light-2);
-  --color-border-hover: var(--vt-c-divider-light-1);
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-hover: rgba(255, 255, 255, 0.18);
+  --color-overlay-strong: rgba(26, 22, 37, 0.88);
+  --color-overlay-soft: rgba(26, 22, 37, 0.62);
+  --color-primary-08: rgba(232, 121, 169, 0.08);
+  --color-primary-12: rgba(232, 121, 169, 0.12);
+  --color-primary-20: rgba(232, 121, 169, 0.2);
+  --color-primary-35: rgba(232, 121, 169, 0.35);
+  --color-secondary-20: rgba(124, 156, 224, 0.2);
+  --color-surface-hover: rgba(255, 255, 255, 0.05);
 
-  --color-heading: var(--vt-c-text-light-1);
-  --color-text: var(--vt-c-text-light-1);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.45);
+  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.5);
 
-  --section-gap: 160px;
-}
+  --shadow-glow: 0 0 40px rgba(232, 121, 169, 0.15);
+  --shadow-glow-lg: 0 0 60px rgba(124, 156, 224, 0.2);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: var(--vt-c-black);
-    --color-background-soft: var(--vt-c-black-soft);
-    --color-background-mute: var(--vt-c-black-mute);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
 
-    --color-border: var(--vt-c-divider-dark-2);
-    --color-border-hover: var(--vt-c-divider-dark-1);
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
 
-    --color-heading: var(--vt-c-text-dark-1);
-    --color-text: var(--vt-c-text-dark-2);
-  }
+  --gradient-primary: linear-gradient(135deg, #e879a9 0%, #7c9ce0 50%, #f4b8c1 100%);
+  --gradient-card: linear-gradient(145deg, rgba(45, 36, 56, 0.85) 0%, rgba(26, 22, 37, 0.9) 100%);
+  --gradient-bg: linear-gradient(160deg, #1a1625 0%, #2d2438 45%, #1a1625 100%);
+
+  --player-mini-width: 360px;
+  --player-mini-height: 72px;
+  --player-panel-width: 360px;
+  --player-panel-height: 560px;
+  --player-cover-size: 220px;
+  --player-compact-cover-size: 156px;
+  --player-radius: 18px;
+  --player-radius-pill: 999px;
+  --player-border: 1px solid rgba(255, 255, 255, 0.14);
+  --player-bg: linear-gradient(165deg, rgba(40, 33, 54, 0.95) 0%, rgba(26, 22, 37, 0.95) 100%);
+  --player-bg-soft: rgba(255, 255, 255, 0.06);
+  --player-control-bg: rgba(255, 255, 255, 0.08);
+  --player-control-bg-hover: rgba(255, 255, 255, 0.16);
+  --player-control-bg-active: linear-gradient(135deg, #e879a9 0%, #7c9ce0 100%);
+  --player-control-bg-pressed: rgba(232, 121, 169, 0.24);
+  --player-control-icon: #efe8f6;
+  --player-control-icon-muted: #c4b8d0;
+  --player-icon-color: var(--player-control-icon);
+  --player-icon-color-muted: var(--player-control-icon-muted);
+  --player-icon-color-active: #ffffff;
+  --player-icon-size: 18px;
+  --player-icon-size-sm: 16px;
+  --player-touch-target: 34px;
+  --player-touch-target-compact: 30px;
+  --player-dock-height: 76px;
+  --player-dock-bg: linear-gradient(180deg, rgba(30, 24, 42, 0.96) 0%, rgba(22, 18, 32, 0.98) 100%);
+  --player-dock-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
+  --player-dock-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --player-progress-track: rgba(255, 255, 255, 0.16);
+  --player-progress-fill: linear-gradient(90deg, #e879a9 0%, #9bb5eb 100%);
+  --player-thumb-shadow: 0 0 0 4px rgba(232, 121, 169, 0.2);
+  --player-lyric-active: #f5f0f8;
+  --player-lyric-inactive: #9e8ead;
+  --player-lyric-hover: rgba(232, 121, 169, 0.14);
+  --player-panel-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+  --player-panel-shadow-glow: 0 0 0 1px rgba(232, 121, 169, 0.22), 0 16px 48px rgba(0, 0, 0, 0.5);
+  --player-duration-fast: 160ms;
+  --player-duration-normal: 280ms;
+  --player-duration-slow: 420ms;
+  --player-ease: cubic-bezier(0.2, 0.65, 0.2, 1);
+
+  --prose-bg: rgba(45, 36, 56, 0.82);
+  --prose-max-width: 72ch;
+  --code-bg: #120f1a;
+  --code-header-bg: rgba(18, 15, 26, 0.95);
+  --code-border: rgba(255, 255, 255, 0.12);
+  --code-inline-bg: rgba(255, 255, 255, 0.09);
+  --code-inline-color: var(--color-accent-light);
+  --code-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --blog-cover-fallback: linear-gradient(135deg, rgba(232, 121, 169, 0.35) 0%, rgba(124, 156, 224, 0.25) 100%);
+
+  --font-sans: 'ZCOOL KuaiLe', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  /* 站酷快乐体视觉偏小，基准字号略高于常规 16px */
+  --font-size-base: 17px;
+  --font-size-sm: 14px;
+  --font-size-md: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
 }
 
 *,
@@ -58,29 +124,61 @@
   font-weight: normal;
 }
 
+html {
+  scroll-behavior: smooth;
+  font-size: var(--font-size-base);
+}
+
 body {
   min-height: 100vh;
-  color: var(--color-text);
-  background: var(--color-background);
-  transition:
-    color 0.5s,
-    background-color 0.5s;
-  line-height: 1.6;
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
-    sans-serif;
-  font-size: 15px;
+  color: var(--color-text-primary);
+  background: var(--gradient-bg);
+  background-attachment: fixed;
+  transition: color 0.5s, background-color 0.5s;
+  line-height: 1.65;
+  font-family: var(--font-sans);
+  font-size: 1rem;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.theme-glass-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-md);
+}
+
+.theme-page {
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+@keyframes player-cover-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-light);
 }

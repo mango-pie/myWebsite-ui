@@ -8,6 +8,7 @@ import { useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { userLogin } from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
+import { siteConfig } from '@/config/site'
 
 const formState = reactive<API.UserLoginRequest>({
   userAccount: '',
@@ -35,9 +36,8 @@ const handleSubmit = async (values: API.UserLoginRequest) => {
 </script>
 
 <template>
-    <div id="userLoginPage">
-      <h2 class="title">鱼皮 AI 应用生成 - 用户登录</h2>
-      <div class="desc">不写一行代码，生成完整应用</div>
+    <div id="userLoginPage" class="theme-glass-card">
+      <h2 class="title">{{ siteConfig.siteName }} · 用户登录</h2>
       <a-form :model="formState" name="basic" autocomplete="off" @finish="handleSubmit">
         <a-form-item name="userAccount" :rules="[{ required: true, message: '请输入账号' }]">
           <a-input v-model:value="formState.userAccount" placeholder="请输入账号" />
@@ -66,13 +66,29 @@ const handleSubmit = async (values: API.UserLoginRequest) => {
 
 <style scoped>
 #userLoginPage {
-  max-width: 360px;
-  margin: 0 auto;
+  max-width: 420px;
+  margin: 24px auto;
+  padding: 24px;
 }
 
 .title {
   text-align: center;
   margin-bottom: 16px;
+  color: var(--color-text-primary);
+}
+
+#userLoginPage :deep(.ant-input),
+#userLoginPage :deep(.ant-input-affix-wrapper),
+#userLoginPage :deep(.ant-btn),
+#userLoginPage :deep(.ant-input-password) {
+  border-radius: var(--radius-md);
+}
+
+#userLoginPage :deep(.ant-input),
+#userLoginPage :deep(.ant-input-affix-wrapper) {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
 }
 
 .desc {
@@ -83,7 +99,7 @@ const handleSubmit = async (values: API.UserLoginRequest) => {
 
 .tips {
   margin-bottom: 16px;
-  color: #bbb;
+  color: var(--color-text-muted);
   font-size: 13px;
   text-align: right;
 }

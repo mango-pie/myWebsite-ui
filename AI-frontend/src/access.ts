@@ -2,6 +2,7 @@ import { useLoginUserStore } from '@/stores/loginUser'
 import { message } from 'ant-design-vue'
 import router from '@/router'
 import { getRequiredRole, isAdminRole } from '@/config/permission'
+import { getLastChatConversationId, shouldResumeChatHome } from '@/utils/chatSession'
 
 // 是否为首次获取登录用户
 let firstFetchLoginUser = true
@@ -9,7 +10,7 @@ let firstFetchLoginUser = true
 /**
  * 全局权限校验（依据 src/config/permission.ts 的 ROUTE_PERMISSIONS 与路径前缀）
  */
-router.beforeEach(async (to, _from, next) => {
+router.beforeEach(async (to, _from) => {
   const loginUserStore = useLoginUserStore()
   let loginUser = loginUserStore.loginUser
   if (firstFetchLoginUser) {
@@ -18,23 +19,28 @@ router.beforeEach(async (to, _from, next) => {
     firstFetchLoginUser = false
   }
 
+  // 回到「对话」时恢复上次具体对话页，而非停留在 /chat 列表
+  if (shouldResumeChatHome(to.path, to.query as Record<string, unknown>)) {
+    const last = getLastChatConversationId()
+    if (last) {
+      return { path: `/chat/${last}`, replace: true }
+    }
+  }
+
   const required = getRequiredRole(to.path)
   if (!required) {
-    next()
-    return
+    return true
   }
 
   if (!loginUser?.id) {
     message.error('请先登录')
-    next({ path: '/user/login', query: { redirect: to.fullPath } })
-    return
+    return { path: '/user/login', query: { redirect: to.fullPath } }
   }
 
   if (required === 'admin' && !isAdminRole(loginUser.userRole)) {
     message.error('没有权限')
-    next('/')
-    return
+    return { path: '/' }
   }
 
-  next()
+  return true
 })

@@ -7,14 +7,14 @@
  */
 import axios from 'axios'
 import { message } from 'ant-design-vue'
+import { parseSafeJson } from '@/utils/safeJson'
 
 /**
  * 将 JSON 字符串中超过 15 位的纯整数字面量替换为字符串形式，
  * 防止 JSON.parse 时雪花 ID 等大整数精度丢失
  */
-function parseSafeJson(raw: string): unknown {
-  const safe = raw.replace(/:\s*(\d{16,})/g, ': "$1"')
-  return JSON.parse(safe)
+function parseSafeJsonForAxios(raw: string): unknown {
+  return parseSafeJson(raw)
 }
 
 const myAxios = axios.create({
@@ -25,7 +25,7 @@ const myAxios = axios.create({
     (data) => {
       if (typeof data === 'string') {
         try {
-          return parseSafeJson(data)
+          return parseSafeJsonForAxios(data)
         } catch {
           return data
         }

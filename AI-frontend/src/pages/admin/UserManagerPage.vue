@@ -7,6 +7,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { deleteUser, listUserVoByPage, updateUser } from '@/api/userController.ts'
 import { Modal } from 'ant-design-vue'
+import '@/assets/admin-theme.css'
 
 /** 表格行数据类型，与后端 UserVO 对应 */
 type ManagerRow = API.UserVO
@@ -156,7 +157,7 @@ const doEditSubmit = async () => {
 </script>
 
 <template>
-  <div id="userManagePage">
+  <div id="userManagePage" class="admin-theme-page">
     <!-- 搜索表单 -->
     <a-form layout="inline" :model="searchParams" @finish="doSearch">
       <a-form-item label="账号">
@@ -173,7 +174,7 @@ const doEditSubmit = async () => {
     <!-- 表格 -->
   </div>
 
-  <div class="user-manager-page">
+  <div class="user-manager-page admin-theme-page">
     <a-card title="用户管理" :bordered="false" class="user-manager-card">
       <a-table
         :data-source="dataSource"

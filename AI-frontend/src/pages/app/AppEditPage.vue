@@ -192,7 +192,7 @@ onMounted(fetchApp)
 .edit-page {
   padding: 32px 24px;
   min-height: calc(100vh - 64px);
-  background: #f7f8fa;
+  background: transparent;
 }
 
 .edit-layout {
@@ -213,9 +213,34 @@ onMounted(fetchApp)
   flex-shrink: 0;
 }
 
+.edit-layout :deep(.ant-card) {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.edit-layout :deep(.ant-card-head),
+.edit-layout :deep(.ant-card-body),
+.edit-layout :deep(.ant-descriptions-view),
+.edit-layout :deep(.ant-descriptions-row > th),
+.edit-layout :deep(.ant-descriptions-row > td) {
+  background: transparent !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.edit-layout :deep(.ant-input),
+.edit-layout :deep(.ant-input-number),
+.edit-layout :deep(.ant-input-affix-wrapper),
+.edit-layout :deep(.ant-input-textarea textarea) {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
 .readonly-field {
-  background: #fafafa;
-  color: #666;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text-secondary);
   cursor: default;
 }
 

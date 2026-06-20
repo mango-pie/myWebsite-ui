@@ -14,14 +14,15 @@ const ADMIN_ROLES = ['admin', 'administrator'] as const
 /**高级管理角色（与后端一致） */
 const AdministratorRoles = ['administrator'] as const
 /**
- * 路径 -> 所需权限（仅配置需要鉴权的路径，未配置的视为公开）
- * 新增需要鉴权的页面时在此添加一条即可
- */
+/** 路径 -> 所需权限（仅配置需要鉴权的路径，未配置的视为公开） */
 export const ROUTE_PERMISSIONS: Record<string, RequiredRole | undefined> = {
   '/user/profile': 'user',
   '/admin/userManage': 'admin',
   '/admin/appManage': 'admin',
+  '/admin/blogManage': 'admin',
   '/administrator/study': 'administrator',
+  '/chat': 'user',
+  '/diary': 'user',
 }
 
 /**
@@ -31,18 +32,31 @@ export const ROUTE_PERMISSIONS: Record<string, RequiredRole | undefined> = {
 export interface MenuItemConfig {
   key: string
   label: string
-  path: string
+  path?: string
   /** 不设 = 所有人可见；'user' = 仅登录后可见；'admin' = 仅管理员可见 */
   requiredRole?: RequiredRole
+  children?: MenuItemConfig[]
 }
 
 export const MENU_ITEMS: MenuItemConfig[] = [
   { key: 'home', label: '首页', path: '/' },
-  { key: 'userManage', label: '用户管理', path: '/admin/userManage', requiredRole: 'admin' },
-  { key: 'appManage', label: '应用管理', path: '/admin/appManage', requiredRole: 'admin' },
+  { key: 'blogHome', label: '随笔', path: '/blog' },
+  { key: 'diary', label: '日记', path: '/diary', requiredRole: 'user' },
+  { key: 'lab', label: '实验室', path: '/lab' },
+  {
+    key: 'manage',
+    label: '管理',
+    requiredRole: 'admin',
+    children: [
+      { key: 'userManage', label: '用户管理', path: '/admin/userManage', requiredRole: 'admin' },
+      { key: 'appManage', label: '应用管理', path: '/admin/appManage', requiredRole: 'admin' },
+      { key: 'blogManage', label: '博客管理', path: '/admin/blogManage', requiredRole: 'admin' },
+    ],
+  },
   { key: 'about', label: '关于', path: '/about' },
   { key: 'study', label: '学习', path: '/administrator/study', requiredRole: 'administrator' },
-  { key: 'test', label: '测试', path: '/test' },
+  { key: 'test', label: '测试', path: '/test', requiredRole: 'administrator' },
+  { key: 'chat', label: '对话', path: '/chat', requiredRole: 'user' },
 ]
 
 /** 当前用户是否具备管理员角色 */
@@ -59,6 +73,8 @@ export function getRequiredRole(path: string): RequiredRole | undefined {
   if (ROUTE_PERMISSIONS[path] !== undefined) return ROUTE_PERMISSIONS[path]
   if (path.startsWith('/admin')) return 'admin'
   if (path.startsWith('/administrator')) return 'administrator'
+  if (path === '/chat' || path.startsWith('/chat/')) return 'user'
+  if (path === '/diary' || path.startsWith('/diary/')) return 'user'
   return undefined
 }
 
@@ -81,9 +97,41 @@ export function canShowMenuItem(
   item: MenuItemConfig,
   user: { id?: number; userRole?: string } | null,
 ): boolean {
-  if (!item.requiredRole) return true
-  if (item.requiredRole === 'user') return !!user?.id
-  if (item.requiredRole === 'admin') return !!user?.id && isAdminRole(user.userRole)
-  if (item.requiredRole === 'administrator') return !!user?.id && isAdministrator(user.userRole)
-  return false
+  // 检查当前项是否满足权限
+  const currentItemVisible = (() => {
+    if (!item.requiredRole) return true
+    if (item.requiredRole === 'user') return !!user?.id
+    if (item.requiredRole === 'admin') return !!user?.id && isAdminRole(user.userRole)
+    if (item.requiredRole === 'administrator') return !!user?.id && isAdministrator(user.userRole)
+    return false
+  })()
+
+  if (!currentItemVisible) return false
+
+  // 递归过滤子菜单
+  if (item.children) {
+    const visibleChildren = item.children.filter(child => canShowMenuItem(child, user))
+    // 如果当前项有子菜单但没有可见的子项，则不显示当前项
+    if (!item.path && visibleChildren.length === 0) return false
+  }
+
+  return true
+}
+
+/** 递归过滤菜单及其子菜单 */
+export function filterMenuItems(
+  items: MenuItemConfig[],
+  user: { id?: number; userRole?: string } | null,
+): MenuItemConfig[] {
+  return items
+    .filter(item => canShowMenuItem(item, user))
+    .map(item => {
+      if (item.children) {
+        return {
+          ...item,
+          children: filterMenuItems(item.children, user),
+        }
+      }
+      return item
+    })
 }

@@ -7,6 +7,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { listAppByPageForAdmin, deleteAppByAdmin, updateAppByAdmin } from '@/api/appController.ts'
+import '@/assets/admin-theme.css'
 
 const router = useRouter()
 const dataSource = ref<API.AppVO[]>([])
@@ -110,7 +111,7 @@ onMounted(fetchData)
 </script>
 
 <template>
-  <div class="app-manager-page">
+  <div class="app-manager-page admin-theme-page">
     <!-- 搜索表单 -->
     <a-form layout="inline" :model="searchParams" style="margin-bottom: 16px" @finish="doSearch">
       <a-form-item label="应用名称">
@@ -123,6 +124,7 @@ onMounted(fetchData)
           allow-clear
           style="width: 140px"
         >
+          <a-select-option value="chat">chat（对话）</a-select-option>
           <a-select-option value="multi_file">multi_file</a-select-option>
           <a-select-option value="html">html</a-select-option>
         </a-select>
@@ -155,9 +157,9 @@ onMounted(fetchData)
             <span v-else style="color: #ccc">-</span>
           </template>
           <template v-else-if="column.dataIndex === 'codeGenType'">
-            <a-tag :color="record.codeGenType === 'multi_file' ? 'blue' : 'green'">
-              {{ record.codeGenType ?? '-' }}
-            </a-tag>
+            <a-tag v-if="record.codeGenType === 'chat'" color="purple">对话</a-tag>
+            <a-tag v-else-if="record.codeGenType === 'multi_file'" color="blue">多文件</a-tag>
+            <a-tag v-else color="green">{{ record.codeGenType ?? '-' }}</a-tag>
           </template>
           <template v-else-if="column.dataIndex === 'priority'">
             <a-tag v-if="record.priority >= 99" color="gold">精选</a-tag>

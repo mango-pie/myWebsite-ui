@@ -17,6 +17,7 @@ import {
   CheckCircleFilled,
   ReloadOutlined,
 } from '@ant-design/icons-vue'
+import { readSseChatStream } from '@/utils/sseChatStream'
 import { marked, Renderer } from 'marked'
 import hljs from 'highlight.js/lib/core'
 // 按需注册常用语言
@@ -190,33 +191,14 @@ const sendMessage = async (userMsg: string) => {
     const response = await fetch(url, { credentials: 'include' })
     if (!response.ok || !response.body) throw new Error('请求失败')
 
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
     let streamError = false
 
     try {
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        const chunk = decoder.decode(value, { stream: true })
-        // 解析 SSE 格式：data:{"d":"文字内容"}
-        const matches = chunk.matchAll(/data:\s*(\{[^}]*\})/g)
-        for (const match of matches) {
-          try {
-            const raw = match[1]
-            if (!raw) continue
-            const json = JSON.parse(raw)
-            const text: string = json.d ?? ''
-            if (text) {
-              const last = messages.value[messages.value.length - 1]
-              if (last?.role === 'ai') last.content += text
-            }
-          } catch {
-            // 解析失败跳过
-          }
-        }
-        await scrollToBottom()
-      }
+      await readSseChatStream(response.body, (text) => {
+        const last = messages.value[messages.value.length - 1]
+        if (last?.role === 'ai') last.content += text
+        void scrollToBottom()
+      })
     } catch {
       streamError = true
     }
@@ -384,7 +366,7 @@ onMounted(async () => {
         <div v-if="!previewUrl" class="chat-preview-placeholder">
           <div class="chat-preview-placeholder__inner">
             <p>🎨 生成后的网页将在这里展示</p>
-            <p style="font-size: 13px; color: #aaa">等待 AI 生成完成...</p>
+            <p class="chat-preview-placeholder__sub">等待 AI 生成完成...</p>
           </div>
         </div>
         <iframe
@@ -424,372 +406,45 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+@import '@/components/chat/chat-shell.css';
+
 .chat-page {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 64px);
-  background: #f7f8fa;
-}
-
-.chat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  height: 52px;
-  background: #fff;
-  border-bottom: 1px solid #f0f0f0;
-  flex-shrink: 0;
-}
-
-.chat-header__left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.chat-header__title {
-  font-size: 16px;
-  font-weight: 600;
+  padding: 12px;
 }
 
 .chat-body {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
+  min-height: 0;
 }
 
 .chat-left {
-  width: 400px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid #f0f0f0;
-  background: #fff;
-}
-
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.load-more-container {
-  display: flex;
-  justify-content: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
-  margin-bottom: 8px;
-}
-
-.chat-msg {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.chat-msg--user {
-  flex-direction: row-reverse;
-}
-
-.chat-msg__avatar {
-  font-size: 22px;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.chat-msg__bubble {
-  max-width: 85%;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: #f0f2f5;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.chat-msg--user .chat-msg__bubble {
-  background: #1677ff;
-  color: #fff;
-}
-
-.chat-msg__text {
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-/* Markdown 渲染区域 */
-.chat-msg__markdown {
-  word-break: break-word;
-  overflow-x: auto;
-  font-size: 13px;
-  line-height: 1.7;
-  color: #1a1a1a;
-}
-
-.chat-msg__markdown :deep(p) {
-  margin: 0 0 8px;
-}
-
-.chat-msg__markdown :deep(p:last-child) {
-  margin-bottom: 0;
-}
-
-.chat-msg__markdown :deep(h1),
-.chat-msg__markdown :deep(h2),
-.chat-msg__markdown :deep(h3),
-.chat-msg__markdown :deep(h4) {
-  margin: 12px 0 6px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: #111;
-}
-
-.chat-msg__markdown :deep(h1) {
-  font-size: 16px;
-}
-.chat-msg__markdown :deep(h2) {
-  font-size: 15px;
-}
-.chat-msg__markdown :deep(h3) {
-  font-size: 14px;
-}
-.chat-msg__markdown :deep(h4) {
-  font-size: 13px;
-}
-
-.chat-msg__markdown :deep(ul),
-.chat-msg__markdown :deep(ol) {
-  padding-left: 20px;
-  margin: 4px 0 8px;
-}
-
-.chat-msg__markdown :deep(li) {
-  margin: 2px 0;
-}
-
-.chat-msg__markdown :deep(blockquote) {
-  margin: 8px 0;
-  padding: 6px 12px;
-  border-left: 3px solid #d0d7de;
-  background: #f6f8fa;
-  color: #57606a;
-  border-radius: 0 4px 4px 0;
-}
-
-.chat-msg__markdown :deep(hr) {
-  border: none;
-  border-top: 1px solid #e8e8e8;
-  margin: 10px 0;
-}
-
-.chat-msg__markdown :deep(a) {
-  color: #1677ff;
-  text-decoration: none;
-}
-
-.chat-msg__markdown :deep(a:hover) {
-  text-decoration: underline;
-}
-
-.chat-msg__markdown :deep(table) {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-  margin: 8px 0;
-}
-
-.chat-msg__markdown :deep(th),
-.chat-msg__markdown :deep(td) {
-  border: 1px solid #d0d7de;
-  padding: 5px 10px;
-  text-align: left;
-}
-
-.chat-msg__markdown :deep(th) {
-  background: #f6f8fa;
-  font-weight: 600;
-}
-
-/* 行内代码 */
-.chat-msg__markdown :deep(code:not(pre code)) {
-  background: #eef0f3;
-  color: #c7254e;
-  padding: 1px 5px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-}
-
-/* 代码块容器 */
-.chat-msg__markdown :deep(.code-block) {
-  margin: 8px 0;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #e8e8e8;
-  background: #f6f8fa;
-}
-
-.chat-msg__markdown :deep(.code-block__header) {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 12px;
-  background: #e8eaed;
-  border-bottom: 1px solid #d8dde3;
-}
-
-.chat-msg__markdown :deep(.code-block__lang) {
-  font-size: 11px;
-  font-weight: 600;
-  color: #555;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.chat-msg__markdown :deep(.code-block__copy) {
-  font-size: 11px;
-  color: #666;
-  background: none;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 1px 8px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.chat-msg__markdown :deep(.code-block__copy:hover) {
-  background: #fff;
-  color: #1677ff;
-  border-color: #1677ff;
-}
-
-.chat-msg__markdown :deep(pre) {
-  margin: 0;
-  padding: 12px 14px;
-  overflow-x: auto;
-  background: #f6f8fa;
-}
-
-.chat-msg__markdown :deep(pre code) {
-  font-size: 12px;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  line-height: 1.6;
-  background: none;
-  padding: 0;
-  color: inherit;
-}
-
-.chat-msg__typing {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  height: 20px;
-}
-
-.dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #999;
-  animation: blink 1.2s infinite;
-}
-.dot:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.dot:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes blink {
-  0%,
-  80%,
-  100% {
-    opacity: 0.2;
-  }
-  40% {
-    opacity: 1;
-  }
-}
-
-.chat-input-area {
-  padding: 12px 16px;
-  border-top: 1px solid #f0f0f0;
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.chat-input-area :deep(.ant-input) {
-  border-radius: 10px;
-  resize: none;
-}
-
-.chat-send-btn {
-  flex-shrink: 0;
-  margin-bottom: 2px;
+  width: 430px;
 }
 
 .chat-right {
-  flex: 1;
-  overflow: hidden;
-  background: #f7f8fa;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.chat-preview-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
+  min-height: 0;
 }
 
 .chat-preview-placeholder__inner {
   text-align: center;
-  color: #bbb;
   font-size: 15px;
 }
 
-.chat-preview-iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-  background: #fff;
+.chat-preview-placeholder__inner p:last-child {
+  font-size: 13px;
+  color: var(--color-text-muted);
 }
 
-/* 部署成功弹窗 */
-.deploy-modal {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px 8px 8px;
-  gap: 16px;
+.chat-preview-placeholder__sub {
+  font-size: 13px;
+  color: var(--color-text-muted);
 }
 
 .deploy-modal__icon {
-  font-size: 52px;
-  color: #52c41a;
+  color: var(--color-success);
 }
 
 .deploy-modal__title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #222;
-}
-
-.deploy-modal__url-row {
-  display: flex;
-  gap: 8px;
-  width: 100%;
-}
-
-.deploy-modal__url-input {
-  flex: 1;
+  color: var(--color-text-primary);
 }
 
 .deploy-modal__actions {

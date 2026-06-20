@@ -1,0 +1,86 @@
+.admin-theme-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.admin-theme-page :deep(.ant-form) {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.admin-theme-page :deep(.ant-form-item-label > label) {
+  color: var(--color-text-secondary);
+}
+
+.admin-theme-page :deep(.ant-input),
+.admin-theme-page :deep(.ant-input-affix-wrapper),
+.admin-theme-page :deep(.ant-select-selector) {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.admin-theme-page :deep(.ant-card) {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(16px);
+}
+
+.admin-theme-page :deep(.ant-card-head),
+.admin-theme-page :deep(.ant-card-body) {
+  border-color: var(--color-border);
+}
+
+.admin-theme-page :deep(.ant-table),
+.admin-theme-page :deep(.ant-table-container),
+.admin-theme-page :deep(.ant-table-thead > tr > th),
+.admin-theme-page :deep(.ant-table-tbody > tr > td) {
+  background: transparent !important;
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-border) !important;
+}
+
+.admin-theme-page :deep(.ant-table-tbody > tr:hover > td) {
+  background: var(--color-primary-08) !important;
+}
+
+.admin-theme-page :deep(.ant-pagination-item),
+.admin-theme-page :deep(.ant-pagination-prev .ant-pagination-item-link),
+.admin-theme-page :deep(.ant-pagination-next .ant-pagination-item-link) {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-secondary) !important;
+}
+
+.admin-theme-page :deep(.ant-pagination-item-active) {
+  background: var(--gradient-primary) !important;
+  border-color: transparent !important;
+}
+
+.admin-theme-page :deep(.ant-pagination-item-active a) {
+  color: #fff !important;
+}
+
+.admin-theme-page .ant-empty-description {
+  color: var(--color-text-muted);
+}
+
+.admin-theme-page .ant-btn-primary {
+  background: var(--gradient-primary) !important;
+  border: none !important;
+}
+
+.ant-modal .ant-modal-content {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+}
+
+.ant-modal .ant-modal-header,
+.ant-modal .ant-modal-footer {
+  background: transparent;
+  border-color: var(--color-border);
+}

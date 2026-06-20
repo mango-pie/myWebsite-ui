@@ -165,11 +165,13 @@ if (isAdmin()) { ... }
         └── 40100（未登录）→ 跳转 /user/login?redirect=当前页
 ```
 
-**API 文件**（`src/api/`）由 `@umijs/openapi` 根据后端 Swagger 自动生成，不要手动修改：
+**API 文件**（`src/api/`）由 `@umijs/openapi` 根据后端 Swagger 自动生成，**不要**在该目录手写或修改：
 
 - `appController.ts` — 应用相关接口
 - `userController.ts` — 用户相关接口
 - `typings.d.ts` — 全局类型声明（`API` 命名空间）
+
+**第三方 / 非后端接口**（Hitokoto、网易云等）放在 `src/integrations/`，运行 `npm run openapi2ts` 不会覆盖。详见 `src/integrations/README.md`。
 
 ---
 

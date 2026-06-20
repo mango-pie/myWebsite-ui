@@ -1,0 +1,31 @@
+# IDE / editor
+.idea/
+.cursor/
+.vscode/
+*.iml
+
+# Dependencies
+node_modules/
+AI-frontend/node_modules/
+AI-frontend/api-enhanced/node_modules/
+
+# Local env (do not commit secrets)
+AI-frontend/.env.local
+AI-frontend/.env.*.local
+
+# Build cache
+*.tsbuildinfo
+.eslintcache
+AI-frontend/dist-ssr/
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db
+
+# Patch / temp
+unnamed.patch
+hs_err_pid*.log
+
+# Optional third-party clone (use npm/docker in prod instead)
+AI-frontend/api-enhanced/

@@ -170,7 +170,29 @@ const handleLogout = async () => {
 }
 
 .profile-card {
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
+}
+
+.profile-card :deep(.ant-card) {
+  background: transparent;
+}
+
+.profile-card :deep(.ant-card-head),
+.profile-card :deep(.ant-card-body),
+.profile-card :deep(.ant-descriptions-view),
+.profile-card :deep(.ant-descriptions-row > th),
+.profile-card :deep(.ant-descriptions-row > td) {
+  background: var(--color-bg-card) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.profile-card :deep(.ant-input),
+.profile-card :deep(.ant-input-affix-wrapper),
+.profile-card :deep(.ant-input-textarea textarea) {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
 }
 
 .profile-meta {
@@ -182,10 +204,11 @@ const handleLogout = async () => {
 .profile-name {
   font-size: 18px;
   font-weight: 600;
+  color: var(--color-text-primary);
 }
 
 .profile-account {
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 

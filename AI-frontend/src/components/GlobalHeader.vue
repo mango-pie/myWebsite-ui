@@ -1,19 +1,17 @@
 <script setup lang="ts">
-/**
- * 全局顶栏 - 左侧 Logo/标题、中间导航菜单、右侧登录态
- * 已登录：显示头像+昵称，点击展开下拉（个人信息 / 退出登录）
- * 未登录：显示“登录”按钮，点击跳转登录页
- */
+import { computed } from 'vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { MenuProps } from 'ant-design-vue'
 import { userLogout } from '@/api/userController'
+import { siteConfig } from '@/config/site'
 
-/** 导航菜单单项，与 BasicLayout 中的 MenuItem 一致 */
 interface MenuItem {
   key: string
   label: string
-  path: string
+  path?: string
+  children?: MenuItem[]
 }
 
 const props = defineProps<{
@@ -29,14 +27,28 @@ const router = useRouter()
 const logoSrc = new URL('../assets/logo.svg', import.meta.url).href
 const loginUserStore = useLoginUserStore()
 
-/** 顶部水平菜单点击：把 key 回传给父布局，由父组件负责跳转 */
+const menuItemsForAntd = computed<MenuProps['items']>(() => {
+  const convert = (items: MenuItem[]): MenuProps['items'] => {
+    return items.map(item => {
+      const result: any = {
+        key: item.key,
+        label: item.label,
+      }
+      if (item.children && item.children.length > 0) {
+        result.children = convert(item.children)
+      }
+      return result
+    })
+  }
+  return convert(props.menuItems)
+})
+
 const handleMenuClick = (info: { key: string | number }) => {
   emit('menuClick', String(info.key))
 }
 
 type MenuClickEvent = { key: string | number }
 
-/** 头像下拉菜单点击：“个人信息”跳转个人页，“退出登录”调接口并清空状态后跳转登录页 */
 const handleAvatarClick = async ({ key }: MenuClickEvent) => {
   if (key === 'profile') {
     await router.push('/user/profile')
@@ -57,23 +69,24 @@ const handleAvatarClick = async ({ key }: MenuClickEvent) => {
 
 <template>
   <div class="global-header">
-    <!-- 左侧：Logo + 平台名 -->
-    <div class="global-header__left">
+    <div class="global-header__left" @click="router.push('/')">
       <img class="global-header__logo" :src="logoSrc" alt="Logo" />
-      <span class="global-header__title">AI 场景平台</span>
+      <div class="global-header__brand">
+        <span class="global-header__title">{{ siteConfig.siteName }}</span>
+        <span class="global-header__subtitle">{{ siteConfig.siteSubtitle }}</span>
+      </div>
     </div>
 
-    <!-- 中间：水平导航（首页/用户管理(仅管理员)/关于），由父组件传入并高亮 -->
     <div class="global-header__center">
       <a-menu
         mode="horizontal"
-        :items="props.menuItems"
+        :items="menuItemsForAntd"
         :selectedKeys="props.selectedKeys"
         @click="handleMenuClick"
+        class="global-header__menu"
       />
     </div>
 
-    <!-- 右侧：已登录显示头像+下拉；未登录显示登录按钮 -->
     <div class="user-login-status">
       <div v-if="loginUserStore.loginUser.id">
         <a-dropdown
@@ -81,11 +94,11 @@ const handleAvatarClick = async ({ key }: MenuClickEvent) => {
           :trigger="['click']"
         >
           <a-space class="user-entry" size="small">
-            <a-avatar :src="loginUserStore.loginUser.userAvatar" />
+            <a-avatar :src="loginUserStore.loginUser.userAvatar" class="user-entry__avatar" />
             <span class="user-entry__name">{{ loginUserStore.loginUser.userName ?? '无名' }}</span>
           </a-space>
           <template #overlay>
-            <a-menu @click="handleAvatarClick">
+            <a-menu @click="handleAvatarClick" class="user-dropdown-menu">
               <a-menu-item key="profile">个人信息</a-menu-item>
               <a-menu-divider />
               <a-menu-item key="logout">退出登录</a-menu-item>
@@ -94,13 +107,11 @@ const handleAvatarClick = async ({ key }: MenuClickEvent) => {
         </a-dropdown>
       </div>
       <div v-else>
-        <a-button type="primary" @click="router.push('/user/login')">登录</a-button>
+        <a-button type="primary" class="login-btn" @click="router.push('/user/login')">登录</a-button>
       </div>
     </div>
   </div>
 </template>
-
-
 
 <style scoped>
 .global-header {
@@ -109,32 +120,176 @@ const handleAvatarClick = async ({ key }: MenuClickEvent) => {
   justify-content: flex-start;
   width: 100%;
   padding: 0 24px;
-  gap: 16px;
+  gap: 24px;
+  height: 64px;
+  overflow: hidden;
+  background: transparent;
 }
 
 .global-header__left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.global-header__left:hover {
+  transform: scale(1.02);
 }
 
 .global-header__logo {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(232, 121, 169, 0.4));
+}
+
+.global-header__brand {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .global-header__title {
   font-size: 18px;
   font-weight: 600;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   white-space: nowrap;
+  line-height: 1.2;
+}
+
+.global-header__subtitle {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
 }
 
 .global-header__center {
   flex: 1;
   min-width: 0;
-  overflow-x: auto;
+  overflow-x: hidden;
+}
+
+.global-header__menu {
+  border-bottom: none !important;
+  background: transparent !important;
+  line-height: 64px;
+}
+
+.global-header__menu :deep(.ant-menu) {
+  background: transparent !important;
+}
+
+.global-header__menu :deep(.ant-menu-overflow) {
+  gap: 0;
+}
+
+.global-header__menu :deep(.ant-menu-horizontal) {
+  border-bottom: none;
+  gap: 0;
+}
+
+.global-header__menu :deep(.ant-menu-horizontal > .ant-menu-item),
+.global-header__menu :deep(.ant-menu-horizontal > .ant-menu-submenu) {
+  margin: 0 !important;
+  padding: 0 !important;
+  top: 0;
+  border-radius: 0;
+}
+
+.global-header__menu :deep(.ant-menu-item) {
+  color: var(--color-text-secondary);
+  transition: background 0.25s ease, color 0.25s ease;
+  margin: 0 !important;
+  border-radius: 0;
+  padding: 0 22px !important;
+  height: 64px !important;
+  line-height: 64px !important;
+  display: inline-flex !important;
+  align-items: center;
+}
+
+.global-header__menu :deep(.ant-menu-item::after) {
+  display: none !important;
+}
+
+.global-header__menu :deep(.ant-menu-item:hover) {
+  color: var(--color-text-primary);
+  background: rgba(232, 121, 169, 0.12) !important;
+}
+
+.global-header__menu :deep(.ant-menu-item-selected) {
+  color: #fff !important;
+  background: var(--gradient-primary) !important;
+  box-shadow: none;
+}
+
+.global-header__menu :deep(.ant-menu-item-selected::after) {
+  display: none !important;
+}
+
+.global-header__menu :deep(.ant-menu-submenu) {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.global-header__menu :deep(.ant-menu-submenu-title) {
+  color: var(--color-text-secondary) !important;
+  margin: 0 !important;
+  border-radius: 0;
+  padding: 0 22px !important;
+  height: 64px !important;
+  line-height: 64px !important;
+  display: inline-flex !important;
+  align-items: center;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+.global-header__menu :deep(.ant-menu-submenu-title::after) {
+  display: none !important;
+}
+
+.global-header__menu :deep(.ant-menu-submenu-title:hover) {
+  color: var(--color-text-primary) !important;
+  background: rgba(232, 121, 169, 0.12) !important;
+}
+
+.global-header__menu :deep(.ant-menu-submenu-open .ant-menu-submenu-title),
+.global-header__menu :deep(.ant-menu-submenu-selected .ant-menu-submenu-title) {
+  color: #fff !important;
+  background: var(--gradient-primary) !important;
+}
+
+.global-header__menu :deep(.ant-menu-sub) {
+  background: rgba(26, 22, 37, 0.95) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  padding: 4px 0;
+}
+
+.global-header__menu :deep(.ant-menu-sub .ant-menu-item) {
+  height: 44px !important;
+  line-height: 44px !important;
+  padding: 0 20px !important;
+  margin: 0 !important;
+  border-radius: 8px;
+  color: var(--color-text-secondary) !important;
+}
+
+.global-header__menu :deep(.ant-menu-sub .ant-menu-item:hover) {
+  background: rgba(232, 121, 169, 0.12) !important;
+  color: var(--color-text-primary) !important;
 }
 
 .global-header__right {
@@ -144,9 +299,25 @@ const handleAvatarClick = async ({ key }: MenuClickEvent) => {
   margin-left: auto;
 }
 
+.user-login-status {
+  display: flex;
+  align-items: center;
+}
+
 .user-entry {
   cursor: pointer;
   user-select: none;
+  padding: 6px 12px;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+}
+
+.user-entry:hover {
+  background: rgba(232, 121, 169, 0.1);
+}
+
+.user-entry__avatar {
+  border: 2px solid rgba(232, 121, 169, 0.45);
 }
 
 .user-entry__name {
@@ -154,16 +325,57 @@ const handleAvatarClick = async ({ key }: MenuClickEvent) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.user-dropdown-menu :deep(.ant-menu-item) {
+  color: var(--color-text-primary) !important;
+}
+
+.user-dropdown-menu :deep(.ant-menu-item:hover) {
+  background: rgba(232, 121, 169, 0.15) !important;
+}
+
+.login-btn {
+  background: var(--gradient-primary) !important;
+  border: none !important;
+  box-shadow: var(--shadow-glow);
+  transition: all 0.3s ease;
+}
+
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow-lg);
 }
 
 @media (max-width: 768px) {
   .global-header {
     padding: 0 12px;
+    gap: 12px;
   }
 
   .global-header__title {
-    font-size: 16px;
+    font-size: 15px;
+  }
+
+  .global-header__subtitle {
+    display: none;
+  }
+
+  .global-header__logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .user-entry__name {
+    display: none;
+  }
+
+  .global-header__menu :deep(.ant-menu-item),
+  .global-header__menu :deep(.ant-menu-submenu-title) {
+    padding: 0 14px !important;
+    font-size: 14px;
   }
 }
 </style>
-
