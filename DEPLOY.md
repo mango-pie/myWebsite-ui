@@ -1,65 +1,62 @@
 # 部署指南（前端）
 
-仓库：[mango-pie/Ai](https://github.com/mango-pie/Ai)
+> **完整服务器部署流程**请参阅后端仓库：  
+> **[Ai-Backend/docs/DEPLOY_SERVER.md](https://github.com/mango-pie/Ai-Backend/blob/main/docs/DEPLOY_SERVER.md)**
+
+仓库：[mango-pie/Ai-frontend](https://github.com/mango-pie/Ai-frontend)  
+后端仓库：[mango-pie/Ai-Backend](https://github.com/mango-pie/Ai-Backend)
 
 ## 目录说明
 
 | 路径 | 说明 |
 |------|------|
 | `AI-frontend/src/` | Vue 3 源码 |
-| `AI-frontend/dist/` | **生产静态资源**（构建产物，可直接给 Nginx 使用） |
+| `AI-frontend/dist/` | **生产静态资源**（已提交，服务器可直接 pull） |
 | `AI-frontend/.env.production.example` | 生产环境变量模板 |
 
-## 本地构建
+## 本地开发
+
+```bash
+cd AI-frontend
+npm ci
+npm run dev
+# http://localhost:5173 ，后端需 localhost:8123
+```
+
+## 生产构建
 
 ```bash
 cd AI-frontend
 cp .env.production.example .env.production
-# 编辑 .env.production 填入域名
+# 编辑 .env.production（见下方 IP 模式示例）
 npm ci
-npm run build-only   # 跳过 type-check，与 CI 一致
+npm run build-only
 ```
 
-构建产物在 `AI-frontend/dist/`。
+### IP 访问模式（与 Nginx 同域反代）
 
-## 服务器部署（Nginx 静态托管）
-
-1. 将 `AI-frontend/dist/` 上传到服务器，例如 `/var/www/ai-frontend/`
-2. Nginx 配置示例：
-
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-    root /var/www/ai-frontend;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    location /api/ {
-        proxy_pass http://127.0.0.1:8123/api/;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_buffering off;          # SSE 流式
-        proxy_read_timeout 300s;
-    }
-}
+```env
+VITE_API_BASE_URL=/api
+VITE_PREVIEW_BASE_URL=/api/static
+VITE_DEPLOY_BASE_URL=http://121.43.177.236
 ```
 
-3. 后端仓库见 [mango-pie/Ai-Backend](https://github.com/mango-pie/Ai-Backend)
+构建产物在 `AI-frontend/dist/`，复制到服务器 `/var/www/ai-frontend/`。
+
+## 服务器快速更新（dist 已在 Git）
+
+```bash
+git clone https://github.com/mango-pie/Ai-frontend.git
+sudo rsync -a --delete Ai-frontend/AI-frontend/dist/ /var/www/ai-frontend/
+```
+
+完整 Nginx、后端、数据库步骤见 [DEPLOY_SERVER.md](https://github.com/mango-pie/Ai-Backend/blob/main/docs/DEPLOY_SERVER.md)。
 
 ## GitHub Actions
 
-推送 `main` 分支且 `AI-frontend/` 有变更时，会自动执行 `npm run build-only` 并上传 `frontend-dist` 构建产物（Artifacts，保留 30 天）。
+推送 `main` 且 `AI-frontend/` 有变更时自动 `npm run build-only`，Artifact 名 `frontend-dist`（30 天）。
 
-在仓库 **Settings → Secrets and variables → Actions → Variables** 可设置 `VITE_DEPLOY_BASE_URL`。
-
-## 更新静态资源到 GitHub
-
-每次改完前端后：
+## 提交 dist 到 GitHub
 
 ```bash
 cd AI-frontend
@@ -69,5 +66,3 @@ git add AI-frontend/dist AI-frontend/src
 git commit -m "build: update frontend dist"
 git push origin main
 ```
-
-`dist/` 已纳入版本库，服务器可直接 `git pull` 取静态文件。
