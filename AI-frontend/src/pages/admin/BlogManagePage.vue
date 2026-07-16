@@ -9,6 +9,7 @@ import { message, Modal } from 'ant-design-vue'
 import { queryBlogPostPage, deleteBlogPost, updateBlogPostStatus, toggleTopStatus } from '@/api/blogPostController'
 import { getAllCategories } from '@/api/blogCategoryController'
 import '@/assets/admin-theme.css'
+import { PenTool } from 'lucide-vue-next'
 
 const router = useRouter()
 const dataSource = ref<API.BlogPostVO[]>([])
@@ -41,9 +42,9 @@ function formatTime(str: string | undefined): string {
 }
 
 const statusMap: Record<number, { text: string; color: string }> = {
-  0: { text: '待审核', color: 'orange' },
-  1: { text: '已发布', color: 'green' },
-  2: { text: '已下线', color: 'red' },
+  0: { text: '待审核', color: 'warning' },
+  1: { text: '已发布', color: 'success' },
+  2: { text: '已下线', color: 'error' },
 }
 
 const columns = [
@@ -56,7 +57,7 @@ const columns = [
   { title: '浏览', dataIndex: 'viewCount', width: 80 },
   { title: '点赞', dataIndex: 'likeCount', width: 80 },
   { title: '创建时间', dataIndex: 'createdTime', width: 160 },
-  { title: '操作', key: 'action', width: 240, fixed: 'right' },
+  { title: '操作', key: 'action', width: 180, fixed: 'right' },
 ]
 
 const fetchData = async () => {
@@ -86,6 +87,14 @@ const fetchCategories = async () => {
 }
 
 const doSearch = () => {
+  searchParams.pageNum = 1
+  fetchData()
+}
+
+const doReset = () => {
+  searchParams.title = ''
+  searchParams.status = undefined
+  searchParams.categoryId = undefined
   searchParams.pageNum = 1
   fetchData()
 }
@@ -161,42 +170,60 @@ onMounted(() => {
 
 <template>
   <div class="blog-manager-page admin-theme-page">
-    <!-- 搜索表单 -->
-    <a-form layout="inline" :model="searchParams" style="margin-bottom: 16px" @finish="doSearch">
-      <a-form-item label="文章标题">
-        <a-input v-model:value="searchParams.title" placeholder="输入文章标题" allow-clear style="width: 200px" />
-      </a-form-item>
-      <a-form-item label="分类">
-        <a-select
-          v-model:value="searchParams.categoryId"
-          placeholder="全部"
-          allow-clear
-          style="width: 140px"
-        >
-          <a-select-option v-for="cat in categoryOptions" :key="cat.id" :value="cat.id">
-            {{ cat.name }}
-          </a-select-option>
-        </a-select>
-      </a-form-item>
-      <a-form-item label="状态">
-        <a-select
-          v-model:value="searchParams.status"
-          placeholder="全部"
-          allow-clear
-          style="width: 120px"
-        >
-          <a-select-option :value="0">待审核</a-select-option>
-          <a-select-option :value="1">已发布</a-select-option>
-          <a-select-option :value="2">已下线</a-select-option>
-        </a-select>
-      </a-form-item>
-      <a-form-item>
-        <a-button type="primary" html-type="submit">搜索</a-button>
-        <a-button style="margin-left: 8px" @click="() => { searchParams.title = ''; searchParams.status = undefined; searchParams.categoryId = undefined; doSearch(); }">重置</a-button>
-      </a-form-item>
-    </a-form>
+    <!-- 面包屑 -->
+    <a-breadcrumb class="admin-breadcrumb">
+      <a-breadcrumb-item>管理</a-breadcrumb-item>
+      <a-breadcrumb-item>博客管理</a-breadcrumb-item>
+    </a-breadcrumb>
 
-    <a-card title="博客管理" :bordered="false">
+    <!-- 页面头部 -->
+    <div class="admin-page-hero">
+      <div class="hero-left">
+        <div class="hero-title"><PenTool :size="22" /> 博客管理</div>
+        <div class="hero-subtitle">共 {{ total }} 篇文章 · 管理平台所有博客内容</div>
+      </div>
+      <div class="hero-extra">
+        <a-button type="primary" ghost @click="router.push('/blog/edit/0')">
+          ＋ 写文章
+        </a-button>
+      </div>
+    </div>
+
+    <!-- 筛选栏 -->
+    <div class="admin-filter-bar">
+      <a-input
+        v-model:value="searchParams.title"
+        allow-clear
+        placeholder="搜索文章标题…"
+        style="width: 200px"
+        @pressEnter="doSearch"
+      />
+      <a-select
+        v-model:value="searchParams.categoryId"
+        placeholder="选择分类"
+        allow-clear
+        style="width: 140px"
+      >
+        <a-select-option v-for="cat in categoryOptions" :key="cat.id" :value="cat.id">
+          {{ cat.name }}
+        </a-select-option>
+      </a-select>
+      <a-select
+        v-model:value="searchParams.status"
+        placeholder="发布状态"
+        allow-clear
+        style="width: 120px"
+      >
+        <a-select-option :value="0">待审核</a-select-option>
+        <a-select-option :value="1">已发布</a-select-option>
+        <a-select-option :value="2">已下线</a-select-option>
+      </a-select>
+      <a-button type="primary" @click="doSearch">搜索</a-button>
+      <a-button @click="doReset">重置</a-button>
+    </div>
+
+    <!-- 数据表格 -->
+    <a-card :bordered="false">
       <a-table
         :data-source="dataSource"
         :columns="columns"
@@ -221,7 +248,7 @@ onMounted(() => {
           </template>
           <template v-else-if="column.dataIndex === 'isTop'">
             <a-tag v-if="record.isTop === 1" color="gold">置顶</a-tag>
-            <span v-else style="color: #ccc">-</span>
+            <span v-else style="color: var(--color-text-muted)">-</span>
           </template>
           <template v-else-if="column.dataIndex === 'viewCount'">
             {{ record.viewCount ?? 0 }}
@@ -233,23 +260,28 @@ onMounted(() => {
             {{ formatTime(record.createdTime) }}
           </template>
           <template v-else-if="column.key === 'action'">
-            <a-space>
+            <a-space :size="4">
               <a-button type="link" size="small" @click="doEdit(record.id!)">编辑</a-button>
-              <a-button
-                type="link"
-                size="small"
-                @click="doToggleStatus(record)"
-              >
+              <a-button type="link" size="small" @click="doToggleStatus(record)">
                 {{ record.status === 1 ? '下线' : '发布' }}
               </a-button>
-              <a-button
-                type="link"
-                size="small"
-                @click="doToggleTop(record)"
-              >
-                {{ record.isTop === 1 ? '取消置顶' : '置顶' }}
-              </a-button>
-              <a-button danger size="small" @click="doDelete(record.id!)">删除</a-button>
+              <a-dropdown :trigger="['click']" placement="bottomRight">
+                <button class="admin-action-trigger" title="更多操作">···</button>
+                <template #overlay>
+                  <a-menu @click="({ key }: { key: string }) => {
+                    if (key === 'toggleTop') doToggleTop(record)
+                    else if (key === 'delete') doDelete(record.id!)
+                  }">
+                    <a-menu-item key="toggleTop">
+                      {{ record.isTop === 1 ? '取消置顶' : '置顶' }}
+                    </a-menu-item>
+                    <a-menu-divider />
+                    <a-menu-item key="delete" danger>
+                      <span style="color: var(--color-error)">删除</span>
+                    </a-menu-item>
+                  </a-menu>
+                </template>
+              </a-dropdown>
             </a-space>
           </template>
         </template>
@@ -262,8 +294,5 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.blog-manager-page {
-  max-width: 1200px;
-  margin: 0 auto;
-}
+/* admin-theme.css handles all theming */
 </style>

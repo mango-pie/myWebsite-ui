@@ -8,6 +8,7 @@ import { message } from 'ant-design-vue'
 import { deleteUser, listUserVoByPage, updateUser } from '@/api/userController.ts'
 import { Modal } from 'ant-design-vue'
 import '@/assets/admin-theme.css'
+import { Users } from 'lucide-vue-next'
 
 /** 表格行数据类型，与后端 UserVO 对应 */
 type ManagerRow = API.UserVO
@@ -85,6 +86,13 @@ const doSearch = () => {
   fetchData()
 }
 
+const doReset = () => {
+  searchParams.userAccount = undefined
+  searchParams.userName = undefined
+  searchParams.pageNum = 1
+  fetchData()
+}
+
 onMounted(() => {
   fetchData()
 })
@@ -154,28 +162,52 @@ const doEditSubmit = async () => {
     editSubmitting.value = false
   }
 }
+
+const roleColorMap: Record<string, string> = {
+  admin: 'processing',
+  administrator: 'error',
+  user: 'default',
+}
 </script>
 
 <template>
-  <div id="userManagePage" class="admin-theme-page">
-    <!-- 搜索表单 -->
-    <a-form layout="inline" :model="searchParams" @finish="doSearch">
-      <a-form-item label="账号">
-        <a-input v-model:value="searchParams.userAccount" placeholder="输入账号" />
-      </a-form-item>
-      <a-form-item label="用户名">
-        <a-input v-model:value="searchParams.userName" placeholder="输入用户名" />
-      </a-form-item>
-      <a-form-item>
-        <a-button type="primary" html-type="submit">搜索</a-button>
-      </a-form-item>
-    </a-form>
-    <a-divider />
-    <!-- 表格 -->
-  </div>
-
   <div class="user-manager-page admin-theme-page">
-    <a-card title="用户管理" :bordered="false" class="user-manager-card">
+    <!-- 面包屑 -->
+    <a-breadcrumb class="admin-breadcrumb">
+      <a-breadcrumb-item>管理</a-breadcrumb-item>
+      <a-breadcrumb-item>用户管理</a-breadcrumb-item>
+    </a-breadcrumb>
+
+    <!-- 页面头部 -->
+    <div class="admin-page-hero">
+      <div class="hero-left">
+        <div class="hero-title"><Users :size="22" /> 用户管理</div>
+        <div class="hero-subtitle">共 {{ total }} 个用户 · 管理平台所有注册用户</div>
+      </div>
+    </div>
+
+    <!-- 筛选栏 -->
+    <div class="admin-filter-bar">
+      <a-input
+        v-model:value="searchParams.userAccount"
+        allow-clear
+        placeholder="搜索账号…"
+        style="width: 180px"
+        @pressEnter="doSearch"
+      />
+      <a-input
+        v-model:value="searchParams.userName"
+        allow-clear
+        placeholder="搜索用户名…"
+        style="width: 180px"
+        @pressEnter="doSearch"
+      />
+      <a-button type="primary" @click="doSearch">搜索</a-button>
+      <a-button @click="doReset">重置</a-button>
+    </div>
+
+    <!-- 数据表格 -->
+    <a-card :bordered="false">
       <a-table
         :data-source="dataSource"
         :columns="columns"
@@ -197,23 +229,23 @@ const doEditSubmit = async () => {
             <a-avatar
               v-if="record.userAvatar"
               :src="record.userAvatar"
-              :size="56"
-              class="user-avatar"
+              :size="48"
+              shape="square"
             />
-            <span v-else class="no-avatar">-</span>
+            <span v-else style="color: var(--color-text-muted); font-size: 12px">-</span>
           </template>
           <template v-else-if="column.dataIndex === 'userRole'">
-            <a-tag v-if="record.userRole === 'admin'" color="green"> 管理员 </a-tag>
-            <a-tag v-else-if="record.userRole === 'administrator'" color="red"> 管理人 </a-tag>
-            <a-tag v-else color="blue">普通用户</a-tag>
+            <a-tag :color="roleColorMap[record.userRole ?? 'user']">
+              {{ record.userRole === 'admin' ? '管理员' : record.userRole === 'administrator' ? '管理人' : '普通用户' }}
+            </a-tag>
           </template>
           <template v-else-if="column.dataIndex === 'createTime'">
             {{ formatTime(record.createTime) }}
           </template>
           <template v-else-if="column.key === 'action'">
-            <a-space>
+            <a-space :size="4">
               <a-button type="link" size="small" @click="openEdit(record)">编辑</a-button>
-              <a-button danger size="small" @click="doDelete(record.id)">删除</a-button>
+              <a-button type="link" danger size="small" @click="doDelete(record.id)">删除</a-button>
             </a-space>
           </template>
         </template>
@@ -242,7 +274,7 @@ const doEditSubmit = async () => {
             v-if="editForm.userAvatar"
             :src="editForm.userAvatar"
             :size="48"
-            class="edit-avatar-preview"
+            style="display: block; margin-top: 8px; border-radius: 8px"
           />
         </a-form-item>
         <a-form-item label="个人简介">
@@ -266,38 +298,5 @@ const doEditSubmit = async () => {
 </template>
 
 <style scoped>
-.user-manager-page {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.user-manager-card {
-  border-radius: 12px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-}
-
-.user-manager-card :deep(.ant-card-head) {
-  border-bottom: 1px solid #f0f0f0;
-  font-weight: 600;
-}
-
-.user-manager-card :deep(.ant-table) {
-  font-size: 13px;
-}
-
-.user-avatar {
-  display: block;
-  border-radius: 8px;
-}
-
-.no-avatar {
-  color: rgba(0, 0, 0, 0.25);
-  font-size: 12px;
-}
-
-.edit-avatar-preview {
-  display: block;
-  margin-top: 8px;
-  border-radius: 8px;
-}
+/* admin-theme.css handles all theming */
 </style>

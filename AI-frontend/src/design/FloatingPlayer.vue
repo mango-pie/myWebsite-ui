@@ -31,7 +31,7 @@ const {
 const { isLoggedIn, loginStatus, loginError, loginStatusText, qrCodeUrl, handleLogin, handleLogout } = useNeteaseLogin();
 
 const position = ref({ x: 20, y: 100 });
-const displayMode = ref<'float' | 'dock'>('float');
+const displayMode = ref<'float' | 'dock'>('dock');
 const isDragging = ref(false);
 const dragOffset = ref({ x: 0, y: 0 });
 const isExpanded = ref(false);

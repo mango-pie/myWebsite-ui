@@ -1,19 +1,30 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { SendOutlined } from '@ant-design/icons-vue'
 import { addApp } from '@/api/appController'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { siteConfig } from '@/config/site'
+import { loadAppSettings, type AppUxSettings } from '@/utils/appSettings'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 const quickPrompts = [...siteConfig.quickPrompts]
 const initPrompt = ref('')
 const creating = ref(false)
+const appUx = ref<AppUxSettings>({
+  codegenEnabled: true,
+  defaultCodeGenType: 'html',
+  deployEnabled: true,
+  publicHostDisplay: '',
+})
 
 const handleCreate = async () => {
+  if (!appUx.value.codegenEnabled) {
+    message.warning('应用生成已在站点设置中关闭')
+    return
+  }
   if (!initPrompt.value.trim()) {
     message.warning('请输入提示词')
     return
@@ -28,7 +39,7 @@ const handleCreate = async () => {
     const res = await addApp({
       initPrompt: initPrompt.value.trim(),
       appName: initPrompt.value.trim().slice(0, 20),
-      codeGenType: 'multi_file',
+      codeGenType: appUx.value.defaultCodeGenType || 'html',
     })
     if (res.data.code === 0 && res.data.data) {
       router.push('/app/chat/' + res.data.data + '?initPrompt=' + encodeURIComponent(initPrompt.value.trim()))
@@ -39,11 +50,22 @@ const handleCreate = async () => {
     creating.value = false
   }
 }
+
+onMounted(async () => {
+  appUx.value = await loadAppSettings()
+})
 </script>
 
 <template>
   <div class="lab-create">
-    <div class="lab-create__input-wrap">
+    <a-alert
+      v-if="!appUx.codegenEnabled"
+      type="warning"
+      show-icon
+      style="margin-bottom: 16px"
+      message="应用生成已关闭。管理员可在「站点设置 → 应用生成」中重新开启。"
+    />
+    <div v-else class="lab-create__input-wrap">
       <a-textarea
         v-model:value="initPrompt"
         :placeholder="siteConfig.heroLabPlaceholder"
@@ -64,7 +86,7 @@ const handleCreate = async () => {
         </a-button>
       </div>
     </div>
-    <div class="lab-create__quick-tags">
+    <div v-if="appUx.codegenEnabled" class="lab-create__quick-tags">
       <span class="lab-create__quick-label">快捷提示</span>
       <a-tag
         v-for="tag in quickPrompts"

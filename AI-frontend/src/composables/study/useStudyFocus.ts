@@ -92,8 +92,9 @@ export function useStudyFocusState(
     await refreshFocusHistory()
   }
 
-  async function startFocusSession(taskId?: number, plannedMinutes = 25) {
-    const res = await startFocus({ taskId, plannedMinutes, focusType: 0 })
+  async function startFocusSession(taskId?: number, plannedMinutes?: number) {
+    const minutes = plannedMinutes ?? 25
+    const res = await startFocus({ taskId, plannedMinutes: minutes, focusType: 0 })
     if (res.data.code === 50004) {
       message.warning(res.data.message || '已有进行中的专注会话')
       await refreshActiveFocus()

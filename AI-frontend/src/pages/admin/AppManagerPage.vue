@@ -8,6 +8,7 @@ import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { listAppByPageForAdmin, deleteAppByAdmin, updateAppByAdmin } from '@/api/appController.ts'
 import '@/assets/admin-theme.css'
+import { AppWindowMac } from 'lucide-vue-next'
 
 const router = useRouter()
 const dataSource = ref<API.AppVO[]>([])
@@ -44,7 +45,7 @@ const columns = [
   { title: '优先级', dataIndex: 'priority', width: 80 },
   { title: '创建者', dataIndex: 'userId', width: 80 },
   { title: '创建时间', dataIndex: 'createTime', width: 160 },
-  { title: '操作', key: 'action', width: 200, fixed: 'right' },
+  { title: '操作', key: 'action', width: 180, fixed: 'right' },
 ]
 
 const fetchData = async () => {
@@ -63,6 +64,13 @@ const fetchData = async () => {
 }
 
 const doSearch = () => {
+  searchParams.pageNum = 1
+  fetchData()
+}
+
+const doReset = () => {
+  searchParams.appName = ''
+  searchParams.codeGenType = undefined
   searchParams.pageNum = 1
   fetchData()
 }
@@ -107,34 +115,54 @@ const doFeatured = (record: API.AppVO) => {
   })
 }
 
-onMounted(fetchData)
+const codeGenTypeMap: Record<string, { label: string; color: string }> = {
+  chat: { label: '对话', color: 'purple' },
+  multi_file: { label: '多文件', color: 'cyan' },
+  html: { label: 'HTML', color: 'green' },
+}
 </script>
 
 <template>
   <div class="app-manager-page admin-theme-page">
-    <!-- 搜索表单 -->
-    <a-form layout="inline" :model="searchParams" style="margin-bottom: 16px" @finish="doSearch">
-      <a-form-item label="应用名称">
-        <a-input v-model:value="searchParams.appName" placeholder="输入应用名称" allow-clear />
-      </a-form-item>
-      <a-form-item label="类型">
-        <a-select
-          v-model:value="searchParams.codeGenType"
-          placeholder="全部"
-          allow-clear
-          style="width: 140px"
-        >
-          <a-select-option value="chat">chat（对话）</a-select-option>
-          <a-select-option value="multi_file">multi_file</a-select-option>
-          <a-select-option value="html">html</a-select-option>
-        </a-select>
-      </a-form-item>
-      <a-form-item>
-        <a-button type="primary" html-type="submit">搜索</a-button>
-      </a-form-item>
-    </a-form>
+    <!-- 面包屑 -->
+    <a-breadcrumb class="admin-breadcrumb">
+      <a-breadcrumb-item>管理</a-breadcrumb-item>
+      <a-breadcrumb-item>应用管理</a-breadcrumb-item>
+    </a-breadcrumb>
 
-    <a-card title="应用管理" :bordered="false">
+    <!-- 页面头部 -->
+    <div class="admin-page-hero">
+      <div class="hero-left">
+        <div class="hero-title"><AppWindowMac :size="22" /> 应用管理</div>
+        <div class="hero-subtitle">共 {{ total }} 个应用 · 管理平台所有 AI 应用</div>
+      </div>
+    </div>
+
+    <!-- 筛选栏 -->
+    <div class="admin-filter-bar">
+      <a-input
+        v-model:value="searchParams.appName"
+        allow-clear
+        placeholder="搜索应用名称…"
+        style="width: 200px"
+        @pressEnter="doSearch"
+      />
+      <a-select
+        v-model:value="searchParams.codeGenType"
+        placeholder="选择类型"
+        allow-clear
+        style="width: 150px"
+      >
+        <a-select-option value="chat">chat（对话）</a-select-option>
+        <a-select-option value="multi_file">multi_file</a-select-option>
+        <a-select-option value="html">html</a-select-option>
+      </a-select>
+      <a-button type="primary" @click="doSearch">搜索</a-button>
+      <a-button @click="doReset">重置</a-button>
+    </div>
+
+    <!-- 数据表格 -->
+    <a-card :bordered="false">
       <a-table
         :data-source="dataSource"
         :columns="columns"
@@ -154,12 +182,12 @@ onMounted(fetchData)
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'cover'">
             <a-avatar v-if="record.cover" :src="record.cover" shape="square" :size="48" />
-            <span v-else style="color: #ccc">-</span>
+            <span v-else style="color: var(--color-text-muted); font-size: 12px">-</span>
           </template>
           <template v-else-if="column.dataIndex === 'codeGenType'">
-            <a-tag v-if="record.codeGenType === 'chat'" color="purple">对话</a-tag>
-            <a-tag v-else-if="record.codeGenType === 'multi_file'" color="blue">多文件</a-tag>
-            <a-tag v-else color="green">{{ record.codeGenType ?? '-' }}</a-tag>
+            <a-tag :color="codeGenTypeMap[record.codeGenType ?? '']?.color || 'default'">
+              {{ codeGenTypeMap[record.codeGenType ?? '']?.label || (record.codeGenType ?? '-') }}
+            </a-tag>
           </template>
           <template v-else-if="column.dataIndex === 'priority'">
             <a-tag v-if="record.priority >= 99" color="gold">精选</a-tag>
@@ -169,7 +197,7 @@ onMounted(fetchData)
             {{ formatTime(record.createTime) }}
           </template>
           <template v-else-if="column.key === 'action'">
-            <a-space>
+            <a-space :size="4">
               <a-button
                 type="link"
                 size="small"
@@ -177,8 +205,21 @@ onMounted(fetchData)
               >
                 编辑
               </a-button>
-              <a-button type="link" size="small" @click="doFeatured(record)">精选</a-button>
-              <a-button danger size="small" @click="doDelete(record.id)">删除</a-button>
+              <a-dropdown :trigger="['click']" placement="bottomRight">
+                <button class="admin-action-trigger" title="更多操作">···</button>
+                <template #overlay>
+                  <a-menu @click="({ key }: { key: string }) => {
+                    if (key === 'featured') doFeatured(record)
+                    else if (key === 'delete') doDelete(record.id)
+                  }">
+                    <a-menu-item key="featured">设为精选</a-menu-item>
+                    <a-menu-divider />
+                    <a-menu-item key="delete" danger>
+                      <span style="color: var(--color-error)">删除</span>
+                    </a-menu-item>
+                  </a-menu>
+                </template>
+              </a-dropdown>
             </a-space>
           </template>
         </template>
@@ -191,8 +232,5 @@ onMounted(fetchData)
 </template>
 
 <style scoped>
-.app-manager-page {
-  max-width: 1200px;
-  margin: 0 auto;
-}
+/* admin-theme.css handles all theming */
 </style>

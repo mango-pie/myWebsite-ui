@@ -1344,6 +1344,8 @@ declare namespace API {
     lists?: StudyListVO[]
     todayStats?: StudyTodayStatsVO
     activeFocus?: StudyFocusSessionVO
+    /** 工作台是否展示清单（来自站点设置） */
+    showChecklist?: boolean
   }
 
   type toggleTopStatusParams = {
@@ -1352,6 +1354,7 @@ declare namespace API {
   }
 
   type TtsConfigVO = {
+    enabled?: boolean
     defaultVoiceId?: number
     defaultVoiceName?: string
     gptSovitsAvailable?: boolean
@@ -1476,5 +1479,749 @@ declare namespace API {
     userProfile?: string
     userRole?: string
     createTime?: string
+  }
+
+  // ---------- Knowledge AI (/kb, /admin/knowledge) ----------
+  type KnowledgeParseStatus = 'PENDING' | 'PARSING' | 'SUCCESS' | 'FAILED' | string
+
+  type KnowledgeBaseVO = {
+    id?: number | string
+    name?: string
+    description?: string
+    userId?: number | string
+    visibility?: string
+    status?: number
+    documentCount?: number
+    createTime?: string
+    updateTime?: string
+  }
+
+  type KnowledgeBaseCreateRequest = {
+    name: string
+    description?: string
+    visibility?: string
+  }
+
+  type KnowledgeBaseUpdateRequest = {
+    name?: string
+    description?: string
+    visibility?: string
+    status?: number
+  }
+
+  type KnowledgeBaseQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+    name?: string
+    visibility?: string
+    status?: number
+  }
+
+  type PageKnowledgeBaseVO = {
+    records?: KnowledgeBaseVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type KnowledgeDocumentVO = {
+    id?: number | string
+    knowledgeBaseId?: number | string
+    userId?: number | string
+    sourceDocumentId?: number | string
+    fileName?: string
+    fileType?: string
+    fileSize?: number
+    bucketName?: string
+    objectKey?: string
+    parseStatus?: KnowledgeParseStatus
+    chunkCount?: number
+    errorMessage?: string
+    parsedAt?: string
+    createTime?: string
+    updateTime?: string
+  }
+
+  type KnowledgeDocumentQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+    fileName?: string
+    fileType?: string
+    parseStatus?: string
+  }
+
+  type PageKnowledgeDocumentVO = {
+    records?: KnowledgeDocumentVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type KnowledgeChunkVO = {
+    id?: number | string
+    knowledgeBaseId?: number | string
+    knowledgeDocumentId?: number | string
+    sourceDocumentId?: number | string
+    chunkIndex?: number
+    heading?: string
+    content?: string
+    tokenCount?: number
+    metadata?: string
+    createTime?: string
+    score?: number
+  }
+
+  type KnowledgeDownloadUrlVO = {
+    url?: string
+    expireSeconds?: number
+  }
+
+  type KnowledgeConversationVO = {
+    id?: number | string
+    userId?: number | string
+    knowledgeBaseId?: number | string
+    title?: string
+    lastMessage?: string
+    createTime?: string
+    updateTime?: string
+  }
+
+  type KnowledgeReferenceVO = {
+    chunkId?: number | string
+    knowledgeDocumentId?: number | string
+    sourceDocumentId?: number | string
+    chunkIndex?: number
+    documentName?: string
+    content?: string
+    similarity?: number
+  }
+
+  type KnowledgeMessageVO = {
+    id?: number | string
+    conversationId?: number | string
+    userId?: number | string
+    role?: 'USER' | 'ASSISTANT' | 'SYSTEM' | string
+    content?: string
+    modelName?: string
+    createTime?: string
+    references?: KnowledgeReferenceVO[]
+  }
+
+  type PageKnowledgeMessageVO = {
+    records?: KnowledgeMessageVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type KnowledgeChatRequest = {
+    conversationId?: number | string
+    knowledgeBaseId: number | string
+    sourceDocumentId?: number | string
+    mode?: 'knowledgeBase' | 'document' | string
+    question: string
+    topK?: number
+  }
+
+  type KnowledgeChatResponse = {
+    conversationId?: number | string
+    userMessageId?: number | string
+    assistantMessageId?: number | string
+    answer?: string
+    references?: KnowledgeReferenceVO[]
+  }
+
+  type KnowledgeProcessRequest = {
+    inputType?: string
+    url: string
+    knowledgeBaseId?: number | string
+    title?: string
+    tags?: string
+    generateSummary?: boolean
+    enableRag?: boolean
+  }
+
+  type KnowledgeSourceDocument = {
+    id?: number | string
+    title?: string
+    userId?: number | string
+    knowledgeBaseId?: number | string
+    knowledgeDocumentId?: number | string
+    sourceType?: string
+    sourceUrl?: string
+    bucketName?: string
+    objectKey?: string
+    rawText?: string
+    status?: string
+    errorMsg?: string
+    createTime?: string
+    updateTime?: string
+  }
+
+  type KnowledgeNote = {
+    id?: number | string
+    sourceDocumentId?: number | string
+    blogPostId?: number | string
+    knowledgeDocumentId?: number | string
+    title?: string
+    distilledMd?: string
+    tags?: string
+    status?: string
+    errorMsg?: string
+    publishStatus?: string
+    indexStatus?: string
+    viewCount?: number
+    createTime?: string
+    updateTime?: string
+    lastDistilledAt?: string
+    lastEditedAt?: string
+    lastPublishedAt?: string
+    lastIndexedAt?: string
+  }
+
+  type KnowledgeNoteVO = {
+    id?: number | string
+    sourceDocumentId?: number | string
+    blogPostId?: number | string
+    knowledgeDocumentId?: number | string
+    title?: string
+    tags?: string
+    sourceType?: string
+    sourceUrl?: string
+    status?: string
+    publishStatus?: string
+    indexStatus?: string
+    createTime?: string
+    updateTime?: string
+    lastEditedAt?: string
+    lastPublishedAt?: string
+    lastIndexedAt?: string
+  }
+
+  type KnowledgeNoteDetailVO = {
+    note?: KnowledgeNoteVO
+    source?: KnowledgeSourceDocument
+    rawTextSummary?: string
+    rawText?: string
+    distilledMd?: string
+    blogPost?: BlogPostVO
+    knowledgeDocument?: KnowledgeDocumentVO
+  }
+
+  type KnowledgeNoteQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    keyword?: string
+    sourceType?: string
+    publishStatus?: string
+    indexStatus?: string
+  }
+
+  type KnowledgeNoteUpdateRequest = {
+    title?: string
+    tags?: string
+    distilledMd?: string
+  }
+
+  type KnowledgeNotePublishRequest = {
+    categoryId?: number | string
+    tagIds?: (number | string)[]
+    /** 0 草稿，1 发布 */
+    status?: number
+  }
+
+  type KnowledgeNoteIndexRequest = {
+    knowledgeBaseId?: number | string
+    knowledgeBaseName?: string
+    knowledgeBaseDescription?: string
+  }
+
+  type KnowledgeIngestUrlRequest = {
+    url: string
+    title?: string
+    tags?: string
+    /** URL or AGENT */
+    sourceType?: string
+    /** AGENT 溯源：学习目标 */
+    agentQuery?: string
+  }
+
+  type KnowledgeIngestFileRequest = {
+    title?: string
+    tags?: string
+  }
+
+  /** POST /admin/knowledge/ingest/batch-url — 多源合并为 1 篇 note */
+  type KnowledgeIngestBatchUrlRequest = {
+    urls: string[]
+    sourceType?: string
+    agentQuery?: string
+    /** 本次合蒸覆盖 Prompt；为空时使用 reading.distill.system_prompt */
+    distillPrompt?: string
+    tags?: string
+  }
+
+  type KnowledgeIngestFailedSourceVO = {
+    url?: string
+    reasonCode?: string | null
+    errorMessage?: string | null
+  }
+
+  type KnowledgeIngestUsedSourceVO = {
+    url?: string
+    title?: string | null
+    /** 该来源读到的材料字数 */
+    bodyChars?: number | null
+  }
+
+  type KnowledgeIngestBatchResultVO = {
+    success?: boolean
+    noteId?: number | string | null
+    title?: string | null
+    total?: number
+    /** 成功参与合并的来源数 */
+    usedCount?: number
+    failCount?: number
+    warning?: string | null
+    usedSources?: KnowledgeIngestUsedSourceVO[]
+    failedSources?: KnowledgeIngestFailedSourceVO[]
+  }
+
+  type KnowledgeSearchPreviewRequest = {
+    goal?: string
+    preference?: string
+  }
+
+  type KnowledgeSearchCandidate = {
+    title?: string
+    url?: string
+    summary?: string
+    source?: string
+    score?: number
+    recommendReason?: string
+    /** 如 COURSE_LANDING / PAYWALL_LIKELY / VIDEO_HOST */
+    riskFlags?: string[]
+  }
+
+  type KnowledgeSearchPreviewVO = {
+    goal?: string
+    outline?: string
+    candidates?: KnowledgeSearchCandidate[]
+  }
+
+  type PageKnowledgeNoteVO = {
+    records?: KnowledgeNoteVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type BaseResponseKnowledgeNoteVO = {
+    code?: number
+    data?: KnowledgeNoteVO
+    message?: string
+  }
+
+  type BaseResponsePageKnowledgeNoteVO = {
+    code?: number
+    data?: PageKnowledgeNoteVO
+    message?: string
+  }
+
+  type BaseResponseKnowledgeNoteDetailVO = {
+    code?: number
+    data?: KnowledgeNoteDetailVO
+    message?: string
+  }
+
+  type BaseResponseKnowledgeSearchPreviewVO = {
+    code?: number
+    data?: KnowledgeSearchPreviewVO
+    message?: string
+  }
+
+  type BaseResponseKnowledgeIngestBatchResultVO = {
+    code?: number
+    data?: KnowledgeIngestBatchResultVO
+    message?: string
+  }
+
+  type BaseResponseKnowledgeBaseVO = {
+    code?: number
+    data?: KnowledgeBaseVO
+    message?: string
+  }
+
+  type BaseResponsePageKnowledgeBaseVO = {
+    code?: number
+    data?: PageKnowledgeBaseVO
+    message?: string
+  }
+
+  type BaseResponseKnowledgeDocumentVO = {
+    code?: number
+    data?: KnowledgeDocumentVO
+    message?: string
+  }
+
+  type BaseResponsePageKnowledgeDocumentVO = {
+    code?: number
+    data?: PageKnowledgeDocumentVO
+    message?: string
+  }
+
+  type BaseResponseKnowledgeDownloadUrlVO = {
+    code?: number
+    data?: KnowledgeDownloadUrlVO
+    message?: string
+  }
+
+  type BaseResponseListKnowledgeChunkVO = {
+    code?: number
+    data?: KnowledgeChunkVO[]
+    message?: string
+  }
+
+  type BaseResponseListKnowledgeConversationVO = {
+    code?: number
+    data?: KnowledgeConversationVO[]
+    message?: string
+  }
+
+  type BaseResponsePageKnowledgeMessageVO = {
+    code?: number
+    data?: PageKnowledgeMessageVO
+    message?: string
+  }
+
+  type BaseResponseKnowledgeChatResponse = {
+    code?: number
+    data?: KnowledgeChatResponse
+    message?: string
+  }
+
+  type BaseResponseKnowledgeSourceDocument = {
+    code?: number
+    data?: KnowledgeSourceDocument
+    message?: string
+  }
+
+  type BaseResponseKnowledgeNote = {
+    code?: number
+    data?: KnowledgeNote
+    message?: string
+  }
+
+  /** 全站设置中心 */
+  type SettingModuleVO = {
+    code?: string
+    displayName?: string
+    phase?: string
+    writable?: boolean
+  }
+
+  type SiteSettingsBootstrapVO = {
+    admin?: boolean
+    siteName?: string
+    siteSlogan?: string
+    modules?: SettingModuleVO[]
+  }
+
+  type SettingFieldSchemaVO = {
+    key?: string
+    valueType?: string
+    label?: string
+    description?: string
+    defaultValue?: unknown
+    sensitive?: boolean
+    min?: number
+    max?: number
+    enumValues?: string[]
+    danger?: boolean
+    /** 危险项副作用说明（如需手动重建索引） */
+    sideEffect?: string
+  }
+
+  type SettingModuleSchemaVO = {
+    module?: string
+    displayName?: string
+    fields?: SettingFieldSchemaVO[]
+  }
+
+  type SettingFieldMetaVO = {
+    source?: string
+    sensitive?: boolean
+    configured?: boolean
+  }
+
+  /** 敏感字段脱敏形态 */
+  type SettingSensitiveValue = {
+    configured?: boolean
+    hint?: string
+  }
+
+  type SettingModuleValuesVO = {
+    module?: string
+    values?: Record<string, unknown>
+    meta?: Record<string, SettingFieldMetaVO>
+  }
+
+  type SiteSettingUpdateRequest = {
+    items?: Record<string, unknown>
+  }
+
+  type IntegrationTestRequest = {
+    target?: string
+  }
+
+  type IntegrationTestResultVO = {
+    target?: string
+    ok?: boolean
+    latencyMs?: number
+    message?: string
+  }
+
+  type BaseResponseSiteSettingsBootstrapVO = {
+    code?: number
+    data?: SiteSettingsBootstrapVO
+    message?: string
+  }
+
+  type BaseResponseListSettingModuleVO = {
+    code?: number
+    data?: SettingModuleVO[]
+    message?: string
+  }
+
+  type BaseResponseSettingModuleSchemaVO = {
+    code?: number
+    data?: SettingModuleSchemaVO
+    message?: string
+  }
+
+  type BaseResponseSettingModuleValuesVO = {
+    code?: number
+    data?: SettingModuleValuesVO
+    message?: string
+  }
+
+  type BaseResponseIntegrationTestResultVO = {
+    code?: number
+    data?: IntegrationTestResultVO
+    message?: string
+  }
+
+  type BaseResponseListIntegrationTestResultVO = {
+    code?: number
+    data?: IntegrationTestResultVO[]
+    message?: string
+  }
+
+  type SiteSettingAuditVO = {
+    id?: number | string
+    module?: string
+    settingKey?: string
+    oldValue?: string
+    newValue?: string
+    operatorId?: number | string
+    action?: string
+    createTime?: string
+  }
+
+  type SiteSettingAuditQueryRequest = {
+    module?: string
+    pageNum?: number
+    pageSize?: number
+  }
+
+  type PageSiteSettingAuditVO = {
+    records?: SiteSettingAuditVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type BaseResponsePageSiteSettingAuditVO = {
+    code?: number
+    data?: PageSiteSettingAuditVO
+    message?: string
+  }
+
+  /** 运维可观测 · AI 用量汇总 */
+  type OpsUsageSummaryVO = {
+    requestCount?: number
+    successCount?: number
+    errorCount?: number
+    totalTokens?: number | null
+    avgLatencyMs?: number | null
+    byScene?: Record<string, number>
+    byModel?: Record<string, number>
+  }
+
+  type OpsUsageSummaryQueryRequest = {
+    from?: string
+    to?: string
+  }
+
+  type BaseResponseOpsUsageSummaryVO = {
+    code?: number
+    data?: OpsUsageSummaryVO
+    message?: string
+  }
+
+  /** 运维可观测 · AI 用量明细 */
+  type OpsUsageLogVO = {
+    id?: number | string
+    userId?: number | string | null
+    scene?: string
+    conversationId?: number | string | null
+    modelName?: string
+    promptTokens?: number | null
+    completionTokens?: number | null
+    totalTokens?: number | null
+    responseTimeMs?: number | null
+    status?: string
+    errorMessage?: string | null
+    requestSummary?: string | null
+    createTime?: string
+  }
+
+  type OpsUsageLogQueryRequest = {
+    scene?: string
+    userId?: number | string
+    from?: string
+    to?: string
+    pageNum?: number
+    pageSize?: number
+  }
+
+  type PageOpsUsageLogVO = {
+    records?: OpsUsageLogVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type BaseResponsePageOpsUsageLogVO = {
+    code?: number
+    data?: PageOpsUsageLogVO
+    message?: string
+  }
+
+  /** 运维可观测 · 操作审计 */
+  type OpsAuditLogVO = {
+    id?: number | string
+    operatorId?: number | string | null
+    action?: string
+    resourceType?: string
+    resourceId?: string | null
+    ip?: string | null
+    detailJson?: string | null
+    success?: boolean
+    createTime?: string
+  }
+
+  type OpsAuditLogQueryRequest = {
+    action?: string
+    operatorId?: number | string
+    from?: string
+    to?: string
+    pageNum?: number
+    pageSize?: number
+  }
+
+  type PageOpsAuditLogVO = {
+    records?: OpsAuditLogVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type BaseResponsePageOpsAuditLogVO = {
+    code?: number
+    data?: PageOpsAuditLogVO
+    message?: string
+  }
+
+  /** 运维可观测 · 业务日统计 */
+  type OpsBizStatsOverviewVO = {
+    totals?: Record<string, number>
+  }
+
+  type OpsBizStatsQueryRequest = {
+    from?: string
+    to?: string
+  }
+
+  type BaseResponseOpsBizStatsOverviewVO = {
+    code?: number
+    data?: OpsBizStatsOverviewVO
+    message?: string
+  }
+
+  type OpsBizStatsPointVO = {
+    date?: string
+    value?: number
+  }
+
+  type OpsBizStatsSeriesQueryRequest = {
+    metric: string
+    from?: string
+    to?: string
+  }
+
+  type BaseResponseListOpsBizStatsPointVO = {
+    code?: number
+    data?: OpsBizStatsPointVO[]
+    message?: string
+  }
+
+  /** 运维可观测 · HTTP 访问日志 */
+  type OpsAccessLogVO = {
+    id?: number | string
+    method?: string
+    path?: string
+    status?: number
+    latencyMs?: number
+    userId?: number | string | null
+    ip?: string | null
+    traceId?: string | null
+    errorSummary?: string | null
+    createTime?: string
+  }
+
+  type OpsAccessLogQueryRequest = {
+    status?: number | string
+    statusClass?: string
+    pathPrefix?: string
+    from?: string
+    to?: string
+    pageNum?: number
+    pageSize?: number
+  }
+
+  type PageOpsAccessLogVO = {
+    records?: OpsAccessLogVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type BaseResponsePageOpsAccessLogVO = {
+    code?: number
+    data?: PageOpsAccessLogVO
+    message?: string
   }
 }

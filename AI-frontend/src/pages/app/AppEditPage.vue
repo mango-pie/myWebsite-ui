@@ -10,6 +10,7 @@ import { message } from 'ant-design-vue'
 import { getAppById, getAppByIdByAdmin, updateApp, updateAppByAdmin } from '@/api/appController'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { isAdminRole } from '@/config/permission'
+import { loadAppSettings, resolveDeployBaseUrl, type AppUxSettings } from '@/utils/appSettings'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,6 +20,12 @@ const appId = route.params.appId as string
 const appInfo = ref<API.AppVO | null>(null)
 const loading = ref(false)
 const submitting = ref(false)
+const appUx = ref<AppUxSettings>({
+  codegenEnabled: true,
+  defaultCodeGenType: 'html',
+  deployEnabled: true,
+  publicHostDisplay: '',
+})
 
 const isAdmin = computed(() => isAdminRole(loginUserStore.loginUser.userRole))
 
@@ -88,10 +95,14 @@ const goToChat = () => router.push(`/app/chat/${appId}`)
 const deployUrl = computed(() => {
   const key = appInfo.value?.deployKey
   if (!key) return ''
-  return `${import.meta.env.VITE_DEPLOY_BASE_URL}/${key.replace(/^\/+/, '')}/`
+  const base = resolveDeployBaseUrl(appUx.value, import.meta.env.VITE_DEPLOY_BASE_URL as string)
+  return `${base}/${key.replace(/^\/+/, '')}/`
 })
 
-onMounted(fetchApp)
+onMounted(async () => {
+  appUx.value = await loadAppSettings()
+  await fetchApp()
+})
 </script>
 
 <template>

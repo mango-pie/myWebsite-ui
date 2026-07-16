@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { computed, inject, ref } from 'vue'
+import { computed, inject, ref, watch } from 'vue'
 import { studyContextKey } from '@/composables/study/useStudyContext'
-import { FOCUS_PRESETS, FOCUS_STATUS } from '@/constants/study'
+import { FOCUS_STATUS } from '@/constants/study'
 
 const ctx = inject(studyContextKey)!
 
-const selectedMinutes = ref(25)
+const selectedMinutes = ref(ctx.studySettings.value.focusDefaultMinutes)
+
+watch(
+  () => ctx.studySettings.value.focusDefaultMinutes,
+  (m) => {
+    if (!ctx.activeFocus.value) selectedMinutes.value = m
+  },
+)
 
 const session = computed(() => ctx.activeFocus.value)
 const isRunning = computed(() => session.value?.status === FOCUS_STATUS.RUNNING)
@@ -65,7 +72,7 @@ async function abandon() {
 
     <div v-if="!hasActive" class="study-pomodoro__presets">
       <a-button
-        v-for="m in FOCUS_PRESETS"
+        v-for="m in ctx.focusPresets.value"
         :key="m"
         size="small"
         :type="selectedMinutes === m ? 'primary' : 'default'"

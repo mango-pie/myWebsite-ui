@@ -16,6 +16,7 @@ import {
   resolveDefault,
 } from '@/api/chatConversationController'
 import { getConfigs, getAgentConfig } from '@/api/chatController'
+import { config as getTtsConfig } from '@/api/ttsController'
 import { uploadChatAttachment } from '@/integrations/chatAttachmentController'
 import {
   SendOutlined,
@@ -152,6 +153,8 @@ let clientMsgCounter = 0
 let currentTtsAudio: HTMLAudioElement | null = null
 let currentTtsUrl: string | null = null
 const ttsSynthesizing = ref<string | null>(null)
+/** 站点设置 tts.enabled；默认 true，关闭后隐藏朗读入口 */
+const ttsEnabled = ref(true)
 
 function nextClientId(prefix = 'm'): string {
   return `${prefix}-${Date.now()}-${++clientMsgCounter}`
@@ -238,9 +241,20 @@ const stopStreaming = () => {
   isStreaming.value = false
 }
 
+async function loadTtsEnabled() {
+  try {
+    const res = await getTtsConfig()
+    if (res.data.code === 0 && res.data.data && typeof res.data.data.enabled === 'boolean') {
+      ttsEnabled.value = res.data.data.enabled
+    }
+  } catch {
+    // keep default true if config unavailable
+  }
+}
+
 /** Fire-and-forget preload of reference audio using the backend proxy (current config) */
 function ensureTtsInit() {
-  if (ttsInitDone) return
+  if (!ttsEnabled.value || ttsInitDone) return
   ttsInitDone = true
   const base = import.meta.env.VITE_API_BASE_URL
   fetch(`${base}/tts/ref/init`, { method: 'POST', credentials: 'include' }).catch(() => {
@@ -254,6 +268,10 @@ function ensureTtsInit() {
  *  - revokes blob URL on end/error
  */
 async function playAiMessage(msg: ChatMessage, idx: number) {
+  if (!ttsEnabled.value) {
+    message.warning('TTS 已在设置中关闭')
+    return
+  }
   const content = (msg.content || '').trim()
   if (!content) return
   const key = getMsgKey(msg, idx)
@@ -1027,7 +1045,7 @@ const initPage = async () => {
   saveLastChatConversationId(id)
   resetChatState()
 
-  await Promise.all([fetchConversationInfo(), loadRoles()])
+  await Promise.all([fetchConversationInfo(), loadRoles(), loadTtsEnabled()])
   await fetchChatHistory()
   await fetchConversations()
   ensureTtsInit()
@@ -1244,9 +1262,9 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- TTS play button: only for finished AI messages. Uses shared .chat-msg__tts styles -->
+            <!-- TTS play button: only for finished AI messages when TTS enabled -->
             <div
-              v-if="msg.role === 'ai' && !msg.isStreaming && msg.content"
+              v-if="ttsEnabled && msg.role === 'ai' && !msg.isStreaming && msg.content"
               class="chat-msg__tts"
             >
               <a-button

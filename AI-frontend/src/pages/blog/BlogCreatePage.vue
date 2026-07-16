@@ -24,6 +24,7 @@ import { getAllCategories } from '@/api/blogCategoryController'
 import { getAllTags } from '@/api/blogTagController'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { resolveBlogReturnPath } from '@/composables/useBlogLastPost'
+import { loadBlogSettings, type BlogUxSettings } from '@/utils/blogSettings'
 
 const router = useRouter()
 const route = useRoute()
@@ -37,6 +38,15 @@ const loading = ref(false)
 const submitting = ref(false)
 // 上传图片状态
 const uploading = ref(false)
+
+const blogUx = ref<BlogUxSettings>({
+  pageSizeDefault: 10,
+  summaryMaxLength: 200,
+  allowLike: true,
+  viewCountEnabled: true,
+  defaultStatus: 0,
+  defaultStatusKey: 'DRAFT',
+})
 
 // ==================== 表单数据 ====================
 
@@ -203,7 +213,8 @@ const handleSubmit = async () => {
         content: form.content,
         categoryId: form.categoryId ?? undefined,
         tagIds: form.tagIds,
-        coverUrl: form.coverUrl
+        coverUrl: form.coverUrl,
+        status: blogUx.value.defaultStatus,
       })
     }
 
@@ -330,7 +341,7 @@ const fetchTags = async () => {
 
 // ==================== 生命周期 ====================
 
-onMounted(() => {
+onMounted(async () => {
   // 检查登录状态
   if (!loginUserStore.loginUser?.id) {
     message.warning('请先登录')
@@ -338,6 +349,7 @@ onMounted(() => {
     return
   }
 
+  blogUx.value = await loadBlogSettings()
   fetchCategories()
   fetchTags()
 
@@ -379,7 +391,7 @@ onMounted(() => {
                 v-model:value="form.summary"
                 placeholder="请输入文章摘要"
                 :rows="3"
-                :maxlength="500"
+                :maxlength="blogUx.summaryMaxLength"
                 show-count
               />
             </a-form-item>

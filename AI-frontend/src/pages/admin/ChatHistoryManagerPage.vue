@@ -8,6 +8,7 @@ import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { listChatHistoryByPageForAdmin, deleteByAppId } from '@/api/chatHistoryController.ts'
 import '@/assets/admin-theme.css'
+import { MessagesSquare } from 'lucide-vue-next'
 
 const router = useRouter()
 const dataSource = ref<API.ChatHistoryVO[]>([])
@@ -45,7 +46,7 @@ const columns = [
   { title: '消息类型', dataIndex: 'messageType', width: 100 },
   { title: '消息内容', dataIndex: 'message', width: 400, ellipsis: true },
   { title: '创建时间', dataIndex: 'createTime', width: 160 },
-  { title: '操作', key: 'action', width: 120, fixed: 'right' },
+  { title: '操作', key: 'action', width: 140, fixed: 'right' },
 ]
 
 const fetchData = async () => {
@@ -66,6 +67,15 @@ const fetchData = async () => {
 }
 
 const doSearch = () => {
+  searchParams.pageNum = 1
+  fetchData()
+}
+
+const doReset = () => {
+  searchParams.appId = undefined
+  searchParams.userId = undefined
+  searchParams.messageType = undefined
+  searchParams.message = ''
   searchParams.pageNum = 1
   fetchData()
 }
@@ -98,34 +108,58 @@ onMounted(fetchData)
 
 <template>
   <div class="chat-history-manager-page admin-theme-page">
-    <!-- 搜索表单 -->
-    <a-form layout="inline" :model="searchParams" style="margin-bottom: 16px" @finish="doSearch">
-      <a-form-item label="应用 ID">
-        <a-input v-model:value="searchParams.appId" placeholder="输入应用 ID" allow-clear />
-      </a-form-item>
-      <a-form-item label="用户 ID">
-        <a-input v-model:value="searchParams.userId" placeholder="输入用户 ID" allow-clear />
-      </a-form-item>
-      <a-form-item label="消息类型">
-        <a-select
-          v-model:value="searchParams.messageType"
-          placeholder="全部"
-          allow-clear
-          style="width: 140px"
-        >
-          <a-select-option value="user">user</a-select-option>
-          <a-select-option value="ai">ai</a-select-option>
-        </a-select>
-      </a-form-item>
-      <a-form-item label="消息内容">
-        <a-input v-model:value="searchParams.message" placeholder="输入消息内容" allow-clear />
-      </a-form-item>
-      <a-form-item>
-        <a-button type="primary" html-type="submit">搜索</a-button>
-      </a-form-item>
-    </a-form>
+    <!-- 面包屑 -->
+    <a-breadcrumb class="admin-breadcrumb">
+      <a-breadcrumb-item>管理</a-breadcrumb-item>
+      <a-breadcrumb-item>对话管理</a-breadcrumb-item>
+    </a-breadcrumb>
 
-    <a-card title="对话管理" :bordered="false">
+    <!-- 页面头部 -->
+    <div class="admin-page-hero">
+      <div class="hero-left">
+        <div class="hero-title"><MessagesSquare :size="22" /> 对话管理</div>
+        <div class="hero-subtitle">共 {{ total }} 条对话记录 · 管理平台所有 AI 对话历史</div>
+      </div>
+    </div>
+
+    <!-- 筛选栏 -->
+    <div class="admin-filter-bar">
+      <a-input
+        v-model:value="searchParams.appId"
+        allow-clear
+        placeholder="应用 ID…"
+        style="width: 150px"
+        @pressEnter="doSearch"
+      />
+      <a-input
+        v-model:value="searchParams.userId"
+        allow-clear
+        placeholder="用户 ID…"
+        style="width: 150px"
+        @pressEnter="doSearch"
+      />
+      <a-select
+        v-model:value="searchParams.messageType"
+        placeholder="消息类型"
+        allow-clear
+        style="width: 130px"
+      >
+        <a-select-option value="user">user</a-select-option>
+        <a-select-option value="ai">ai</a-select-option>
+      </a-select>
+      <a-input
+        v-model:value="searchParams.message"
+        allow-clear
+        placeholder="搜索消息内容…"
+        style="width: 200px"
+        @pressEnter="doSearch"
+      />
+      <a-button type="primary" @click="doSearch">搜索</a-button>
+      <a-button @click="doReset">重置</a-button>
+    </div>
+
+    <!-- 数据表格 -->
+    <a-card :bordered="false">
       <a-table
         :data-source="dataSource"
         :columns="columns"
@@ -152,11 +186,9 @@ onMounted(fetchData)
             {{ formatTime(record.createTime) }}
           </template>
           <template v-else-if="column.key === 'action'">
-            <a-space>
-              <a-button danger size="small" @click="doDeleteByAppId(record.appId?.toString() || '')">
-                删除该应用对话
-              </a-button>
-            </a-space>
+            <a-button type="link" danger size="small" @click="doDeleteByAppId(String(record.appId ?? ''))">
+              清空对话
+            </a-button>
           </template>
         </template>
         <template #emptyText>
@@ -168,8 +200,5 @@ onMounted(fetchData)
 </template>
 
 <style scoped>
-.chat-history-manager-page {
-  max-width: 1200px;
-  margin: 0 auto;
-}
+/* admin-theme.css handles all theming */
 </style>

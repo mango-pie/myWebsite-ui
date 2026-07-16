@@ -7,11 +7,19 @@ import {
   HeartOutlined,
 } from '@ant-design/icons-vue'
 
-const props = defineProps<{
-  posts: API.BlogPostVO[]
-  loading?: boolean
-  selectedTagId?: number | null
-}>()
+const props = withDefaults(
+  defineProps<{
+    posts: API.BlogPostVO[]
+    loading?: boolean
+    selectedTagId?: number | null
+    allowLike?: boolean
+    showViewCount?: boolean
+  }>(),
+  {
+    allowLike: true,
+    showViewCount: true,
+  },
+)
 
 const emit = defineEmits<{
   postClick: [id: number | undefined]
@@ -135,10 +143,14 @@ const timelineEntries = computed<TimelineEntry[]>(() => {
                 </span>
               </div>
               <div class="post-card__stats">
-                <span class="post-card__stat">
+                <span v-if="showViewCount" class="post-card__stat">
                   <EyeOutlined /> {{ entry.post.viewCount ?? 0 }}
                 </span>
-                <span class="post-card__stat" @click.stop="emit('like', entry.post)">
+                <span
+                  v-if="allowLike"
+                  class="post-card__stat"
+                  @click.stop="emit('like', entry.post)"
+                >
                   <HeartOutlined /> {{ entry.post.likeCount ?? 0 }}
                 </span>
               </div>

@@ -10,11 +10,22 @@ const ctx = inject(studyContextKey)!
 const modalOpen = ref(false)
 const editing = ref<API.StudyHabitVO | null>(null)
 const expandedId = ref<number>()
-const form = ref({ title: '', color: '#e879a9', description: '' })
+const form = ref({
+  title: '',
+  color: '#e879a9',
+  description: '',
+  /** 仅前端：对应 habit.reminder_enabled_default，不提交后端 */
+  reminderEnabled: true,
+})
 
 function openAdd() {
   editing.value = null
-  form.value = { title: '', color: '#e879a9', description: '' }
+  form.value = {
+    title: '',
+    color: '#e879a9',
+    description: '',
+    reminderEnabled: ctx.studySettings.value.habitReminderDefault,
+  }
   modalOpen.value = true
 }
 
@@ -25,6 +36,7 @@ function openEdit(habit: API.StudyHabitVO, e: Event) {
     title: habit.title || '',
     color: habit.color || '#e879a9',
     description: habit.description || '',
+    reminderEnabled: ctx.studySettings.value.habitReminderDefault,
   }
   modalOpen.value = true
 }
@@ -111,6 +123,11 @@ function toggleExpand(id?: number) {
         </a-form-item>
         <a-form-item label="颜色">
           <input v-model="form.color" type="color" />
+        </a-form-item>
+        <a-form-item v-if="!editing">
+          <a-checkbox v-model:checked="form.reminderEnabled">
+            默认开启提醒（仅前端偏好，尚未写入后端）
+          </a-checkbox>
         </a-form-item>
       </a-form>
     </a-modal>

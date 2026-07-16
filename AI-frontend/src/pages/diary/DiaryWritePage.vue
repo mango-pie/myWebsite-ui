@@ -7,6 +7,7 @@ import { getDiaryByDate } from '@/integrations/diaryController'
 import { useDiaryAutoSave } from '@/composables/useDiaryAutoSave'
 import { isDiaryAiEnabled, openDiaryAiPanel } from '@/composables/useDiaryAi'
 import { MOOD_OPTIONS, formatDiaryDate, todayDateString } from '@/utils/diaryFormat'
+import { diaryDefaultStatus, loadDiarySettings } from '@/utils/diarySettings'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
 
@@ -16,6 +17,7 @@ const route = useRoute()
 const loading = ref(true)
 const dirty = ref(false)
 const ready = ref(false)
+let defaultNewStatus = 0
 
 const form = reactive({
   diaryDate: todayDateString(),
@@ -77,7 +79,7 @@ async function loadByDate(date: string) {
         form.title = ''
         form.content = ''
         form.mood = undefined
-        form.status = 0
+        form.status = defaultNewStatus
         entryId.value = null
       }
       dirty.value = false
@@ -150,7 +152,10 @@ onBeforeRouteLeave((_to, _from, next) => {
   next()
 })
 
-onMounted(() => {
+onMounted(async () => {
+  const diaryUx = await loadDiarySettings()
+  defaultNewStatus = diaryDefaultStatus(diaryUx)
+  form.status = defaultNewStatus
   const queryDate = route.query.date
   if (typeof queryDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(queryDate)) {
     form.diaryDate = queryDate

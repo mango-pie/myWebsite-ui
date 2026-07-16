@@ -10,6 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { getAppById, deployApp } from '@/api/appController'
 import { getLatestChatHistory, listAppChatHistory } from '@/api/chatHistoryController'
+import { loadAppSettings, resolveDeployBaseUrl, type AppUxSettings } from '@/utils/appSettings'
 import {
   RocketOutlined,
   SendOutlined,
@@ -86,6 +87,16 @@ const deployKey = ref('')
 // 部署成功弹窗
 const deployModalVisible = ref(false)
 const deployedUrl = ref('')
+const appUx = ref<AppUxSettings>({
+  codegenEnabled: true,
+  defaultCodeGenType: 'html',
+  deployEnabled: true,
+  publicHostDisplay: '',
+})
+
+function deployBase() {
+  return resolveDeployBaseUrl(appUx.value, import.meta.env.VITE_DEPLOY_BASE_URL as string)
+}
 
 const scrollToBottom = async () => {
   await nextTick()
@@ -110,7 +121,7 @@ const fetchAppInfo = async () => {
     if (res.data.data.deployKey) {
       const k = res.data.data.deployKey.replace(/^https?:\/\/[^/]+\//, '').replace(/\/+$/, '')
       deployKey.value = k
-      previewUrl.value = `${import.meta.env.VITE_DEPLOY_BASE_URL}/${k}/`
+      previewUrl.value = `${deployBase()}/${k}/`
     }
   }
 }
@@ -234,6 +245,10 @@ const handleKeydown = (e: KeyboardEvent) => {
  * @param silent - true 时为流结束后自动部署，不弹窗提示失败；false 时为手动点击部署
  */
 const handleDeploy = async (silent = false) => {
+  if (!appUx.value.deployEnabled) {
+    if (!silent) message.warning('一键部署已在站点设置中关闭')
+    return
+  }
   if (deploying.value) return
   deploying.value = true
   try {
@@ -243,7 +258,7 @@ const handleDeploy = async (silent = false) => {
       // 后端可能返回完整 URL 或纯 key，统一提取最后一段路径作为 key
       const key = raw.replace(/^https?:\/\/[^/]+\//, '').replace(/\/+$/, '')
       deployKey.value = key
-      const url = `${import.meta.env.VITE_DEPLOY_BASE_URL}/${key}/`
+      const url = `${deployBase()}/${key}/`
       previewUrl.value = url
       deployedUrl.value = url
       // 手动点击部署时弹出成功弹窗
@@ -263,6 +278,7 @@ const copyDeployUrl = () => {
 const goToDetail = () => router.push(`/app/edit/${appId}`)
 
 onMounted(async () => {
+  appUx.value = await loadAppSettings()
   await fetchAppInfo()
   await fetchChatHistory()
   
@@ -275,7 +291,7 @@ onMounted(async () => {
   if (messages.value.length >= 2 && appInfo.value?.deployKey) {
     const k = appInfo.value.deployKey.replace(/^https?:\/\/[^/]+\//, '').replace(/\/+$/, '')
     deployKey.value = k
-    previewUrl.value = `${import.meta.env.VITE_DEPLOY_BASE_URL}/${k}/`
+    previewUrl.value = `${deployBase()}/${k}/`
   }
 })
 </script>
@@ -291,6 +307,7 @@ onMounted(async () => {
       <div class="chat-header__right">
         <a-button style="margin-right: 8px" @click="goToDetail">应用详情</a-button>
         <a-button
+          v-if="appUx.deployEnabled"
           type="primary"
           :icon="h(RocketOutlined)"
           :loading="deploying"

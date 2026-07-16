@@ -20,6 +20,12 @@ import { getPublishedBlogPostPage } from '@/api/blogPostController'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { isAdminRole } from '@/config/permission'
 import { rememberLastBlogPost } from '@/composables/useBlogLastPost'
+import {
+  loadBlogSettings,
+  markBlogLikeDisabled,
+  markBlogViewDisabled,
+  type BlogUxSettings,
+} from '@/utils/blogSettings'
 
 const router = useRouter()
 const route = useRoute()
@@ -32,6 +38,14 @@ const tagCloud = ref<API.BlogTagVO[]>([])
 const loading = ref(true)
 const isLiked = ref(false)
 const showShareModal = ref(false)
+const blogUx = ref<BlogUxSettings>({
+  pageSizeDefault: 10,
+  summaryMaxLength: 200,
+  allowLike: true,
+  viewCountEnabled: true,
+  defaultStatus: 0,
+  defaultStatusKey: 'DRAFT',
+})
 
 // 监听路由参数变化
 watch(
@@ -75,10 +89,19 @@ const fetchPost = async () => {
       post.value = response.data.data
       rememberLastBlogPost(currentId)
       console.log('文章数据已设置:', post.value)
-      // 增加浏览量
-      await incrementViewCount({ id: currentId })
-      if (post.value.viewCount !== undefined) {
-        post.value.viewCount += 1
+      if (blogUx.value.viewCountEnabled) {
+        const viewRes = await incrementViewCount({ id: currentId })
+        if (viewRes.data.code === 0) {
+          if (post.value.viewCount !== undefined) {
+            post.value.viewCount += 1
+          }
+        } else {
+          const msg = viewRes.data.message || ''
+          if (String(msg).includes('已关闭')) {
+            markBlogViewDisabled()
+            blogUx.value = { ...blogUx.value, viewCountEnabled: false }
+          }
+        }
       }
     } else {
       message.error('获取文章失败: ' + (response.data?.message || '未知错误'))
@@ -121,9 +144,21 @@ const fetchRelatedPosts = async () => {
 
 // 点赞
 const handleLike = async () => {
+  if (!blogUx.value.allowLike) return
   try {
     const currentId = Number(route.params.id)
-    await incrementLikeCount({ id: currentId })
+    const res = await incrementLikeCount({ id: currentId })
+    if (res.data.code !== 0) {
+      const msg = res.data.message || '点赞失败'
+      if (String(msg).includes('已关闭')) {
+        markBlogLikeDisabled()
+        blogUx.value = { ...blogUx.value, allowLike: false }
+        message.warning(msg)
+      } else {
+        message.error(msg)
+      }
+      return
+    }
     if (isLiked.value) {
       if (post.value?.likeCount !== undefined) post.value.likeCount--
       isLiked.value = false
@@ -182,7 +217,8 @@ const handleEdit = () => {
 }
 
 // 初始化
-onMounted(() => {
+onMounted(async () => {
+  blogUx.value = await loadBlogSettings()
   fetchPost()
   fetchTagCloud()
   fetchRelatedPosts()
@@ -234,10 +270,10 @@ onMounted(() => {
               <span class="post-author__bio">{{ post.summary }}</span>
             </div>
             <div class="post-stats">
-              <span class="post-stat">
+              <span v-if="blogUx.viewCountEnabled" class="post-stat">
                 <EyeOutlined /> {{ post.viewCount || 0 }}
               </span>
-              <span class="post-stat">
+              <span v-if="blogUx.allowLike" class="post-stat">
                 <HeartOutlined /> {{ post.likeCount || 0 }}
               </span>
             </div>
@@ -260,7 +296,8 @@ onMounted(() => {
           ></div>
 
           <div class="post-actions">
-            <button 
+            <button
+              v-if="blogUx.allowLike"
               class="action-btn"
               :class="{ 'action-btn--liked': isLiked }"
               @click="handleLike"

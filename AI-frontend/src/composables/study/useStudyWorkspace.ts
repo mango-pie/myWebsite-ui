@@ -12,6 +12,7 @@ export function useStudyWorkspaceState() {
   const lists = ref<API.StudyListVO[]>([])
   const todayStats = ref<API.StudyTodayStatsVO | null>(null)
   const activeFocus = ref<API.StudyFocusSessionVO | null>(null)
+  const workspaceShowChecklist = ref<boolean | undefined>(undefined)
 
   async function refreshLists() {
     const res = await getAllLists()
@@ -55,6 +56,8 @@ export function useStudyWorkspaceState() {
         lists.value = data.lists ?? []
         todayStats.value = data.todayStats ?? null
         activeFocus.value = data.activeFocus ?? null
+        workspaceShowChecklist.value =
+          typeof data.showChecklist === 'boolean' ? data.showChecklist : undefined
       }
       await Promise.all([refreshLists(), refreshTodayStats(), refreshActiveFocus()])
     } catch {
@@ -71,6 +74,7 @@ export function useStudyWorkspaceState() {
     lists,
     todayStats,
     activeFocus,
+    workspaceShowChecklist,
     refreshLists,
     refreshTodayStats,
     refreshActiveFocus,

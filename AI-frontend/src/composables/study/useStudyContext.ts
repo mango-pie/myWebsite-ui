@@ -1,5 +1,10 @@
-import { ref, provide } from 'vue'
+import { computed, provide, ref } from 'vue'
 import type { SmartViewKey } from '@/constants/study'
+import {
+  buildFocusPresets,
+  loadStudySettings,
+  type StudyUxSettings,
+} from '@/utils/studySettings'
 import { useStudyWorkspaceState } from './useStudyWorkspace'
 import { useStudyListsActions } from './useStudyLists'
 import { useStudyTasksState } from './useStudyTasks'
@@ -12,6 +17,20 @@ export function useStudyContext(): StudyContext {
   const workspace = useStudyWorkspaceState()
   const selection = ref<StudySelection>({ view: 'today' as SmartViewKey })
   const mobileTab = ref<'tasks' | 'focus' | 'habits' | 'stats'>('tasks')
+  const studySettings = ref<StudyUxSettings>({
+    focusDefaultMinutes: 25,
+    focusBreakMinutes: 5,
+    habitReminderDefault: true,
+    statsDefaultRangeDays: 7,
+    showChecklist: true,
+  })
+  const focusPresets = computed(() => buildFocusPresets(studySettings.value))
+  const showChecklist = computed(() => {
+    if (typeof workspace.workspaceShowChecklist.value === 'boolean') {
+      return workspace.workspaceShowChecklist.value
+    }
+    return studySettings.value.showChecklist
+  })
 
   const tasksState = useStudyTasksState(
     selection,
@@ -37,13 +56,14 @@ export function useStudyContext(): StudyContext {
   const statsState = useStudyStatsState()
 
   async function bootstrap(createThemeLists = true) {
+    studySettings.value = await loadStudySettings()
     await workspace.bootstrap(createThemeLists)
     if (!workspace.forbidden.value) {
       focusState.syncRemainingFromSession(workspace.activeFocus.value)
       await tasksState.refreshTasks()
       await habitsState.refreshHabits()
       await focusState.refreshFocusHistory()
-      await statsState.refreshRangeStats(7)
+      await statsState.refreshRangeStats(studySettings.value.statsDefaultRangeDays)
     }
   }
 
@@ -70,6 +90,9 @@ export function useStudyContext(): StudyContext {
     focusHistory: focusState.focusHistory,
     remainingSeconds: focusState.remainingSeconds,
     mobileTab,
+    studySettings,
+    focusPresets,
+    showChecklist,
     bootstrap,
     refreshLists: workspace.refreshLists,
     refreshTasks: tasksState.refreshTasks,

@@ -1,5 +1,6 @@
-import type { InjectionKey, Ref } from 'vue'
+import type { ComputedRef, InjectionKey, Ref } from 'vue'
 import type { SmartViewKey } from '@/constants/study'
+import type { StudyUxSettings } from '@/utils/studySettings'
 
 export interface StudySelection {
   view: SmartViewKey
@@ -25,6 +26,10 @@ export interface StudyContext {
   focusHistory: Ref<API.StudyFocusSessionVO[]>
   remainingSeconds: Ref<number>
   mobileTab: Ref<'tasks' | 'focus' | 'habits' | 'stats'>
+  /** 站点设置驱动的学习默认值 */
+  studySettings: Ref<StudyUxSettings>
+  focusPresets: ComputedRef<number[]>
+  showChecklist: ComputedRef<boolean>
   bootstrap: (createThemeLists?: boolean) => Promise<void>
   refreshLists: () => Promise<void>
   refreshTasks: () => Promise<void>

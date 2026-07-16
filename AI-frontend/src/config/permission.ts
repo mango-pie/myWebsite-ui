@@ -20,9 +20,19 @@ export const ROUTE_PERMISSIONS: Record<string, RequiredRole | undefined> = {
   '/admin/userManage': 'admin',
   '/admin/appManage': 'admin',
   '/admin/blogManage': 'admin',
+  '/admin/knowledge': 'admin',
+  '/admin/knowledge/ingest': 'admin',
+  '/admin/knowledge/notes': 'admin',
+  '/admin/settings': 'admin',
+  '/admin/ops': 'admin',
+  '/admin/ops/usage': 'admin',
+  '/admin/ops/audit': 'admin',
+  '/admin/ops/stats': 'admin',
+  '/admin/ops/access-logs': 'admin',
   '/administrator/study': 'administrator',
   '/chat': 'user',
   '/diary': 'user',
+  '/knowledge': 'user',
 }
 
 /**
@@ -41,8 +51,18 @@ export interface MenuItemConfig {
 export const MENU_ITEMS: MenuItemConfig[] = [
   { key: 'home', label: '首页', path: '/' },
   { key: 'blogHome', label: '随笔', path: '/blog' },
+  { key: 'knowledge', label: '知识库', path: '/knowledge', requiredRole: 'user' },
   { key: 'diary', label: '日记', path: '/diary', requiredRole: 'user' },
   { key: 'lab', label: '实验室', path: '/lab' },
+  {
+    key: 'readingWorkbench',
+    label: 'AI 精读',
+    requiredRole: 'admin',
+    children: [
+      { key: 'knowledgeIngest', label: '内容采集', path: '/admin/knowledge/ingest', requiredRole: 'admin' },
+      { key: 'knowledgeNotes', label: '精读列表', path: '/admin/knowledge/notes', requiredRole: 'admin' },
+    ],
+  },
   {
     key: 'manage',
     label: '管理',
@@ -51,8 +71,10 @@ export const MENU_ITEMS: MenuItemConfig[] = [
       { key: 'userManage', label: '用户管理', path: '/admin/userManage', requiredRole: 'admin' },
       { key: 'appManage', label: '应用管理', path: '/admin/appManage', requiredRole: 'admin' },
       { key: 'blogManage', label: '博客管理', path: '/admin/blogManage', requiredRole: 'admin' },
+      { key: 'siteSettings', label: '站点设置', path: '/admin/settings/site', requiredRole: 'admin' },
     ],
   },
+  { key: 'opsCenter', label: '运维中心', path: '/admin/ops/usage', requiredRole: 'admin' },
   { key: 'about', label: '关于', path: '/about' },
   { key: 'study', label: '学习', path: '/administrator/study', requiredRole: 'administrator' },
   { key: 'test', label: '测试', path: '/test', requiredRole: 'administrator' },
@@ -75,6 +97,7 @@ export function getRequiredRole(path: string): RequiredRole | undefined {
   if (path.startsWith('/administrator')) return 'administrator'
   if (path === '/chat' || path.startsWith('/chat/')) return 'user'
   if (path === '/diary' || path.startsWith('/diary/')) return 'user'
+  if (path === '/knowledge' || path.startsWith('/knowledge/')) return 'user'
   return undefined
 }
 

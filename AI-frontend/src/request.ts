@@ -56,6 +56,9 @@ myAxios.interceptors.response.use(
         window.location.href = `/user/login?redirect=${window.location.href}`
       }
     }
+    if (data.code === 40301) {
+      message.warning(data.message || '系统维护中，暂不可操作')
+    }
     return response
   },
   function (error) {

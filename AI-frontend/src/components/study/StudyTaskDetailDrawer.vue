@@ -89,7 +89,8 @@ function handleDelete() {
 
 async function startFocus() {
   const id = ctx.selectedTask.value?.id
-  await ctx.startFocusSession(id, 25)
+  const minutes = ctx.studySettings.value.focusDefaultMinutes
+  await ctx.startFocusSession(id, minutes)
   ctx.closeTaskDetail()
   ctx.mobileTab.value = 'focus'
 }
@@ -130,6 +131,7 @@ async function startFocus() {
     </a-form>
 
     <StudyChecklistEditor
+      v-if="ctx.showChecklist.value"
       :items="ctx.selectedTask.value?.checklistItems"
       @add="(title) => ctx.addChecklistItem(ctx.selectedTask.value!.id!, title)"
       @toggle="(item, done) => ctx.toggleChecklistItem(item, done)"
@@ -138,7 +140,8 @@ async function startFocus() {
 
     <div class="study-detail-actions">
       <a-button type="primary" @click="startFocus">
-        <PlayCircleOutlined /> 开始专注 25 分钟
+        <PlayCircleOutlined />
+        开始专注 {{ ctx.studySettings.value.focusDefaultMinutes }} 分钟
       </a-button>
       <a-button danger @click="handleDelete">
         <DeleteOutlined /> 删除任务

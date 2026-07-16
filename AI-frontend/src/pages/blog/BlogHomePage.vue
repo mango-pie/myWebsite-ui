@@ -24,11 +24,25 @@ import { useBlogLayoutMode } from '@/composables/useBlogLayoutMode'
 import type { BlogLayoutMode } from '@/composables/useBlogLayoutMode'
 import BlogFilterSidebar from '@/components/blog/BlogFilterSidebar.vue'
 import BlogPostTimeline from '@/components/blog/BlogPostTimeline.vue'
+import {
+  loadBlogSettings,
+  markBlogLikeDisabled,
+  type BlogUxSettings,
+} from '@/utils/blogSettings'
 
 const router = useRouter()
 const route = useRoute()
 const loginUserStore = useLoginUserStore()
 const { layoutMode, setLayoutMode } = useBlogLayoutMode()
+
+const blogUx = ref<BlogUxSettings>({
+  pageSizeDefault: 10,
+  summaryMaxLength: 200,
+  allowLike: true,
+  viewCountEnabled: true,
+  defaultStatus: 0,
+  defaultStatusKey: 'DRAFT',
+})
 
 const layoutOptions = [
   { label: '卡片', value: 'card' as BlogLayoutMode },
@@ -47,7 +61,7 @@ const tags = ref<API.BlogTagVO[]>([])
 
 const pagination = reactive({
   current: 1,
-  pageSize: 6,
+  pageSize: 0,
   total: 0,
 })
 
@@ -65,7 +79,8 @@ const handleMetaCreated = (type: 'category' | 'tag') => {
 
 const buildQueryParams = (): API.BlogPostQueryRequest => ({
   pageNum: pagination.current,
-  pageSize: pagination.pageSize,
+  // <=0 时后端使用 list.page_size_default
+  pageSize: 0,
   status: 1,
   title: searchQuery.value.trim() || undefined,
   categoryId: selectedCategoryId.value ?? undefined,
@@ -80,9 +95,12 @@ const fetchPosts = async () => {
     const res = await queryBlogPostPage(buildQueryParams())
     if (res.data.code === 0 && res.data.data) {
       allPosts.value = res.data.data.records || []
-      pagination.total = res.data.data.totalRow || 0
+      pagination.total = Number(res.data.data.totalRow || 0)
+      const size = Number(res.data.data.pageSize || 0)
+      if (size > 0) pagination.pageSize = size
+      else if (blogUx.value.pageSizeDefault > 0) pagination.pageSize = blogUx.value.pageSizeDefault
     } else {
-      message.error('获取文章列表失败：' + res.data.message)
+      message.error('获取文章列表失败：' + (res.data.message || '未知错误'))
     }
   } catch (error) {
     console.error('获取文章列表失败:', error)
@@ -180,14 +198,21 @@ const handlePageChange = (page: number, pageSize: number) => {
 }
 
 const handleLike = async (post: API.BlogPostVO) => {
-  if (!post.id) return
+  if (!post.id || !blogUx.value.allowLike) return
   try {
     const res = await incrementLikeCount({ id: post.id })
     if (res.data.code === 0) {
       post.likeCount = (post.likeCount || 0) + 1
       message.success('点赞成功')
     } else {
-      message.error('点赞失败：' + res.data.message)
+      const msg = res.data.message || '点赞失败'
+      if (String(msg).includes('已关闭')) {
+        markBlogLikeDisabled()
+        blogUx.value = { ...blogUx.value, allowLike: false }
+        message.warning(msg)
+      } else {
+        message.error(msg)
+      }
     }
   } catch (error) {
     console.error('点赞失败:', error)
@@ -209,7 +234,11 @@ const initFromRoute = () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  blogUx.value = await loadBlogSettings()
+  if (blogUx.value.pageSizeDefault > 0) {
+    pagination.pageSize = blogUx.value.pageSizeDefault
+  }
   initFromRoute()
   fetchPosts()
   fetchCategories()
@@ -347,6 +376,8 @@ watch(sortBy, () => {
           @post-click="handlePostClick"
           @category-click="handleCategoryClick"
           @tag-click="handleTagClick"
+          :allow-like="blogUx.allowLike"
+          :show-view-count="blogUx.viewCountEnabled"
           @like="handleLike"
         />
 
@@ -387,10 +418,14 @@ watch(sortBy, () => {
                     </span>
                   </div>
                   <div class="post-card__stats">
-                    <span class="post-card__stat">
+                    <span v-if="blogUx.viewCountEnabled" class="post-card__stat">
                       <EyeOutlined /> {{ post.viewCount }}
                     </span>
-                    <span class="post-card__stat" @click.stop="handleLike(post)">
+                    <span
+                      v-if="blogUx.allowLike"
+                      class="post-card__stat"
+                      @click.stop="handleLike(post)"
+                    >
                       <HeartOutlined /> {{ post.likeCount }}
                     </span>
                   </div>
