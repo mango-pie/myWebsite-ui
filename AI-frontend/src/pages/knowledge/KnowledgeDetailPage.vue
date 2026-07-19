@@ -24,7 +24,8 @@ import {
   kbParseStatusLabel,
 } from '@/utils/knowledgeFormat'
 import '@/assets/admin-theme.css'
-import { FolderOpen, Upload } from 'lucide-vue-next'
+import { FolderOpen, MessagesSquare, ArrowLeft, Search, RotateCcw, Sparkles, Boxes, Download, Trash2 } from 'lucide-vue-next'
+import IconAction from '@/components/ui/IconAction.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -318,10 +319,8 @@ onBeforeUnmount(clearAllPolls)
       </div>
       <div class="hero-extra">
         <a-space>
-          <a-button type="primary" @click="router.push(`/knowledge/${kbId}/chat`)">
-            去问答
-          </a-button>
-          <a-button @click="router.push('/knowledge')">← 返回列表</a-button>
+          <IconAction :icon="MessagesSquare" label="去问答" variant="primary" motion="pop" @click="router.push(`/knowledge/${kbId}/chat`)" />
+          <IconAction :icon="ArrowLeft" label="返回列表" variant="soft" motion="slide" @click="router.push('/knowledge')" />
         </a-space>
       </div>
     </div>
@@ -384,8 +383,14 @@ onBeforeUnmount(clearAllPolls)
           <a-select-option value="PARSED">已完成</a-select-option>
           <a-select-option value="FAILED">失败</a-select-option>
         </a-select>
-        <a-button type="primary" @click="onSearch">搜索</a-button>
-        <a-button @click="onReset">重置</a-button>
+        <a-button type="primary" class="kb-search-btn" @click="onSearch">
+          <template #icon><Search :size="15" /></template>
+          搜索
+        </a-button>
+        <a-button class="kb-reset-btn" @click="onReset">
+          <template #icon><RotateCcw :size="15" /></template>
+          重置
+        </a-button>
       </div>
 
       <a-table
@@ -437,22 +442,32 @@ onBeforeUnmount(clearAllPolls)
                 v-if="canParseDocument(record.parseStatus)"
                 type="link"
                 size="small"
+                class="kb-row-btn"
                 :loading="isRowParsing(record)"
                 :disabled="isRowParsing(record)"
                 @click="handleParse(record)"
               >
+                <template #icon><Sparkles :size="14" /></template>
                 {{ record.parseStatus === 'FAILED' ? '重试' : '解析' }}
               </a-button>
               <a-button
                 v-if="isParsedDocument(record.parseStatus)"
                 type="link"
                 size="small"
+                class="kb-row-btn"
                 @click="openChunks(record)"
               >
+                <template #icon><Boxes :size="14" /></template>
                 切块
               </a-button>
-              <a-button type="link" size="small" @click="handleDownload(record)">下载</a-button>
-              <a-button type="link" danger size="small" @click="handleDelete(record)">删除</a-button>
+              <a-button type="link" size="small" class="kb-row-btn" @click="handleDownload(record)">
+                <template #icon><Download :size="14" /></template>
+                下载
+              </a-button>
+              <a-button type="link" danger size="small" class="kb-row-btn kb-row-btn--del" @click="handleDelete(record)">
+                <template #icon><Trash2 :size="14" /></template>
+                删除
+              </a-button>
             </a-space>
           </template>
         </template>
@@ -497,5 +512,40 @@ onBeforeUnmount(clearAllPolls)
   color: var(--color-text-secondary);
   font-size: 13px;
   line-height: 1.6;
+}
+
+.hero-title :deep(svg) {
+  vertical-align: -0.18em;
+}
+.kb-search-btn :deep(svg),
+.kb-reset-btn :deep(svg),
+.kb-row-btn :deep(svg) {
+  transition: transform var(--transition-fast);
+  vertical-align: -0.14em;
+}
+.kb-search-btn:hover :deep(svg) {
+  transform: translateX(2px);
+}
+.kb-reset-btn:hover :deep(svg) {
+  transform: rotate(-180deg);
+}
+.kb-row-btn:hover :deep(svg) {
+  transform: scale(1.18);
+}
+.kb-row-btn--del:hover :deep(svg) {
+  animation: kbRowShake 0.4s ease;
+}
+@keyframes kbRowShake {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-12deg); }
+  75% { transform: rotate(12deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kb-search-btn:hover :deep(svg),
+  .kb-reset-btn:hover :deep(svg),
+  .kb-row-btn:hover :deep(svg) {
+    animation: none;
+    transform: none;
+  }
 }
 </style>

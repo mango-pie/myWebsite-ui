@@ -7,6 +7,7 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import type { UploadProps } from 'ant-design-vue'
 import {
+  getKnowledgeReadingJob,
   ingestKnowledgeBatchUrl,
   ingestKnowledgeFile,
   ingestKnowledgeUrl,
@@ -14,9 +15,12 @@ import {
 } from '@/api/knowledge'
 import {
   clearKnowledgeSearchDraft,
+  isReadingJobInProgress,
   loadKnowledgeSearchDraft,
+  readingJobProgressLabel,
   saveKnowledgeSearchDraft,
 } from '@/composables/useKnowledgeSearchDraft'
+import { recordReadingJob, updateReadingJob } from '@/composables/useReadingJobTracker'
 import { isAllowedKbUploadFile, KB_UPLOAD_ACCEPT } from '@/utils/knowledgeFormat'
 import {
   candidateHasRisk,
@@ -24,11 +28,34 @@ import {
   formatSearchRiskFlag,
 } from '@/utils/knowledgeSearchLabels'
 import '@/assets/admin-theme.css'
-import { Sparkles, Link2, Upload, Globe } from 'lucide-vue-next'
+import {
+  Sparkles,
+  Link2,
+  Upload,
+  UploadCloud,
+  Globe,
+  AlertTriangle,
+  Settings,
+  KeyRound,
+  ListChecks,
+  Search,
+  Combine,
+  Trash2,
+  Plus,
+  ListTree,
+  Type,
+  Tags,
+  Target,
+  SlidersHorizontal,
+  FileText,
+} from 'lucide-vue-next'
+import IconAction from '@/components/ui/IconAction.vue'
+import ReadingJobProgress from '@/components/knowledge/ReadingJobProgress.vue'
 
 const BATCH_MAX = 8
 const SELECT_HINT_MIN = 2
 const SELECT_HINT_MAX = 5
+const JOB_POLL_MS = 2000
 
 const router = useRouter()
 const activeTab = ref('url')
@@ -39,6 +66,8 @@ const batchLoading = ref(false)
 const hydratingDraft = ref(true)
 /** 本轮是否从 sessionStorage 恢复（用于提示） */
 const draftRestored = ref(false)
+/** 合蒸异步任务轮询 timer */
+let jobPollTimer: ReturnType<typeof setInterval> | null = null
 
 const urlForm = reactive({
   url: '',
@@ -64,7 +93,19 @@ const outline = ref('')
 const candidates = ref<API.KnowledgeSearchCandidate[]>([])
 const selectedUrls = ref<string[]>([])
 const searchDone = ref(false)
-const batchResult = ref<API.KnowledgeIngestBatchResultVO | null>(null)
+const batchResult = ref<API.KnowledgeReadingJobVO | null>(null)
+
+const batchJobInProgress = computed(() => isReadingJobInProgress(batchResult.value))
+const batchProgressLabel = computed(() =>
+  readingJobProgressLabel(batchResult.value?.progress),
+)
+const batchJobSucceeded = computed(() => {
+  const data = batchResult.value
+  if (!data || data.noteId == null) return false
+  return (
+    data.success === true || String(data.status || '').toUpperCase() === 'SUCCESS'
+  )
+})
 
 function snapshotDraft() {
   return {
@@ -87,7 +128,15 @@ function persistDraftNow() {
   saveKnowledgeSearchDraft(snapshotDraft())
 }
 
+function stopJobPoll() {
+  if (jobPollTimer) {
+    clearInterval(jobPollTimer)
+    jobPollTimer = null
+  }
+}
+
 function resetAgentDraftLocal() {
+  stopJobPoll()
   agentForm.goal = ''
   agentForm.preference = ''
   agentForm.tags = ''
@@ -98,6 +147,7 @@ function resetAgentDraftLocal() {
   selectedUrls.value = []
   searchDone.value = false
   batchResult.value = null
+  batchLoading.value = false
 }
 
 function clearAgentDraft() {
@@ -154,9 +204,13 @@ onMounted(() => {
     draftRestored.value = true
   }
   hydratingDraft.value = false
+  if (isReadingJobInProgress(batchResult.value) && batchResult.value?.jobId != null) {
+    startJobPoll(batchResult.value.jobId, { navigateOnSuccess: false })
+  }
 })
 
 onBeforeUnmount(() => {
+  stopJobPoll()
   if (persistTimer) {
     clearTimeout(persistTimer)
     persistTimer = null
@@ -388,6 +442,107 @@ const appendManualCandidates = () => {
   message.success(`已追加 ${added.length} 条`)
 }
 
+const applyJobSuccess = (data: API.KnowledgeReadingJobVO, navigate: boolean) => {
+  batchResult.value = data
+  draftRestored.value = false
+  const used = data.usedCount ?? 0
+  const fail = data.failCount ?? 0
+  if (data.warning) {
+    message.warning(data.warning, 5)
+  }
+  const ok =
+    data.noteId != null &&
+    (data.success === true || String(data.status || '').toUpperCase() === 'SUCCESS')
+  if (ok) {
+    if (fail > 0) {
+      message.warning(`已合并生成 1 篇精读（采用 ${used} 源，失败 ${fail} 源）`, 4)
+    } else {
+      message.success(`已合并生成 1 篇精读（${used} 个来源）`)
+    }
+    for (const src of data.failedSources || []) {
+      const code = src.reasonCode ? `[${formatIngestFailReason(src.reasonCode)}] ` : ''
+      message.error(`来源失败：${src.url} — ${code}${src.errorMessage || '未知错误'}`, 4)
+    }
+    if (navigate) goDetail(data.noteId)
+  } else {
+    message.error(data.errorMsg || '合并精炼失败（全部来源失败）')
+  }
+}
+
+const applyJobFailure = (data: API.KnowledgeReadingJobVO) => {
+  batchResult.value = data
+  draftRestored.value = false
+  message.error(data.errorMsg || '合蒸任务失败')
+}
+
+/** 处理一次 job 快照：终态停轮询；进行中继续 */
+const handleJobSnapshot = (
+  data: API.KnowledgeReadingJobVO,
+  opts: { navigateOnSuccess: boolean },
+): 'continue' | 'done' => {
+  batchResult.value = data
+  if (data.jobId != null) {
+    updateReadingJob(data.jobId, {
+      status: data.status,
+      progress: data.progress,
+      noteId: data.noteId,
+      success: data.success,
+      errorMsg: data.errorMsg,
+      title: data.title || undefined,
+      total: data.total,
+    })
+  }
+  const status = String(data.status || '').toUpperCase()
+
+  if (status === 'SUCCESS' || (data.success && data.noteId != null && status !== 'FAILED')) {
+    stopJobPoll()
+    batchLoading.value = false
+    applyJobSuccess(data, opts.navigateOnSuccess)
+    return 'done'
+  }
+  if (status === 'FAILED') {
+    stopJobPoll()
+    batchLoading.value = false
+    applyJobFailure(data)
+    return 'done'
+  }
+  if (status === 'PENDING' || status === 'RUNNING' || isReadingJobInProgress(data)) {
+    batchLoading.value = true
+    return 'continue'
+  }
+  // 无明确 status 但已有 noteId（sync 兼容）
+  if (data.noteId != null && data.success) {
+    stopJobPoll()
+    batchLoading.value = false
+    applyJobSuccess(data, opts.navigateOnSuccess)
+    return 'done'
+  }
+  return 'continue'
+}
+
+const pollJobOnce = async (jobId: number | string, opts: { navigateOnSuccess: boolean }) => {
+  try {
+    const res = await getKnowledgeReadingJob(jobId)
+    if (res.data.code === 0 && res.data.data) {
+      handleJobSnapshot(res.data.data, opts)
+    } else {
+      message.error(res.data.message || '查询合蒸任务失败')
+    }
+  } catch (e) {
+    // 单次轮询失败不立刻终止，下一次再试；连续失败由用户看进度区
+    console.warn(apiErrorMessage(e, '轮询合蒸任务失败'))
+  }
+}
+
+const startJobPoll = (jobId: number | string, opts: { navigateOnSuccess: boolean }) => {
+  stopJobPoll()
+  batchLoading.value = true
+  void pollJobOnce(jobId, opts)
+  jobPollTimer = setInterval(() => {
+    void pollJobOnce(jobId, opts)
+  }, JOB_POLL_MS)
+}
+
 const runBatchIngest = async (urls: string[]) => {
   const unique = [...new Set(urls.map((u) => u.trim()).filter(Boolean))]
   if (!unique.length) {
@@ -407,11 +562,9 @@ const runBatchIngest = async (urls: string[]) => {
       4,
     )
   }
+  stopJobPoll()
   batchLoading.value = true
-  const hide = message.loading(
-    `正在读取网页并重构精读（${unique.length} 个来源），可能需要数分钟…`,
-    0,
-  )
+  batchResult.value = null
   try {
     const res = await ingestKnowledgeBatchUrl({
       urls: unique,
@@ -422,36 +575,31 @@ const runBatchIngest = async (urls: string[]) => {
     })
     if (res.data.code === 0 && res.data.data) {
       const data = res.data.data
-      batchResult.value = data
-      draftRestored.value = false
-
-      const used = data.usedCount ?? 0
-      const fail = data.failCount ?? 0
-      if (data.warning) {
-        message.warning(data.warning, 5)
+      if (data.jobId != null) {
+        recordReadingJob({
+          jobId: data.jobId,
+          title: agentForm.goal.trim() || data.title || `任务 #${data.jobId}`,
+          total: data.total ?? unique.length,
+          status: data.status,
+          progress: data.progress,
+          noteId: data.noteId,
+          success: data.success,
+        })
       }
-      if (data.success && data.noteId != null) {
-        if (fail > 0) {
-          message.warning(`已合并生成 1 篇精读（采用 ${used} 源，失败 ${fail} 源）`, 4)
-        } else {
-          message.success(`已合并生成 1 篇精读（${used} 个来源）`)
-        }
-        for (const src of data.failedSources || []) {
-          const code = src.reasonCode ? `[${formatIngestFailReason(src.reasonCode)}] ` : ''
-          message.error(`来源失败：${src.url} — ${code}${src.errorMessage || '未知错误'}`, 4)
-        }
-        goDetail(data.noteId)
-      } else {
-        message.error(res.data.message || '合并精炼失败（全部来源失败）')
+      const outcome = handleJobSnapshot(data, { navigateOnSuccess: true })
+      if (outcome === 'continue' && data.jobId != null) {
+        startJobPoll(data.jobId, { navigateOnSuccess: true })
+      } else if (outcome === 'continue' && data.jobId == null) {
+        batchLoading.value = false
+        message.error('未返回任务 ID，无法跟踪合蒸进度')
       }
     } else {
+      batchLoading.value = false
       message.error(res.data.message || '合并精炼失败')
     }
   } catch (e) {
-    message.error(apiErrorMessage(e, '合并精炼超时或失败'))
-  } finally {
-    hide()
     batchLoading.value = false
+    message.error(apiErrorMessage(e, '合并精炼超时或失败'))
   }
 }
 
@@ -490,11 +638,26 @@ const retryMergeWithoutFailed = () => {
       </div>
       <div class="hero-extra">
         <a-space>
-          <a-button @click="router.push('/admin/settings/reading')">精读设置</a-button>
-          <a-button @click="router.push('/admin/settings/integration')">集成与密钥</a-button>
-          <a-button type="primary" ghost @click="router.push('/admin/knowledge/notes')">
-            查看精读列表 →
-          </a-button>
+          <IconAction
+            :icon="Settings"
+            label="精读设置"
+            variant="soft"
+            motion="spin"
+            @click="router.push('/admin/settings/reading')"
+          />
+          <IconAction
+            :icon="KeyRound"
+            label="集成与密钥"
+            variant="soft"
+            @click="router.push('/admin/settings/integration')"
+          />
+          <IconAction
+            :icon="ListChecks"
+            label="查看精读列表"
+            variant="primary"
+            motion="slide"
+            @click="router.push('/admin/knowledge/notes')"
+          />
         </a-space>
       </div>
     </div>
@@ -503,112 +666,155 @@ const retryMergeWithoutFailed = () => {
       <a-card :bordered="false">
         <a-tabs v-model:activeKey="activeTab" class="admin-tabs-clean" size="large">
           <a-tab-pane key="url">
-            <template #tab>URL 采集</template>
+            <template #tab><span class="tab-label"><Link2 :size="16" /> URL 采集</span></template>
             <p class="tab-guide">粘贴网页文章链接，AI 抓取正文并生成结构化精读笔记</p>
-            <div class="admin-form-card" style="max-width: 600px">
+            <div class="admin-form-card" style="max-width: 720px">
               <a-form :model="urlForm" layout="vertical" @submit.prevent>
                 <a-form-item
-                  label="文章 URL"
                   name="url"
+                  class="ingest-focal"
                   :rules="[{ required: true, message: '请填写文章 URL' }]"
                 >
+                  <template #label>
+                    <span class="icon-label"><Link2 :size="15" /> 文章 URL</span>
+                  </template>
                   <a-input
                     v-model:value="urlForm.url"
                     placeholder="https://example.com/article"
                     size="large"
                     allow-clear
                     @pressEnter="submitUrl('URL')"
-                  />
-                </a-form-item>
-                <a-form-item label="标题（可选）" name="title">
-                  <a-input
-                    v-model:value="urlForm.title"
-                    size="large"
-                    placeholder="留空则自动提取"
-                    allow-clear
-                  />
-                </a-form-item>
-                <a-form-item label="标签（可选）" name="tags">
-                  <a-input
-                    v-model:value="urlForm.tags"
-                    size="large"
-                    placeholder="Spring, Java, 微服务"
-                    allow-clear
-                  />
-                </a-form-item>
-                <a-form-item style="margin-bottom: 0">
-                  <a-button
-                    type="primary"
-                    size="large"
-                    :loading="submitting"
-                    block
-                    @click="submitUrl('URL')"
                   >
-                    开始精炼
-                  </a-button>
+                    <template #prefix>
+                      <Globe :size="16" class="input-prefix-icon" />
+                    </template>
+                  </a-input>
+                </a-form-item>
+                <div class="field-grid">
+                  <a-form-item name="title">
+                    <template #label>
+                      <span class="icon-label"><Type :size="15" /> 标题（可选）</span>
+                    </template>
+                    <a-input
+                      v-model:value="urlForm.title"
+                      size="large"
+                      placeholder="留空则自动提取"
+                      allow-clear
+                    >
+                      <template #prefix>
+                        <Type :size="16" class="input-prefix-icon" />
+                      </template>
+                    </a-input>
+                  </a-form-item>
+                  <a-form-item name="tags">
+                    <template #label>
+                      <span class="icon-label"><Tags :size="15" /> 标签（可选）</span>
+                    </template>
+                    <a-input
+                      v-model:value="urlForm.tags"
+                      size="large"
+                      placeholder="Spring, Java, 微服务"
+                      allow-clear
+                    >
+                      <template #prefix>
+                        <Tags :size="16" class="input-prefix-icon" />
+                      </template>
+                    </a-input>
+                  </a-form-item>
+                </div>
+                <a-form-item style="margin-bottom: 0">
+                  <IconAction
+                    :icon="Sparkles"
+                    label="开始精炼"
+                    variant="primary"
+                    size="lg"
+                    block
+                    motion="send"
+                    :loading="submitting"
+                    @click="submitUrl('URL')"
+                  />
                 </a-form-item>
               </a-form>
             </div>
           </a-tab-pane>
 
           <a-tab-pane key="file">
-            <template #tab>文件上传</template>
+            <template #tab><span class="tab-label"><Upload :size="16" /> 文件上传</span></template>
             <p class="tab-guide">上传 PDF / Word / TXT / Markdown，提取文本并生成精读笔记</p>
-            <div class="admin-form-card" style="max-width: 600px">
+            <div class="admin-form-card" style="max-width: 720px">
               <a-form :model="fileForm" layout="vertical" @submit.prevent>
-                <a-form-item label="选择本地文件" required>
+                <a-form-item required>
+                  <template #label>
+                    <span class="icon-label"><UploadCloud :size="15" /> 选择本地文件</span>
+                  </template>
                   <a-upload-dragger
                     :accept="KB_UPLOAD_ACCEPT"
                     :before-upload="beforeUpload"
                     :file-list="fileList"
                     :max-count="1"
-                    class="admin-upload-dragger"
+                    class="admin-upload-dragger kb-dragger"
                     @remove="removeFile"
                   >
-                    <div style="padding: 16px 0">
-                      <p style="color: var(--color-text-secondary); margin: 0">
-                        点击或拖拽文件到此处上传
-                      </p>
-                      <p class="hint" style="margin-top: 6px">
+                    <div class="kb-dragger__inner">
+                      <span class="kb-dragger__icon"><UploadCloud :size="30" :stroke-width="1.8" /></span>
+                      <p class="kb-dragger__title">点击或拖拽文件到此处上传</p>
+                      <p class="kb-dragger__hint">
                         支持 PDF / DOCX / TXT / Markdown，单文件不超过 50MB
                       </p>
                     </div>
                   </a-upload-dragger>
                 </a-form-item>
-                <a-form-item label="标题（可选）" name="title">
-                  <a-input
-                    v-model:value="fileForm.title"
-                    size="large"
-                    placeholder="默认使用文件名"
-                    allow-clear
-                  />
-                </a-form-item>
-                <a-form-item label="标签（可选）" name="tags">
-                  <a-input
-                    v-model:value="fileForm.tags"
-                    size="large"
-                    placeholder="逗号分隔"
-                    allow-clear
-                  />
-                </a-form-item>
+                <div class="field-grid">
+                  <a-form-item name="title">
+                    <template #label>
+                      <span class="icon-label"><Type :size="15" /> 标题（可选）</span>
+                    </template>
+                    <a-input
+                      v-model:value="fileForm.title"
+                      size="large"
+                      placeholder="默认使用文件名"
+                      allow-clear
+                    >
+                      <template #prefix>
+                        <Type :size="16" class="input-prefix-icon" />
+                      </template>
+                    </a-input>
+                  </a-form-item>
+                  <a-form-item name="tags">
+                    <template #label>
+                      <span class="icon-label"><Tags :size="15" /> 标签（可选）</span>
+                    </template>
+                    <a-input
+                      v-model:value="fileForm.tags"
+                      size="large"
+                      placeholder="逗号分隔"
+                      allow-clear
+                    >
+                      <template #prefix>
+                        <Tags :size="16" class="input-prefix-icon" />
+                      </template>
+                    </a-input>
+                  </a-form-item>
+                </div>
                 <a-form-item style="margin-bottom: 0">
-                  <a-button
-                    type="primary"
-                    size="large"
-                    :loading="submitting"
+                  <IconAction
+                    :icon="Upload"
+                    label="上传并精炼"
+                    variant="primary"
+                    size="lg"
                     block
+                    motion="pop"
+                    :loading="submitting"
                     :disabled="!selectedFile"
                     @click="submitFile"
-                  >
-                    上传并精炼
-                  </a-button>
+                  />
                 </a-form-item>
               </a-form>
             </div>
           </a-tab-pane>
 
           <a-tab-pane key="agent">
-            <template #tab>AI 搜索</template>
+            <template #tab><span class="tab-label"><Sparkles :size="16" /> AI 搜索</span></template>
             <p class="tab-guide">
               告诉 AI 学什么 → DeepSeek 联网找页 → 勾选 → 合蒸成 <strong>1 篇</strong> → 预览后发博客/入库
             </p>
@@ -645,32 +851,58 @@ const retryMergeWithoutFailed = () => {
 
             <div class="admin-form-card" style="max-width: 720px; margin-bottom: 16px">
               <a-form layout="vertical" @submit.prevent>
-                <a-form-item label="学习目标" required>
+                <a-form-item required class="ingest-focal">
+                  <template #label>
+                    <span class="icon-label"><Target :size="15" /> 学习目标</span>
+                  </template>
                   <a-input
                     v-model:value="agentForm.goal"
                     size="large"
                     placeholder="例如：我想学 Spring Security 6"
                     allow-clear
                     @pressEnter="searchCandidates"
-                  />
+                  >
+                    <template #prefix>
+                      <Target :size="16" class="input-prefix-icon" />
+                    </template>
+                  </a-input>
                 </a-form-item>
-                <a-form-item label="偏好说明（可选）">
-                  <a-input
-                    v-model:value="agentForm.preference"
-                    size="large"
-                    placeholder="官方文档优先 / 偏实践 / 入门"
-                    allow-clear
-                  />
-                </a-form-item>
-                <a-form-item label="标签（可选，写入笔记）">
-                  <a-input
-                    v-model:value="agentForm.tags"
-                    size="large"
-                    placeholder="security, spring"
-                    allow-clear
-                  />
-                </a-form-item>
-                <a-form-item label="本次精读 Prompt（可选）">
+                <div class="field-grid">
+                  <a-form-item>
+                    <template #label>
+                      <span class="icon-label"><SlidersHorizontal :size="15" /> 偏好说明（可选）</span>
+                    </template>
+                    <a-input
+                      v-model:value="agentForm.preference"
+                      size="large"
+                      placeholder="官方文档优先 / 偏实践 / 入门"
+                      allow-clear
+                    >
+                      <template #prefix>
+                        <SlidersHorizontal :size="16" class="input-prefix-icon" />
+                      </template>
+                    </a-input>
+                  </a-form-item>
+                  <a-form-item>
+                    <template #label>
+                      <span class="icon-label"><Tags :size="15" /> 标签（可选，写入笔记）</span>
+                    </template>
+                    <a-input
+                      v-model:value="agentForm.tags"
+                      size="large"
+                      placeholder="security, spring"
+                      allow-clear
+                    >
+                      <template #prefix>
+                        <Tags :size="16" class="input-prefix-icon" />
+                      </template>
+                    </a-input>
+                  </a-form-item>
+                </div>
+                <a-form-item>
+                  <template #label>
+                    <span class="icon-label"><FileText :size="15" /> 本次精读 Prompt（可选）</span>
+                  </template>
                   <a-textarea
                     v-model:value="agentForm.distillPrompt"
                     :rows="4"
@@ -680,29 +912,34 @@ const retryMergeWithoutFailed = () => {
                 </a-form-item>
                 <a-form-item style="margin-bottom: 0">
                   <a-space wrap>
-                    <a-button
-                      type="primary"
-                      size="large"
+                    <IconAction
+                      :icon="Search"
+                      label="搜索候选"
+                      variant="primary"
+                      size="lg"
+                      motion="slide"
                       :loading="searchLoading"
                       @click="searchCandidates"
-                    >
-                      搜索候选
-                    </a-button>
-                    <a-button
-                      size="large"
-                      :disabled="!selectedCount"
+                    />
+                    <IconAction
+                      :icon="Combine"
+                      :label="`合蒸一篇（已选 ${selectedCount} → 1 篇）`"
+                      variant="soft"
+                      size="lg"
+                      motion="pop"
+                      :disabled="!selectedCount || batchJobInProgress"
                       :loading="batchLoading"
                       @click="submitBatch"
-                    >
-                      合蒸一篇（已选 {{ selectedCount }} → 1 篇）
-                    </a-button>
-                    <a-button
+                    />
+                    <IconAction
                       v-if="searchDone || batchResult"
-                      size="large"
+                      :icon="Trash2"
+                      label="清空草稿"
+                      variant="ghost"
+                      size="lg"
+                      motion="shake"
                       @click="clearAgentDraft"
-                    >
-                      清空草稿
-                    </a-button>
+                    />
                   </a-space>
                 </a-form-item>
               </a-form>
@@ -710,21 +947,27 @@ const retryMergeWithoutFailed = () => {
 
             <a-card
               v-if="outline"
-              title="学习大纲（不落库）"
               :bordered="false"
               size="small"
+              class="kb-result-card"
               style="max-width: 900px; margin-bottom: 16px"
             >
+              <template #title>
+                <span class="kb-card-title"><ListTree :size="16" /> 学习大纲（不落库）</span>
+              </template>
               <pre class="outline-box">{{ outline }}</pre>
             </a-card>
 
             <a-card
               v-if="searchDone"
-              title="搜索候选"
               :bordered="false"
               size="small"
+              class="kb-result-card"
               style="max-width: 1100px; margin-bottom: 16px"
             >
+              <template #title>
+                <span class="kb-card-title"><Search :size="16" /> 搜索候选</span>
+              </template>
               <template #extra>
                 <span class="hint">最多勾选 {{ BATCH_MAX }} 条；建议 {{ SELECT_HINT_MIN }}～{{ SELECT_HINT_MAX }} 条</span>
               </template>
@@ -749,14 +992,17 @@ const retryMergeWithoutFailed = () => {
                   </template>
                   <template v-else-if="column.key === 'risk'">
                     <template v-if="record.riskFlags?.length">
-                      <a-tag
-                        v-for="flag in record.riskFlags"
-                        :key="flag"
-                        color="orange"
-                        style="margin-bottom: 2px"
-                      >
-                        {{ formatSearchRiskFlag(flag) }}
-                      </a-tag>
+                      <span class="risk-flags">
+                        <AlertTriangle :size="14" class="risk-flags__icon" />
+                        <a-tag
+                          v-for="flag in record.riskFlags"
+                          :key="flag"
+                          color="orange"
+                          style="margin-bottom: 2px"
+                        >
+                          {{ formatSearchRiskFlag(flag) }}
+                        </a-tag>
+                      </span>
                     </template>
                     <span v-else class="hint">—</span>
                   </template>
@@ -775,116 +1021,166 @@ const retryMergeWithoutFailed = () => {
                   :rows="3"
                   placeholder="https://docs.spring.io/...&#10;https://..."
                 />
-                <a-button style="margin-top: 8px" @click="appendManualCandidates">
-                  追加到候选并勾选
-                </a-button>
+                <IconAction
+                  :icon="Plus"
+                  label="追加到候选并勾选"
+                  variant="soft"
+                  motion="pop"
+                  style="margin-top: 8px"
+                  @click="appendManualCandidates"
+                />
               </div>
             </a-card>
 
             <a-card
-              v-if="batchResult"
+              v-if="batchResult || batchLoading"
               title="合蒸结果"
               :bordered="false"
               size="small"
               style="max-width: 1100px"
             >
-              <p class="batch-summary">
-                <template v-if="batchResult.success && batchResult.noteId != null">
-                  已生成：{{ batchResult.title || `笔记 #${batchResult.noteId}` }}
-                  · 请求 {{ batchResult.total ?? 0 }} 源 · 采用
-                  {{ batchResult.usedCount ?? 0 }} · 失败 {{ batchResult.failCount ?? 0 }}
-                </template>
-                <template v-else>
-                  合蒸失败 · 请求 {{ batchResult.total ?? 0 }} 源 · 失败
-                  {{ batchResult.failCount ?? 0 }}
-                </template>
-              </p>
+              <div
+                v-if="batchJobInProgress || (batchLoading && !batchResult?.status)"
+                class="ingest-progress"
+              >
+                <ReadingJobProgress
+                  :status="batchResult?.status"
+                  :progress="batchResult?.progress"
+                  :size="76"
+                />
+                <div class="ingest-progress__info">
+                  <div class="ingest-progress__label">{{ batchProgressLabel }}</div>
+                  <div class="ingest-progress__sub">
+                    <template v-if="batchResult?.jobId != null">
+                      任务 #{{ batchResult.jobId }} · 每 2 秒刷新进度，可离开本页后回来继续查看
+                    </template>
+                    <template v-else>正在提交合蒸任务…</template>
+                  </div>
+                </div>
+              </div>
 
-              <a-alert
-                v-if="batchResult.warning"
-                type="warning"
-                show-icon
-                style="margin-bottom: 12px"
-                :message="batchResult.warning"
-              />
+              <template v-if="batchResult">
+                <p class="batch-summary">
+                  <template v-if="batchJobInProgress">
+                    {{ batchProgressLabel }}
+                    · 请求 {{ batchResult.total ?? 0 }} 源
+                    <template v-if="batchResult.jobId != null"> · 任务 #{{ batchResult.jobId }}</template>
+                  </template>
+                  <template v-else-if="batchJobSucceeded">
+                    已生成：{{ batchResult.title || `笔记 #${batchResult.noteId}` }}
+                    · 请求 {{ batchResult.total ?? 0 }} 源 · 采用
+                    {{ batchResult.usedCount ?? 0 }} · 失败 {{ batchResult.failCount ?? 0 }}
+                  </template>
+                  <template v-else-if="String(batchResult.status || '').toUpperCase() === 'FAILED'">
+                    合蒸失败
+                    <template v-if="batchResult.errorMsg">：{{ batchResult.errorMsg }}</template>
+                    · 请求 {{ batchResult.total ?? 0 }} 源
+                  </template>
+                  <template v-else>
+                    合蒸失败 · 请求 {{ batchResult.total ?? 0 }} 源 · 失败
+                    {{ batchResult.failCount ?? 0 }}
+                    <template v-if="batchResult.errorMsg"> · {{ batchResult.errorMsg }}</template>
+                  </template>
+                </p>
 
-              <a-space style="margin-bottom: 12px" wrap>
-                <a-button
-                  v-if="batchResult.success && batchResult.noteId != null"
-                  type="primary"
-                  @click="goDetail(batchResult.noteId)"
+                <a-alert
+                  v-if="batchResult.warning"
+                  type="warning"
+                  show-icon
+                  style="margin-bottom: 12px"
+                  :message="batchResult.warning"
+                />
+
+                <a-alert
+                  v-if="
+                    !batchJobInProgress &&
+                    String(batchResult.status || '').toUpperCase() === 'FAILED' &&
+                    batchResult.errorMsg
+                  "
+                  type="error"
+                  show-icon
+                  style="margin-bottom: 12px"
+                  :message="batchResult.errorMsg"
+                />
+
+                <a-space style="margin-bottom: 12px" wrap>
+                  <a-button
+                    v-if="batchJobSucceeded"
+                    type="primary"
+                    @click="goDetail(batchResult.noteId)"
+                  >
+                    打开精读笔记
+                  </a-button>
+                  <a-button
+                    v-if="batchJobSucceeded"
+                    @click="router.push(`/admin/knowledge/notes/${batchResult.noteId}?action=publish`)"
+                  >
+                    去发博客
+                  </a-button>
+                  <a-button
+                    v-if="batchJobSucceeded"
+                    @click="router.push(`/admin/knowledge/notes/${batchResult.noteId}?action=index`)"
+                  >
+                    去入知识库
+                  </a-button>
+                  <a-button
+                    v-if="(batchResult.failedSources || []).length && !batchJobInProgress"
+                    :loading="batchLoading"
+                    @click="retryMergeWithoutFailed"
+                  >
+                    去掉失败源后重新合蒸
+                  </a-button>
+                  <a-button
+                    type="link"
+                    @click="router.push('/admin/knowledge/notes?sourceType=AGENT')"
+                  >
+                    查看 AI 搜索来源列表
+                  </a-button>
+                </a-space>
+
+                <div
+                  v-if="(batchResult.usedSources || []).length"
+                  class="result-section"
                 >
-                  打开精读笔记
-                </a-button>
-                <a-button
-                  v-if="batchResult.success && batchResult.noteId != null"
-                  @click="router.push(`/admin/knowledge/notes/${batchResult.noteId}?action=publish`)"
-                >
-                  去发博客
-                </a-button>
-                <a-button
-                  v-if="batchResult.success && batchResult.noteId != null"
-                  @click="router.push(`/admin/knowledge/notes/${batchResult.noteId}?action=index`)"
-                >
-                  去入知识库
-                </a-button>
-                <a-button
+                  <div class="manual-title">采用来源</div>
+                  <a-table
+                    row-key="url"
+                    size="small"
+                    :pagination="false"
+                    :data-source="batchResult.usedSources || []"
+                    :columns="usedSourceColumns"
+                  >
+                    <template #bodyCell="{ column, record }">
+                      <template v-if="column.key === 'bodyChars'">
+                        {{ record.bodyChars != null ? record.bodyChars : '—' }}
+                      </template>
+                    </template>
+                  </a-table>
+                </div>
+
+                <div
                   v-if="(batchResult.failedSources || []).length"
-                  :loading="batchLoading"
-                  @click="retryMergeWithoutFailed"
+                  class="result-section"
                 >
-                  去掉失败源后重新合蒸
-                </a-button>
-                <a-button
-                  type="link"
-                  @click="router.push('/admin/knowledge/notes?sourceType=AGENT')"
-                >
-                  查看 AI 搜索来源列表
-                </a-button>
-              </a-space>
-
-              <div
-                v-if="(batchResult.usedSources || []).length"
-                class="result-section"
-              >
-                <div class="manual-title">采用来源</div>
-                <a-table
-                  row-key="url"
-                  size="small"
-                  :pagination="false"
-                  :data-source="batchResult.usedSources || []"
-                  :columns="usedSourceColumns"
-                >
-                  <template #bodyCell="{ column, record }">
-                    <template v-if="column.key === 'bodyChars'">
-                      {{ record.bodyChars != null ? record.bodyChars : '—' }}
+                  <div class="manual-title">失败来源（质量门 / 抓取）</div>
+                  <a-table
+                    row-key="url"
+                    size="small"
+                    :pagination="false"
+                    :data-source="batchResult.failedSources || []"
+                    :columns="failedSourceColumns"
+                  >
+                    <template #bodyCell="{ column, record }">
+                      <template v-if="column.key === 'reasonCode'">
+                        <a-tag color="red">{{ formatIngestFailReason(record.reasonCode) }}</a-tag>
+                      </template>
+                      <template v-else-if="column.key === 'errorMessage'">
+                        <span class="err">{{ record.errorMessage || '未知错误' }}</span>
+                      </template>
                     </template>
-                  </template>
-                </a-table>
-              </div>
-
-              <div
-                v-if="(batchResult.failedSources || []).length"
-                class="result-section"
-              >
-                <div class="manual-title">失败来源（质量门 / 抓取）</div>
-                <a-table
-                  row-key="url"
-                  size="small"
-                  :pagination="false"
-                  :data-source="batchResult.failedSources || []"
-                  :columns="failedSourceColumns"
-                >
-                  <template #bodyCell="{ column, record }">
-                    <template v-if="column.key === 'reasonCode'">
-                      <a-tag color="red">{{ formatIngestFailReason(record.reasonCode) }}</a-tag>
-                    </template>
-                    <template v-else-if="column.key === 'errorMessage'">
-                      <span class="err">{{ record.errorMessage || '未知错误' }}</span>
-                    </template>
-                  </template>
-                </a-table>
-              </div>
+                  </a-table>
+                </div>
+              </template>
             </a-card>
           </a-tab-pane>
         </a-tabs>
@@ -901,23 +1197,147 @@ const retryMergeWithoutFailed = () => {
   line-height: 1.6;
 }
 
+/* 副字段两列并排（窄屏回落单列） */
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 20px;
+}
+@media (max-width: 640px) {
+  .field-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 主输入焦点框：轻 tint 背景 + 圆角，聚焦时高亮 */
+.ingest-focal {
+  padding: 14px 16px 4px;
+  margin-bottom: 20px;
+  background: var(--color-primary-08);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.ingest-focal:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-12);
+}
+
+/* 字段标签图标 */
+.icon-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.icon-label :deep(svg) {
+  color: var(--color-text-muted);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ingest-focal {
+    transition: none;
+  }
+}
+
 .hint {
   color: var(--color-text-muted);
   font-size: 12px;
 }
 
 .outline-box {
+  position: relative;
   max-height: 240px;
   overflow: auto;
-  padding: 16px;
+  padding: 16px 16px 16px 20px;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
   white-space: pre-wrap;
   font-size: 14px;
   line-height: 1.7;
   margin: 0;
+}
+
+/* Tab 标签图标 */
+.tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 输入框前缀图标 */
+.input-prefix-icon {
+  color: var(--color-text-muted);
+}
+
+/* 上传拖拽区 */
+.kb-dragger__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 0;
+}
+.kb-dragger__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: var(--color-primary-12);
+  color: var(--color-primary-light);
+  transition:
+    transform var(--transition-fast),
+    background var(--transition-fast);
+}
+.kb-dragger__title {
+  margin: 0;
+  font-size: 15px;
+  color: var(--color-text-primary);
+}
+.kb-dragger__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.kb-ingest-page :deep(.kb-dragger .ant-upload-drag) {
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+.kb-ingest-page :deep(.kb-dragger .ant-upload-drag:hover) {
+  border-color: var(--color-primary) !important;
+  background: var(--color-primary-08);
+}
+.kb-ingest-page :deep(.kb-dragger .ant-upload-drag:hover) .kb-dragger__icon {
+  transform: translateY(-2px) scale(1.05);
+  background: var(--color-primary-20);
+}
+
+/* 结果卡片 */
+.kb-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.kb-result-card {
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+.kb-result-card:hover {
+  box-shadow: var(--shadow-glow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kb-dragger__icon,
+  .kb-ingest-page :deep(.kb-dragger .ant-upload-drag:hover) .kb-dragger__icon {
+    transform: none !important;
+    transition: none;
+  }
 }
 
 .manual-block {
@@ -928,10 +1348,6 @@ const retryMergeWithoutFailed = () => {
 
 .result-section {
   margin-top: 12px;
-}
-
-.row-risk {
-  /* ant table 行 class；风险候选略标橙底由 deep 样式兜底 */
 }
 
 .manual-title {
@@ -951,8 +1367,48 @@ const retryMergeWithoutFailed = () => {
   font-size: 13px;
 }
 
+/* 风险行：左侧色带 + 极浅底，比整行橙底更清晰 */
 :deep(.row-risk) > td {
-  background: rgba(250, 173, 20, 0.08);
+  background: rgba(245, 158, 11, 0.05);
+}
+:deep(.row-risk) > td:first-child {
+  box-shadow: inset 3px 0 0 var(--color-warning);
+}
+
+.risk-flags {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.risk-flags__icon {
+  color: var(--color-warning);
+  flex-shrink: 0;
+}
+
+.ingest-progress {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--color-primary-20);
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    100deg,
+    var(--color-primary-08) 0%,
+    var(--color-bg-surface) 70%
+  );
+}
+.ingest-progress__label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+}
+.ingest-progress__sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
 }
 
 .ingest-tabs-wrapper :deep(.ant-tabs-content-holder) {

@@ -1,4 +1,15 @@
 declare namespace API {
+  /** 模块能力探测：各业务模块是否启用（缺省视为关闭） */
+  type AppModulesVO = {
+    modules?: Record<string, boolean>
+  }
+
+  type BaseResponseAppModulesVO = {
+    code?: number
+    data?: AppModulesVO
+    message?: string
+  }
+
   type addPostTagParams = {
     postId: number
     tagId: number
@@ -1781,7 +1792,20 @@ declare namespace API {
     bodyChars?: number | null
   }
 
-  type KnowledgeIngestBatchResultVO = {
+  /** GET /admin/knowledge/reading-jobs/{jobId}；batch-url 异步提交也返回此 VO */
+  type KnowledgeReadingJobStatus = 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED'
+  type KnowledgeReadingJobProgress =
+    | 'QUEUED'
+    | 'READING'
+    | 'DISTILLING'
+    | 'DONE'
+    | 'ERROR'
+
+  type KnowledgeReadingJobVO = {
+    jobId?: number | string | null
+    status?: KnowledgeReadingJobStatus | string | null
+    progress?: KnowledgeReadingJobProgress | string | null
+    errorMsg?: string | null
     success?: boolean
     noteId?: number | string | null
     title?: string | null
@@ -1793,6 +1817,9 @@ declare namespace API {
     usedSources?: KnowledgeIngestUsedSourceVO[]
     failedSources?: KnowledgeIngestFailedSourceVO[]
   }
+
+  /** @deprecated 使用 KnowledgeReadingJobVO（同步/异步统一） */
+  type KnowledgeIngestBatchResultVO = KnowledgeReadingJobVO
 
   type KnowledgeSearchPreviewRequest = {
     goal?: string
@@ -1848,11 +1875,14 @@ declare namespace API {
     message?: string
   }
 
-  type BaseResponseKnowledgeIngestBatchResultVO = {
+  type BaseResponseKnowledgeReadingJobVO = {
     code?: number
-    data?: KnowledgeIngestBatchResultVO
+    data?: KnowledgeReadingJobVO
     message?: string
   }
+
+  /** @deprecated 使用 BaseResponseKnowledgeReadingJobVO */
+  type BaseResponseKnowledgeIngestBatchResultVO = BaseResponseKnowledgeReadingJobVO
 
   type BaseResponseKnowledgeBaseVO = {
     code?: number

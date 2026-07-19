@@ -3,7 +3,8 @@ import { computed } from 'vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { MenuProps } from 'ant-design-vue'
+import type { MenuProps } from 'ant-design-vue'
+import { User, LogOut, LogIn, ChevronDown } from 'lucide-vue-next'
 import { userLogout } from '@/api/userController'
 import { siteConfig } from '@/config/site'
 
@@ -96,18 +97,28 @@ const handleAvatarClick = async ({ key }: MenuClickEvent) => {
           <a-space class="user-entry" size="small">
             <a-avatar :src="loginUserStore.loginUser.userAvatar" class="user-entry__avatar" />
             <span class="user-entry__name">{{ loginUserStore.loginUser.userName ?? '无名' }}</span>
+            <ChevronDown :size="15" class="user-entry__caret" />
           </a-space>
           <template #overlay>
             <a-menu @click="handleAvatarClick" class="user-dropdown-menu">
-              <a-menu-item key="profile">个人信息</a-menu-item>
+              <a-menu-item key="profile">
+                <template #icon><User :size="15" /></template>
+                个人信息
+              </a-menu-item>
               <a-menu-divider />
-              <a-menu-item key="logout">退出登录</a-menu-item>
+              <a-menu-item key="logout">
+                <template #icon><LogOut :size="15" /></template>
+                退出登录
+              </a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
       </div>
       <div v-else>
-        <a-button type="primary" class="login-btn" @click="router.push('/user/login')">登录</a-button>
+        <a-button type="primary" class="login-btn" @click="router.push('/user/login')">
+          <template #icon><LogIn :size="15" /></template>
+          登录
+        </a-button>
       </div>
     </div>
   </div>
@@ -347,6 +358,33 @@ const handleAvatarClick = async ({ key }: MenuClickEvent) => {
 .login-btn:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-glow-lg);
+}
+
+.login-btn :deep(svg) {
+  vertical-align: -0.16em;
+  transition: transform var(--transition-fast);
+}
+.login-btn:hover :deep(svg) {
+  transform: translateX(2px);
+}
+
+.user-entry__caret {
+  color: var(--color-text-muted);
+  transition: transform var(--transition-fast);
+}
+.user-entry:hover .user-entry__caret {
+  transform: translateY(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-btn :deep(svg),
+  .user-entry__caret {
+    transition: none;
+  }
+  .login-btn:hover :deep(svg),
+  .user-entry:hover .user-entry__caret {
+    transform: none;
+  }
 }
 
 @media (max-width: 768px) {

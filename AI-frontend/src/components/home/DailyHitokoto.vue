@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { ReloadOutlined } from '@ant-design/icons-vue'
+import { RefreshCw, Quote } from 'lucide-vue-next'
 import {
   fetchHitokoto,
   getHitokotoDetailUrl,
@@ -62,16 +62,20 @@ onMounted(() => {
 <template>
   <section class="daily-hitokoto" :class="{ 'daily-hitokoto--plain': variant === 'plain' }">
     <div class="daily-hitokoto__header">
-      <span class="daily-hitokoto__label">今日一言</span>
+      <span class="daily-hitokoto__label">
+        <Quote :size="14" class="daily-hitokoto__label-icon" />
+        今日一言
+      </span>
       <a-tag v-if="item" class="daily-hitokoto__type">{{ typeLabel }}</a-tag>
       <button
         type="button"
         class="daily-hitokoto__refresh"
+        :class="{ 'is-refreshing': refreshing }"
         :disabled="loading || refreshing"
         aria-label="换一句"
         @click="loadHitokoto(true)"
       >
-        <ReloadOutlined :spin="refreshing" />
+        <RefreshCw :size="15" />
       </button>
     </div>
 
@@ -117,10 +121,18 @@ onMounted(() => {
 }
 
 .daily-hitokoto__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--color-primary-light);
+}
+
+.daily-hitokoto__label-icon {
+  flex-shrink: 0;
+  opacity: 0.9;
 }
 
 .daily-hitokoto__type {
@@ -146,15 +158,42 @@ onMounted(() => {
   transition: all var(--transition-fast);
 }
 
+.daily-hitokoto__refresh :deep(svg) {
+  transition: transform 0.3s ease;
+}
+
 .daily-hitokoto__refresh:hover:not(:disabled) {
   color: var(--color-text-primary);
   border-color: var(--color-border-hover);
   background: var(--color-primary-08);
 }
 
+.daily-hitokoto__refresh:hover:not(:disabled) :deep(svg) {
+  transform: rotate(90deg);
+}
+
+.daily-hitokoto__refresh.is-refreshing :deep(svg) {
+  animation: hitokotoSpin 0.8s linear infinite;
+}
+
 .daily-hitokoto__refresh:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+@keyframes hitokotoSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daily-hitokoto__refresh :deep(svg),
+  .daily-hitokoto__refresh:hover:not(:disabled) :deep(svg) {
+    transition: none;
+    transform: none;
+    animation: none;
+  }
 }
 
 .daily-hitokoto__quote {

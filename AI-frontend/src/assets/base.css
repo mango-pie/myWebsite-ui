@@ -55,6 +55,11 @@
   --gradient-card: linear-gradient(145deg, rgba(45, 36, 56, 0.85) 0%, rgba(26, 22, 37, 0.9) 100%);
   --gradient-bg: linear-gradient(160deg, #1a1625 0%, #2d2438 45%, #1a1625 100%);
 
+  /* 房间强调色（同紫系内微差） */
+  --room-accent: var(--color-primary);
+  --room-accent-soft: var(--color-primary-12);
+  --room-radius: var(--radius-lg);
+
   --player-mini-width: 360px;
   --player-mini-height: 72px;
   --player-panel-width: 360px;
@@ -108,12 +113,53 @@
 
   --font-sans: 'ZCOOL KuaiLe', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 
-  /* 站酷快乐体视觉偏小，基准字号略高于常规 16px */
   --font-size-base: 17px;
   --font-size-sm: 14px;
   --font-size-md: 15px;
   --font-size-lg: 18px;
   --font-size-xl: 20px;
+}
+
+[data-room='blog'] {
+  --room-accent: #f0a3c4;
+  --room-accent-soft: rgba(232, 121, 169, 0.14);
+  --room-radius: 10px;
+}
+
+[data-room='knowledge'] {
+  --room-accent: #9bb5eb;
+  --room-accent-soft: rgba(124, 156, 224, 0.16);
+}
+
+[data-room='chat'] {
+  --room-accent: #e879a9;
+  --room-accent-soft: rgba(232, 121, 169, 0.16);
+}
+
+[data-room='diary'] {
+  --room-accent: #c9a0dc;
+  --room-accent-soft: rgba(201, 160, 220, 0.14);
+  --room-radius: 8px;
+}
+
+[data-room='lab'] {
+  --room-accent: #a78bfa;
+  --room-accent-soft: rgba(167, 139, 250, 0.16);
+}
+
+[data-room='study'] {
+  --room-accent: #7c9ce0;
+  --room-accent-soft: rgba(124, 156, 224, 0.16);
+}
+
+[data-room='admin'] {
+  --room-accent: #b8a4c9;
+  --room-accent-soft: rgba(184, 164, 201, 0.14);
+}
+
+[data-room='hall'] {
+  --room-accent: var(--color-primary);
+  --room-accent-soft: var(--color-primary-12);
 }
 
 *,
@@ -154,6 +200,50 @@ body {
 .theme-page {
   background: transparent;
   color: var(--color-text-primary);
+}
+
+/* meta 图标 hover 微动效（点赞心 / 浏览眼），供列表卡片复用 */
+.meta-icon-beat {
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+:hover > .meta-icon-beat,
+.meta-icon-beat:hover {
+  animation: metaHeartBeat 0.6s ease;
+  color: var(--color-primary-light);
+}
+.meta-icon-eye {
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+:hover > .meta-icon-eye,
+.meta-icon-eye:hover {
+  transform: scale(1.18);
+  color: var(--color-secondary-light);
+}
+
+@keyframes metaHeartBeat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.28);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :hover > .meta-icon-beat,
+  .meta-icon-beat:hover,
+  :hover > .meta-icon-eye,
+  .meta-icon-eye:hover {
+    animation: none;
+    transform: none;
+  }
 }
 
 @keyframes player-cover-spin {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { inject, ref } from 'vue'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { Plus, Pencil, Trash2, Flame, Check } from 'lucide-vue-next'
 import { Modal, message } from 'ant-design-vue'
 import { studyContextKey } from '@/composables/study/useStudyContext'
 import StudyHabitCalendar from './StudyHabitCalendar.vue'
@@ -77,8 +77,8 @@ function toggleExpand(id?: number) {
 <template>
   <a-spin :spinning="ctx.habitsLoading.value">
     <div class="study-habit-toolbar">
-      <a-button size="small" type="dashed" @click="openAdd">
-        <PlusOutlined /> 新建习惯
+      <a-button size="small" type="dashed" class="habit-add-btn" @click="openAdd">
+        <Plus :size="15" class="habit-add-icon" /> 新建习惯
       </a-button>
     </div>
 
@@ -89,9 +89,11 @@ function toggleExpand(id?: number) {
           <span class="study-habit-card__title">{{ habit.title }}</span>
           <a-button
             size="small"
+            class="habit-check-btn"
             :type="habit.checkedToday ? 'primary' : 'default'"
             @click="ctx.toggleHabitCheck(habit)"
           >
+            <component :is="habit.checkedToday ? Check : Flame" :size="14" class="habit-check-icon" />
             {{ habit.checkedToday ? '已打卡' : '打卡' }}
           </a-button>
         </div>
@@ -100,8 +102,8 @@ function toggleExpand(id?: number) {
         </div>
         <div class="study-habit-card__actions">
           <a-button type="link" size="small" @click="toggleExpand(habit.id)">月历</a-button>
-          <EditOutlined @click="openEdit(habit, $event)" />
-          <DeleteOutlined @click="handleDelete(habit)" />
+          <Pencil :size="15" class="habit-edit-icon" @click="openEdit(habit, $event)" />
+          <Trash2 :size="15" class="habit-delete-icon" @click="handleDelete(habit)" />
         </div>
         <StudyHabitCalendar v-if="expandedId === habit.id && habit.id" :habit-id="habit.id" />
       </div>
@@ -147,5 +149,43 @@ function toggleExpand(id?: number) {
   font-size: 14px;
   color: var(--color-text-muted);
   cursor: pointer;
+}
+
+.habit-add-icon,
+.habit-check-icon {
+  vertical-align: -0.16em;
+  transition: transform var(--transition-fast);
+}
+.habit-add-btn:hover .habit-add-icon {
+  transform: rotate(90deg);
+}
+.habit-check-btn:hover .habit-check-icon {
+  transform: scale(1.18);
+}
+.habit-edit-icon,
+.habit-delete-icon {
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+.habit-edit-icon:hover {
+  color: #e879a9;
+  transform: rotate(-12deg) scale(1.1);
+}
+.habit-delete-icon:hover {
+  color: #e879a9;
+  transform: scale(1.15);
+}
+@media (prefers-reduced-motion: reduce) {
+  .habit-add-icon,
+  .habit-check-icon,
+  .habit-edit-icon,
+  .habit-delete-icon {
+    transition: none;
+  }
+  .habit-add-btn:hover .habit-add-icon,
+  .habit-check-btn:hover .habit-check-icon,
+  .habit-edit-icon:hover,
+  .habit-delete-icon:hover {
+    transform: none;
+  }
 }
 </style>

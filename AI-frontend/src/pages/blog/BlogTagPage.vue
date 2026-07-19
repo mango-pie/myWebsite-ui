@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { CalendarOutlined, TagOutlined, EyeOutlined, HeartOutlined } from '@ant-design/icons-vue'
+import { CalendarOutlined, TagOutlined } from '@ant-design/icons-vue'
+import { ArrowLeft, Eye, Heart } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -71,7 +72,9 @@ const goBack = () => {
   <div id="blogTagPage" class="blog-shell-page">
     <div class="tag-header">
       <div class="tag-header__content">
-        <button class="tag-header__back" @click="goBack">← 返回博客首页</button>
+        <button class="tag-header__back" @click="goBack">
+          <ArrowLeft :size="15" class="tag-back-icon" /> 返回博客首页
+        </button>
         <h1 class="tag-header__title"># {{ tagName }}</h1>
         <p class="tag-header__desc">共 {{ posts.length }} 篇相关文章</p>
       </div>
@@ -111,10 +114,10 @@ const goBack = () => {
                 </div>
                 <div class="post-card__stats">
                   <span class="post-card__stat">
-                    <EyeOutlined /> {{ post.views }}
+                    <Eye :size="14" class="meta-icon-eye" /> {{ post.views }}
                   </span>
                   <span class="post-card__stat">
-                    <HeartOutlined /> {{ post.likes }}
+                    <Heart :size="14" class="meta-icon-beat" /> {{ post.likes }}
                   </span>
                 </div>
               </div>
@@ -165,3 +168,26 @@ const goBack = () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.tag-header__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.tag-back-icon {
+  transition: transform var(--transition-fast);
+}
+.tag-header__back:hover .tag-back-icon {
+  transform: translateX(-3px);
+}
+.post-card__stat svg,
+.post-card__date svg {
+  vertical-align: -0.14em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tag-header__back:hover .tag-back-icon {
+    transform: none;
+  }
+}
+</style>

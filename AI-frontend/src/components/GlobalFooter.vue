@@ -1,9 +1,20 @@
 <script setup lang="ts">
+import type { Component } from 'vue'
 import { useRouter } from 'vue-router'
+import { BookOpen, FlaskConical, Info, Link as LinkIcon, Sparkles } from 'lucide-vue-next'
 import { siteConfig } from '@/config/site'
 
 const router = useRouter()
 const currentYear = new Date().getFullYear()
+
+const iconFor = (link: { label?: string; path?: string }): Component => {
+  const label = link.label ?? ''
+  if (label.includes('关于') || link.path === '/about') return Info
+  if (label.includes('随笔') || link.path === '/blog') return BookOpen
+  if (label.includes('实验') || link.path === '/lab') return FlaskConical
+  if (label.includes('友链') || label.includes('链接')) return LinkIcon
+  return Sparkles
+}
 
 const navigate = (link: { path?: string; href?: string }) => {
   if (link.path) {
@@ -28,7 +39,10 @@ const navigate = (link: { path?: string; href?: string }) => {
           href="javascript:void(0)"
           class="global-footer__link"
           @click.prevent="navigate(link)"
-        >{{ link.label }}</a>
+        >
+          <component :is="iconFor(link)" :size="15" class="global-footer__link-icon" />
+          <span>{{ link.label }}</span>
+        </a>
       </div>
       <div class="global-footer__copyright">
         © {{ currentYear }} {{ siteConfig.siteName }}
@@ -78,11 +92,32 @@ const navigate = (link: { path?: string; href?: string }) => {
 }
 
 .global-footer__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 14px;
   color: var(--color-text-secondary);
   text-decoration: none;
   transition: all 0.3s ease;
   position: relative;
+}
+
+.global-footer__link-icon {
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.global-footer__link:hover .global-footer__link-icon {
+  transform: translateY(-2px) scale(1.1);
+  color: var(--color-primary-light);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .global-footer__link-icon,
+  .global-footer__link:hover .global-footer__link-icon {
+    transition: none;
+    transform: none;
+  }
 }
 
 .global-footer__link::after {

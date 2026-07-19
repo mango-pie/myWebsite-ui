@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { ExperimentOutlined, ArrowRightOutlined } from '@ant-design/icons-vue'
+import { FlaskConical, ArrowRight } from 'lucide-vue-next'
 import { siteConfig } from '@/config/site'
 
 const router = useRouter()
@@ -9,7 +9,7 @@ const router = useRouter()
 <template>
   <section class="lab-entry" @click="router.push('/lab')">
     <div class="lab-entry__icon">
-      <ExperimentOutlined />
+      <FlaskConical :size="24" />
     </div>
     <div class="lab-entry__content">
       <h3 class="lab-entry__title">{{ siteConfig.labPage.entryTitle }}</h3>
@@ -17,7 +17,7 @@ const router = useRouter()
     </div>
     <a-button type="primary" class="lab-entry__btn" @click.stop="router.push('/lab')">
       {{ siteConfig.labPage.entryAction }}
-      <ArrowRightOutlined />
+      <ArrowRight :size="16" class="lab-entry__btn-icon" />
     </a-button>
   </section>
 </template>
@@ -81,6 +81,25 @@ const router = useRouter()
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.lab-entry__btn-icon {
+  transition: transform var(--transition-fast);
+}
+
+.lab-entry:hover .lab-entry__btn-icon,
+.lab-entry__btn:hover .lab-entry__btn-icon {
+  transform: translateX(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lab-entry__btn-icon {
+    transition: none;
+  }
+  .lab-entry:hover .lab-entry__btn-icon,
+  .lab-entry__btn:hover .lab-entry__btn-icon {
+    transform: none;
+  }
 }
 
 @media (max-width: 768px) {

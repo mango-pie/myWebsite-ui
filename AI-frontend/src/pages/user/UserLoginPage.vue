@@ -5,6 +5,7 @@
  */
 import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { LogIn, Lock, User } from 'lucide-vue-next'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { userLogin } from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
@@ -20,17 +21,25 @@ const loginUserStore = useLoginUserStore()
 /**
  * 提交登录表单：调用登录接口后，成功则把用户信息写入 store 并跳首页，失败则提示后端 message
  */
+/**
+ * 提交登录表单：调用登录接口后，成功则把用户信息写入 store 并跳首页，失败则提示后端 message
+ */
 const handleSubmit = async (values: API.UserLoginRequest) => {
-  const res = await userLogin(values)
-  if (res.data.code === 0 && res.data.data) {
-    await loginUserStore.fetchLoginUser()
-    message.success('登录成功')
-    router.push({
-      path: '/',
-      replace: true,
-    })
-  } else {
-    message.error('登录失败，' + res.data.message)
+  try {
+    const res = await userLogin(values)
+    if (res.data.code === 0 && res.data.data) {
+      await loginUserStore.fetchLoginUser()
+      message.success('登录成功')
+      await router.push({
+        path: '/',
+        replace: true,
+      })
+    } else {
+      message.error('登录失败，' + (res.data.message || '请检查账号密码'))
+    }
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { message?: string } }; message?: string }
+    message.error(err?.response?.data?.message || err?.message || '登录请求失败，请稍后重试')
   }
 }
 </script>
@@ -40,7 +49,9 @@ const handleSubmit = async (values: API.UserLoginRequest) => {
       <h2 class="title">{{ siteConfig.siteName }} · 用户登录</h2>
       <a-form :model="formState" name="basic" autocomplete="off" @finish="handleSubmit">
         <a-form-item name="userAccount" :rules="[{ required: true, message: '请输入账号' }]">
-          <a-input v-model:value="formState.userAccount" placeholder="请输入账号" />
+          <a-input v-model:value="formState.userAccount" placeholder="请输入账号">
+            <template #prefix><User :size="16" class="field-prefix-icon" /></template>
+          </a-input>
         </a-form-item>
         <a-form-item
           name="userPassword"
@@ -49,14 +60,19 @@ const handleSubmit = async (values: API.UserLoginRequest) => {
           { min: 8, message: '密码不能小于 8 位' },
         ]"
         >
-          <a-input-password v-model:value="formState.userPassword" placeholder="请输入密码" />
+          <a-input-password v-model:value="formState.userPassword" placeholder="请输入密码">
+            <template #prefix><Lock :size="16" class="field-prefix-icon" /></template>
+          </a-input-password>
         </a-form-item>
         <div class="tips">
           没有账号？
           <RouterLink to="/user/register">去注册</RouterLink>
         </div>
         <a-form-item>
-          <a-button type="primary" html-type="submit" style="width: 100%">登录</a-button>
+          <a-button type="primary" html-type="submit" style="width: 100%">
+            <template #icon><LogIn :size="16" /></template>
+            登录
+          </a-button>
         </a-form-item>
       </a-form>
     </div>
@@ -102,6 +118,22 @@ const handleSubmit = async (values: API.UserLoginRequest) => {
   color: var(--color-text-muted);
   font-size: 13px;
   text-align: right;
+}
+
+.field-prefix-icon {
+  color: var(--color-text-muted);
+}
+
+#userLoginPage :deep(.ant-btn-primary) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+#userLoginPage :deep(.ant-btn-primary .anticon) {
+  display: inline-flex;
+  align-items: center;
 }
 
 </style>

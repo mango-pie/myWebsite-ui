@@ -2,8 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
-import { DeleteOutlined, PlusOutlined, SendOutlined, StopOutlined, CopyOutlined, DownOutlined } from '@ant-design/icons-vue'
-import { MessagesSquare, ArrowDown, Clipboard } from 'lucide-vue-next'
+import { ArrowLeft, Trash2, Plus, Send, Square, ArrowDown, Clipboard } from 'lucide-vue-next'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.min.css'
@@ -296,9 +295,11 @@ onBeforeUnmount(stopStream)
     <!-- 左侧边栏 -->
     <aside class="kb-chat-side">
       <div class="kb-chat-side__top">
-        <a-button type="link" @click="router.push(`/knowledge/${kbId}`)">← 详情</a-button>
-        <a-button type="primary" size="small" @click="startNewChat">
-          <PlusOutlined /> 新对话
+        <a-button type="link" class="kb-back-btn" @click="router.push(`/knowledge/${kbId}`)">
+          <ArrowLeft :size="15" /> 详情
+        </a-button>
+        <a-button type="primary" size="small" class="kb-new-btn" @click="startNewChat">
+          <Plus :size="15" /> 新对话
         </a-button>
       </div>
       <div class="kb-chat-side__title">{{ kb?.name || '知识库问答' }}</div>
@@ -318,9 +319,10 @@ onBeforeUnmount(stopStream)
             type="text"
             size="small"
             danger
+            class="conv-del-btn"
             @click.stop="removeConversation(c)"
           >
-            <DeleteOutlined />
+            <Trash2 :size="15" />
           </a-button>
         </div>
         <a-empty v-if="!conversations.length" description="暂无会话" :image-style="{ height: '48px' }" />
@@ -382,8 +384,8 @@ onBeforeUnmount(stopStream)
             </div>
             <!-- 消息操作 -->
             <div v-if="m.role === 'ASSISTANT' && !m.streaming && m.content" class="msg__actions">
-              <a-button type="text" size="small" @click="copyMessage(m.content)">
-                <CopyOutlined />
+              <a-button type="text" size="small" class="msg-copy-btn" @click="copyMessage(m.content)">
+                <Clipboard :size="15" />
               </a-button>
             </div>
           </div>
@@ -392,7 +394,7 @@ onBeforeUnmount(stopStream)
 
       <!-- 滚动到底部按钮 -->
       <button v-if="showScrollBtn" class="scroll-bottom-btn" @click="scrollBottom">
-        <DownOutlined />
+        <ArrowDown :size="18" />
       </button>
 
       <!-- 输入区 -->
@@ -406,11 +408,11 @@ onBeforeUnmount(stopStream)
         />
         <div class="kb-chat-input__actions">
           <span class="kb-chat-input__hint">Enter 发送 · Shift+Enter 换行</span>
-          <a-button v-if="sending" danger @click="stopStream">
-            <StopOutlined /> 停止
+          <a-button v-if="sending" danger class="kb-stop-btn" @click="stopStream">
+            <Square :size="15" /> 停止
           </a-button>
-          <a-button type="primary" :loading="sending" :disabled="!input.trim()" @click="send">
-            <SendOutlined /> 发送
+          <a-button type="primary" class="kb-send-btn" :loading="sending" :disabled="!input.trim()" @click="send">
+            <Send :size="15" /> 发送
           </a-button>
         </div>
       </div>
@@ -750,6 +752,68 @@ onBeforeUnmount(stopStream)
   }
   .chat-welcome h2 {
     font-size: 18px;
+  }
+}
+
+/* ---- 图标微动效 ---- */
+.kb-back-btn svg,
+.kb-new-btn svg,
+.kb-send-btn svg,
+.kb-stop-btn svg,
+.conv-del-btn svg,
+.msg-copy-btn svg {
+  vertical-align: -0.18em;
+  transition: transform var(--transition-fast);
+}
+.kb-back-btn:hover svg {
+  transform: translateX(-3px);
+}
+.kb-new-btn:hover svg {
+  transform: scale(1.15) rotate(90deg);
+}
+.kb-send-btn:hover svg {
+  transform: translateX(3px) translateY(-2px);
+}
+.conv-del-btn:hover svg {
+  animation: kbShake 0.4s ease;
+}
+.msg-copy-btn:hover svg {
+  transform: scale(1.15);
+}
+.kb-stop-btn {
+  animation: kbStopPulse 1.4s ease-in-out infinite;
+}
+.scroll-bottom-btn svg {
+  transition: transform var(--transition-fast);
+}
+.scroll-bottom-btn:hover svg {
+  animation: kbBounce 0.6s ease;
+}
+@keyframes kbShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+@keyframes kbBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
+}
+@keyframes kbStopPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.4); }
+  50% { box-shadow: 0 0 0 5px rgba(255, 77, 79, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kb-back-btn:hover svg,
+  .kb-new-btn:hover svg,
+  .kb-send-btn:hover svg,
+  .conv-del-btn:hover svg,
+  .msg-copy-btn:hover svg,
+  .scroll-bottom-btn:hover svg {
+    animation: none;
+    transform: none;
+  }
+  .kb-stop-btn {
+    animation: none;
   }
 }
 </style>

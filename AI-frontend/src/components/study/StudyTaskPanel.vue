@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { computed, inject, ref } from 'vue'
-import { SyncOutlined } from '@ant-design/icons-vue'
+import { RefreshCw } from 'lucide-vue-next'
 import { studyContextKey } from '@/composables/study/useStudyContext'
 import { getViewTitle } from '@/constants/study'
+import { useCapabilitiesStore } from '@/stores/capabilities'
 import StudyQuickAdd from './StudyQuickAdd.vue'
 import StudyTaskItem from './StudyTaskItem.vue'
 
 const ctx = inject(studyContextKey)!
+
+const capsStore = useCapabilitiesStore()
+/** 博客模块开关：关闭时隐藏「同步博客草稿」 */
+const blogEnabled = computed(() => !capsStore.loaded || capsStore.enabled('blog'))
 
 const viewTitle = computed(() =>
   getViewTitle(ctx.selection.value.view, ctx.selection.value.listName),
@@ -49,8 +54,8 @@ async function onSyncBlog() {
   <main class="study-panel study-panel--main">
     <div class="study-task-toolbar">
       <h2 class="study-task-toolbar__title">{{ viewTitle }}</h2>
-      <a-button size="small" :loading="syncing" @click="onSyncBlog">
-        <SyncOutlined /> 同步博客草稿
+      <a-button v-if="blogEnabled" size="small" class="study-sync-btn" :loading="syncing" @click="onSyncBlog">
+        <RefreshCw :size="15" class="study-sync-icon" /> 同步博客草稿
       </a-button>
     </div>
 
@@ -72,3 +77,21 @@ async function onSyncBlog() {
     </a-spin>
   </main>
 </template>
+
+<style scoped>
+.study-sync-icon {
+  vertical-align: -0.16em;
+  transition: transform var(--transition-normal);
+}
+.study-sync-btn:hover .study-sync-icon {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .study-sync-icon {
+    transition: none;
+  }
+  .study-sync-btn:hover .study-sync-icon {
+    transform: none;
+  }
+}
+</style>

@@ -8,12 +8,8 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
-import {
-  UploadOutlined,
-  PlusOutlined,
-  DeleteOutlined,
-  ArrowLeftOutlined
-} from '@ant-design/icons-vue'
+import { ArrowLeft, Trash2, UploadCloud, Send, PenLine, RotateCcw } from 'lucide-vue-next'
+import IconAction from '@/components/ui/IconAction.vue'
 import {
   addBlogPost,
   updateBlogPost,
@@ -365,10 +361,7 @@ onMounted(async () => {
       <div class="create-container">
         <!-- 头部导航 -->
         <div class="page-header">
-          <a-button type="link" @click="handleBack">
-            <template #icon><ArrowLeftOutlined /></template>
-            返回
-          </a-button>
+          <IconAction :icon="ArrowLeft" label="返回" variant="ghost" motion="slide" @click="handleBack" />
           <h1 class="page-title">{{ isEdit ? '编辑文章' : '发布文章' }}</h1>
           <div></div>
         </div>
@@ -443,14 +436,14 @@ onMounted(async () => {
               <div class="cover-upload">
                 <div v-if="form.coverUrl" class="cover-preview">
                   <img :src="form.coverUrl" alt="封面预览" />
-                  <a-button
-                    type="text"
-                    danger
+                  <IconAction
+                    :icon="Trash2"
+                    variant="danger"
+                    motion="shake"
                     class="remove-btn"
+                    aria-label="移除封面"
                     @click="handleRemoveCover"
-                  >
-                    <template #icon><DeleteOutlined /></template>
-                  </a-button>
+                  />
                 </div>
                 <a-upload
                   v-else
@@ -459,10 +452,7 @@ onMounted(async () => {
                   :before-upload="beforeUpload"
                   :custom-request="({ file }: { file: File }) => handleImageUpload(file)"
                 >
-                  <a-button :loading="uploading">
-                    <template #icon><UploadOutlined /></template>
-                    上传封面图片
-                  </a-button>
+                  <IconAction :icon="UploadCloud" label="上传封面图片" variant="soft" motion="pop" :loading="uploading" />
                   <div class="upload-hint">支持 jpg、png、gif 格式，大小不超过 5MB</div>
                 </a-upload>
               </div>
@@ -471,10 +461,16 @@ onMounted(async () => {
             <!-- 操作按钮 -->
             <a-form-item class="form-actions">
               <a-space :size="16">
-                <a-button type="primary" size="large" :loading="submitting" @click="handleSubmit">
-                  {{ isEdit ? '更新文章' : '发布文章' }}
-                </a-button>
-                <a-button size="large" @click="handleReset">重置</a-button>
+                <IconAction
+                  :icon="isEdit ? PenLine : Send"
+                  :label="isEdit ? '更新文章' : '发布文章'"
+                  variant="primary"
+                  size="lg"
+                  motion="pop"
+                  :loading="submitting"
+                  @click="handleSubmit"
+                />
+                <IconAction :icon="RotateCcw" label="重置" variant="soft" size="lg" motion="spin" @click="handleReset" />
               </a-space>
             </a-form-item>
           </a-form>

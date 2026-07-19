@@ -2,7 +2,8 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { ArrowLeftOutlined, RobotOutlined } from '@ant-design/icons-vue'
+import { ArrowLeft, Save, Check, Sparkles } from 'lucide-vue-next'
+import IconAction from '@/components/ui/IconAction.vue'
 import { getDiaryByDate } from '@/integrations/diaryController'
 import { useDiaryAutoSave } from '@/composables/useDiaryAutoSave'
 import { isDiaryAiEnabled, openDiaryAiPanel } from '@/composables/useDiaryAi'
@@ -168,14 +169,11 @@ onMounted(async () => {
   <div class="diary-write-page">
     <div class="diary-write-container">
       <div class="diary-write-header">
-        <a-button type="text" @click="handleBack">
-          <template #icon><ArrowLeftOutlined /></template>
-          返回
-        </a-button>
+        <IconAction :icon="ArrowLeft" label="返回" variant="ghost" motion="slide" @click="handleBack" />
         <div class="diary-write-header__meta">
           <span class="diary-write-header__status">{{ saveStatusText }}</span>
-          <a-button @click="() => saveNow()">保存</a-button>
-          <a-button type="primary" @click="handleComplete">完成</a-button>
+          <IconAction :icon="Save" label="保存" variant="soft" motion="pop" @click="() => saveNow()" />
+          <IconAction :icon="Check" label="完成" variant="primary" motion="pop" @click="handleComplete" />
         </div>
       </div>
 
@@ -215,14 +213,15 @@ onMounted(async () => {
             @input="onFieldChange"
           />
 
-          <a-button
+          <IconAction
             class="diary-write-form__ai"
+            :icon="Sparkles"
+            label="AI 助手（即将上线）"
+            variant="soft"
+            motion="pop"
             :disabled="!isDiaryAiEnabled"
             @click="handleAiClick"
-          >
-            <template #icon><RobotOutlined /></template>
-            AI 助手（即将上线）
-          </a-button>
+          />
         </div>
       </a-spin>
     </div>

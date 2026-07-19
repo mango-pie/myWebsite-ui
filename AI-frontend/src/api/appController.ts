@@ -2,6 +2,14 @@
 /* eslint-disable */
 import request from '@/request'
 
+/** 模块能力探测：GET /app/modules（无需鉴权，供首屏渲染） */
+export async function getAppModules(options?: { [key: string]: any }) {
+  return request<API.BaseResponseAppModulesVO>('/app/modules', {
+    method: 'GET',
+    ...(options || {}),
+  })
+}
+
 /** 此处后端没有提供注释 POST /app/add */
 export async function addApp(body: API.AppAddRequest, options?: { [key: string]: any }) {
   return request<API.BaseResponseLong>('/app/add', {

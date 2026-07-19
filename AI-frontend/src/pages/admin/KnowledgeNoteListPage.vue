@@ -20,13 +20,44 @@ import {
 } from '@/utils/knowledgeNoteStatus'
 import { loadReadingUxSettings } from '@/utils/readingSettings'
 import '@/assets/admin-theme.css'
-import { StickyNote } from 'lucide-vue-next'
+import { LayoutGrid, List as ListIcon, Plus, Settings, StickyNote } from 'lucide-vue-next'
+import IconAction from '@/components/ui/IconAction.vue'
+import KnowledgeStatBar from '@/components/knowledge/KnowledgeStatBar.vue'
+import KnowledgeNoteCard from '@/components/knowledge/KnowledgeNoteCard.vue'
+import { useKnowledgeNoteStats } from '@/composables/useKnowledgeNoteStats'
 
 const router = useRouter()
 const route = useRoute()
 const loading = ref(false)
 const dataSource = ref<API.KnowledgeNoteVO[]>([])
 const total = ref(0)
+
+const stats = useKnowledgeNoteStats()
+
+const VIEW_KEY = 'kb-note-view'
+const viewMode = ref<'card' | 'list'>(
+  (typeof localStorage !== 'undefined' && localStorage.getItem(VIEW_KEY)) === 'list'
+    ? 'list'
+    : 'card',
+)
+const setViewMode = (mode: 'card' | 'list') => {
+  viewMode.value = mode
+  try {
+    localStorage.setItem(VIEW_KEY, mode)
+  } catch {
+    /* ignore */
+  }
+}
+
+const onStatFilter = (kind: 'published' | 'indexed') => {
+  if (kind === 'published') {
+    query.publishStatus = 'PUBLISHED'
+  } else {
+    query.indexStatus = 'INDEXED'
+  }
+  query.pageNum = 1
+  fetchData()
+}
 
 const query = reactive<API.KnowledgeNoteQueryRequest>({
   pageNum: 1,
@@ -89,6 +120,12 @@ const onTableChange = (pagination: { current?: number; pageSize?: number }) => {
   fetchData()
 }
 
+const onCardPageChange = (page: number, pageSize: number) => {
+  query.pageNum = page
+  query.pageSize = pageSize
+  fetchData()
+}
+
 const openDetail = (id?: number | string, action?: string) => {
   if (id == null) return
   const q = action ? `?action=${action}` : ''
@@ -100,6 +137,7 @@ const runRedistill = async (row: API.KnowledgeNoteVO) => {
   const res = await redistillKnowledgeNote(row.id)
   if (res.data.code === 0 && res.data.data?.note?.id != null) {
     message.success('重新蒸馏完成')
+    stats.refresh()
     openDetail(res.data.data.note.id)
   } else {
     message.error(res.data.message || '重新蒸馏失败')
@@ -130,6 +168,7 @@ const handleDelete = (row: API.KnowledgeNoteVO) => {
       if (res.data.code === 0) {
         message.success('已删除')
         fetchData()
+        stats.refresh()
       } else {
         message.error(res.data.message || '删除失败')
       }
@@ -140,6 +179,7 @@ const handleDelete = (row: API.KnowledgeNoteVO) => {
 onMounted(() => {
   applyRouteSourceFilter()
   fetchData()
+  stats.refresh()
 })
 
 watch(
@@ -169,13 +209,35 @@ watch(
       </div>
       <div class="hero-extra">
         <a-space>
-          <a-button @click="router.push('/admin/settings/reading')">精读设置</a-button>
-          <a-button type="primary" size="large" @click="router.push('/admin/knowledge/ingest')">
-            ＋ 内容采集
-          </a-button>
+          <IconAction
+            :icon="Settings"
+            label="精读设置"
+            variant="soft"
+            motion="spin"
+            @click="router.push('/admin/settings/reading')"
+          />
+          <IconAction
+            :icon="Plus"
+            label="内容采集"
+            variant="primary"
+            size="lg"
+            motion="pop"
+            @click="router.push('/admin/knowledge/ingest')"
+          />
         </a-space>
       </div>
     </div>
+
+    <!-- KPI 概览 -->
+    <KnowledgeStatBar
+      :total="stats.total.value"
+      :published="stats.published.value"
+      :indexed="stats.indexed.value"
+      :running="stats.running.value"
+      :loading="stats.loading.value"
+      @filter="onStatFilter"
+      @jobs="router.push('/admin/knowledge/jobs')"
+    />
 
     <!-- 筛选栏 -->
     <div class="admin-filter-bar">
@@ -221,10 +283,73 @@ watch(
       </a-select>
       <a-button type="primary" @click="onSearch">搜索</a-button>
       <a-button @click="onReset">重置</a-button>
+
+      <div class="kb-view-toggle">
+        <button
+          type="button"
+          class="kb-view-toggle__btn"
+          :class="{ 'is-active': viewMode === 'card' }"
+          title="卡片视图"
+          @click="setViewMode('card')"
+        >
+          <LayoutGrid :size="18" :stroke-width="2" />
+        </button>
+        <button
+          type="button"
+          class="kb-view-toggle__btn"
+          :class="{ 'is-active': viewMode === 'list' }"
+          title="列表视图"
+          @click="setViewMode('list')"
+        >
+          <ListIcon :size="18" :stroke-width="2" />
+        </button>
+      </div>
     </div>
 
-    <!-- 数据表格 -->
-    <a-card :bordered="false" style="margin-bottom: 0">
+    <!-- 加载骨架屏 -->
+    <div v-if="loading" class="kb-card-grid">
+      <div v-for="n in 6" :key="n" class="kb-skeleton kb-skeleton-card" />
+    </div>
+
+    <!-- 卡片视图 -->
+    <template v-else-if="viewMode === 'card'">
+      <div v-if="dataSource.length" class="kb-card-grid kb-stagger">
+        <KnowledgeNoteCard
+          v-for="note in dataSource"
+          :key="note.id"
+          :note="note"
+          @open="openDetail"
+          @redistill="handleRedistill"
+          @delete="handleDelete"
+        />
+      </div>
+      <div v-else class="kb-empty-state">
+        <a-empty description="还没有精读笔记">
+          <template #children>
+            <IconAction
+              :icon="Plus"
+              label="去采集第一篇"
+              variant="primary"
+              motion="pop"
+              @click="router.push('/admin/knowledge/ingest')"
+            />
+          </template>
+        </a-empty>
+      </div>
+      <div v-if="dataSource.length" class="kb-card-pager">
+        <a-pagination
+          :current="query.pageNum"
+          :page-size="query.pageSize"
+          :total="total"
+          show-size-changer
+          :show-total="(t: number) => `共 ${t} 条`"
+          @change="onCardPageChange"
+        />
+      </div>
+    </template>
+
+    <!-- 列表视图 -->
+    <a-card v-else :bordered="false" style="margin-bottom: 0">
       <a-table
         row-key="id"
         :columns="columns"
@@ -332,5 +457,54 @@ watch(
 /* 空状态样式 */
 .kb-note-list-page :deep(.ant-empty) {
   padding: 40px 0;
+}
+
+/* 视图切换 */
+.kb-view-toggle {
+  display: inline-flex;
+  margin-left: auto;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+.kb-view-toggle__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 30px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+.kb-view-toggle__btn:hover {
+  color: var(--color-text-primary);
+}
+.kb-view-toggle__btn.is-active {
+  background: var(--color-primary-12);
+  color: var(--color-primary-light);
+}
+
+/* 卡片分页与空态 */
+.kb-card-pager {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+.kb-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
 }
 </style>

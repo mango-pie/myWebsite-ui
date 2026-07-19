@@ -1,0 +1,30 @@
+/**
+ * 知识库房间样式 — 与 admin-theme 区分的库房气质
+ */
+
+.kb-room-page {
+  --kb-accent: var(--room-accent, var(--color-secondary-light));
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.kb-room-page .admin-page-hero {
+  border-color: rgba(124, 156, 224, 0.22);
+  background: linear-gradient(135deg, rgba(124, 156, 224, 0.1) 0%, rgba(45, 36, 56, 0.55) 100%);
+}
+
+.kb-room-page .hero-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-primary);
+}
+
+.kb-room-page .hero-title svg {
+  color: var(--kb-accent);
+}
+
+.kb-room-page .admin-filter-bar {
+  border-color: rgba(124, 156, 224, 0.14);
+}

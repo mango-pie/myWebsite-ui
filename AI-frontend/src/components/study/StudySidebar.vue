@@ -1,14 +1,6 @@
 <script setup lang="ts">
-import { inject, ref } from 'vue'
-import {
-  CalendarOutlined,
-  InboxOutlined,
-  CheckCircleOutlined,
-  PlusOutlined,
-  LockOutlined,
-  EditOutlined,
-  DeleteOutlined,
-} from '@ant-design/icons-vue'
+import { inject, ref, type Component } from 'vue'
+import { CalendarDays, Inbox, CheckCircle2, Plus, Lock, Pencil, Trash2 } from 'lucide-vue-next'
 import { Modal, Form, Input, message } from 'ant-design-vue'
 import { studyContextKey } from '@/composables/study/useStudyContext'
 import { SMART_VIEWS, LIST_TYPE_INBOX, type SmartViewKey } from '@/constants/study'
@@ -18,11 +10,11 @@ const listModalOpen = ref(false)
 const editingList = ref<API.StudyListVO | null>(null)
 const listForm = ref({ name: '', color: '#7c9ce0' })
 
-const smartIcons: Record<string, typeof CalendarOutlined> = {
-  today: CalendarOutlined,
-  week: CalendarOutlined,
-  inbox: InboxOutlined,
-  completed: CheckCircleOutlined,
+const smartIcons: Record<string, Component> = {
+  today: CalendarDays,
+  week: CalendarDays,
+  inbox: Inbox,
+  completed: CheckCircle2,
 }
 
 function isActiveSmart(key: SmartViewKey) {
@@ -107,7 +99,7 @@ async function handleDeleteList(list: API.StudyListVO, e: Event) {
         :class="{ 'study-nav-item--active': isActiveSmart(item.key) }"
         @click="selectSmart(item.key)"
       >
-        <component :is="smartIcons[item.key]" />
+        <component :is="smartIcons[item.key]" :size="16" />
         <span>{{ item.label }}</span>
       </button>
 
@@ -122,23 +114,25 @@ async function handleDeleteList(list: API.StudyListVO, e: Event) {
       >
         <span class="study-nav-item__dot" :style="{ background: list.color || '#7c9ce0' }" />
         <span>{{ list.name }}</span>
-        <LockOutlined v-if="list.listType === LIST_TYPE_INBOX" style="font-size: 12px; opacity: 0.5" />
+        <Lock v-if="list.listType === LIST_TYPE_INBOX" :size="12" style="opacity: 0.5" />
         <span v-if="list.taskCount" class="study-nav-item__count">{{ list.taskCount }}</span>
-        <EditOutlined
+        <Pencil
           v-if="list.listType !== LIST_TYPE_INBOX"
+          :size="14"
           class="study-list-edit"
           @click="openEditList(list, $event)"
         />
-        <DeleteOutlined
+        <Trash2
           v-if="list.listType !== LIST_TYPE_INBOX"
+          :size="14"
           class="study-list-delete"
           @click="handleDeleteList(list, $event)"
         />
       </button>
 
       <div class="study-list-actions">
-        <a-button type="dashed" block size="small" @click="openAddList">
-          <PlusOutlined /> 新建清单
+        <a-button type="dashed" block size="small" class="study-add-list-btn" @click="openAddList">
+          <Plus :size="15" class="study-add-list-icon" /> 新建清单
         </a-button>
       </div>
     </div>
@@ -166,15 +160,42 @@ async function handleDeleteList(list: API.StudyListVO, e: Event) {
 .study-list-edit,
 .study-list-delete {
   margin-left: 4px;
-  font-size: 12px;
   opacity: 0.4;
   flex-shrink: 0;
+  transition: transform var(--transition-fast), opacity var(--transition-fast), color var(--transition-fast);
 }
 
-.study-list-edit:hover,
+.study-list-edit:hover {
+  opacity: 1;
+  color: #e879a9;
+  transform: rotate(-12deg) scale(1.1);
+}
+
 .study-list-delete:hover {
   opacity: 1;
   color: #e879a9;
+  transform: scale(1.12);
+}
+
+.study-add-list-icon {
+  vertical-align: -0.16em;
+  transition: transform var(--transition-fast);
+}
+.study-add-list-btn:hover .study-add-list-icon {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .study-list-edit,
+  .study-list-delete,
+  .study-add-list-icon {
+    transition: none;
+  }
+  .study-list-edit:hover,
+  .study-list-delete:hover,
+  .study-add-list-btn:hover .study-add-list-icon {
+    transform: none;
+  }
 }
 
 .study-color-input {

@@ -6,6 +6,7 @@
 import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { Lock, ShieldCheck, User, UserPlus } from 'lucide-vue-next'
 import { userRegister } from '@/api/userController.ts'
 import { siteConfig } from '@/config/site'
 
@@ -53,7 +54,9 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
           { min: 4, message: '账号不能小于 4 位' },
         ]"
       >
-        <a-input v-model:value="formState.userAccount" placeholder="请输入账号" />
+        <a-input v-model:value="formState.userAccount" placeholder="请输入账号">
+          <template #prefix><User :size="16" class="field-prefix-icon" /></template>
+        </a-input>
       </a-form-item>
 
       <a-form-item
@@ -63,7 +66,9 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
           { min: 8, message: '密码不能小于 8 位' },
         ]"
       >
-        <a-input-password v-model:value="formState.userPassword" placeholder="请输入密码" />
+        <a-input-password v-model:value="formState.userPassword" placeholder="请输入密码">
+          <template #prefix><Lock :size="16" class="field-prefix-icon" /></template>
+        </a-input-password>
       </a-form-item>
 
       <a-form-item
@@ -75,7 +80,9 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
           },
         ]"
       >
-        <a-input-password v-model:value="formState.checkPassword" placeholder="确认密码" />
+        <a-input-password v-model:value="formState.checkPassword" placeholder="确认密码">
+          <template #prefix><ShieldCheck :size="16" class="field-prefix-icon" /></template>
+        </a-input-password>
       </a-form-item>
 
       <div class="tips">
@@ -84,7 +91,10 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
       </div>
 
       <a-form-item>
-        <a-button type="primary" html-type="submit" style="width: 100%">注册</a-button>
+        <a-button type="primary" html-type="submit" style="width: 100%">
+          <template #icon><UserPlus :size="16" /></template>
+          注册
+        </a-button>
       </a-form-item>
     </a-form>
   </div>
@@ -114,6 +124,22 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
   color: var(--color-text-muted);
   font-size: 13px;
   text-align: right;
+}
+
+.field-prefix-icon {
+  color: var(--color-text-muted);
+}
+
+#userRegisterPage :deep(.ant-btn-primary) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+#userRegisterPage :deep(.ant-btn-primary .anticon) {
+  display: inline-flex;
+  align-items: center;
 }
 
 #userRegisterPage :deep(.ant-input),

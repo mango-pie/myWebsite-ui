@@ -10,10 +10,9 @@ import { message } from 'ant-design-vue'
 import {
   CalendarOutlined,
   TagOutlined,
-  EyeOutlined,
-  HeartOutlined,
-  PlusOutlined,
 } from '@ant-design/icons-vue'
+import { PenLine, Search, X, Eye, Heart } from 'lucide-vue-next'
+import IconAction from '@/components/ui/IconAction.vue'
 import { queryBlogPostPage, incrementLikeCount } from '@/api/blogPostController'
 import { getAllCategories } from '@/api/blogCategoryController'
 import { getTagCloud } from '@/api/blogTagController'
@@ -290,10 +289,7 @@ watch(sortBy, () => {
               :options="layoutOptions"
               @change="(val: BlogLayoutMode) => setLayoutMode(val)"
             />
-            <a-button type="primary" size="large" @click="handleCreatePost">
-              <template #icon><PlusOutlined /></template>
-              发布文章
-            </a-button>
+            <IconAction :icon="PenLine" label="发布文章" variant="primary" size="lg" motion="pop" @click="handleCreatePost" />
           </div>
         </div>
 
@@ -306,6 +302,7 @@ watch(sortBy, () => {
               @pressEnter="handleSearch"
             />
             <a-button type="primary" class="search-btn" @click="handleSearch">
+              <template #icon><Search :size="15" /></template>
               搜索
             </a-button>
           </div>
@@ -354,8 +351,10 @@ watch(sortBy, () => {
             <a-button
               v-if="selectedCategoryId || selectedTagId || searchQuery"
               type="link"
+              class="clear-filter-btn"
               @click="clearFilters"
             >
+              <template #icon><X :size="15" /></template>
               清除筛选
             </a-button>
             <template v-if="!isTimelineLayout">
@@ -419,14 +418,14 @@ watch(sortBy, () => {
                   </div>
                   <div class="post-card__stats">
                     <span v-if="blogUx.viewCountEnabled" class="post-card__stat">
-                      <EyeOutlined /> {{ post.viewCount }}
+                      <Eye :size="14" class="meta-icon-eye" /> {{ post.viewCount }}
                     </span>
                     <span
                       v-if="blogUx.allowLike"
-                      class="post-card__stat"
+                      class="post-card__stat post-card__stat--like"
                       @click.stop="handleLike(post)"
                     >
-                      <HeartOutlined /> {{ post.likeCount }}
+                      <Heart :size="14" class="meta-icon-beat" /> {{ post.likeCount }}
                     </span>
                   </div>
                 </div>
@@ -462,3 +461,33 @@ watch(sortBy, () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.post-card__stat svg,
+.post-card__date svg,
+.search-btn :deep(svg),
+.clear-filter-btn :deep(svg) {
+  vertical-align: -0.14em;
+}
+.post-card__stat--like {
+  cursor: pointer;
+}
+.search-btn :deep(svg) {
+  transition: transform var(--transition-fast);
+}
+.search-btn:hover :deep(svg) {
+  transform: translateX(2px);
+}
+.clear-filter-btn :deep(svg) {
+  transition: transform var(--transition-fast);
+}
+.clear-filter-btn:hover :deep(svg) {
+  transform: rotate(90deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .search-btn:hover :deep(svg),
+  .clear-filter-btn:hover :deep(svg) {
+    transform: none;
+  }
+}
+</style>

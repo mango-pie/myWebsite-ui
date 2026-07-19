@@ -27,12 +27,18 @@ import {
   sourceTypeLabel,
 } from '@/utils/knowledgeNoteStatus'
 import { loadReadingUxSettings, type ReadingUxSettings } from '@/utils/readingSettings'
+import { useCapabilitiesStore } from '@/stores/capabilities'
 import '@/assets/blog-prose.css'
 import '@/assets/admin-theme.css'
-import { FileEdit, Save, RefreshCw, Newspaper, Link2, LibraryBig, Wrench, Type, Bold, Italic, Code2, Quote, Heading1, Heading2, Heading3, Minus, Braces } from 'lucide-vue-next'
+import { ArrowLeft, FileEdit, Save, RefreshCw, Newspaper, Link2, LibraryBig, RotateCcw, ListTree } from 'lucide-vue-next'
+import IconAction from '@/components/ui/IconAction.vue'
+import KnowledgeStatusChip from '@/components/knowledge/KnowledgeStatusChip.vue'
 
 const route = useRoute()
 const router = useRouter()
+const capsStore = useCapabilitiesStore()
+/** 博客模块开关：关闭时隐藏发布/同步博客入口 */
+const blogEnabled = computed(() => !capsStore.loaded || capsStore.enabled('blog'))
 const noteId = computed(() => String(route.params.noteId ?? ''))
 
 const loading = ref(false)
@@ -49,6 +55,78 @@ const previewHtml = computed(() => renderBlogMarkdown(form.distilledMd || ''))
 
 const note = computed(() => detail.value?.note)
 const kbId = computed(() => detail.value?.knowledgeDocument?.knowledgeBaseId)
+
+/* ---- 状态步骤条：采集 → 蒸馏 → 发布 → 入库 ---- */
+type StepState = 'done' | 'active' | 'todo' | 'error'
+const statusSteps = computed<{ key: string; label: string; state: StepState }[]>(() => {
+  const n = note.value
+  const pub = n?.publishStatus
+  const idx = n?.indexStatus
+  const distillFailed = String(n?.status || '').toUpperCase() === 'FAILED'
+  const publishState: StepState =
+    pub === 'PUBLISHED'
+      ? 'done'
+      : pub === 'SYNC_FAILED'
+        ? 'error'
+        : pub === 'DRAFT_CREATED' || pub === 'SYNC_REQUIRED'
+          ? 'active'
+          : 'todo'
+  const indexState: StepState =
+    idx === 'INDEXED'
+      ? 'done'
+      : idx === 'INDEX_FAILED'
+        ? 'error'
+        : idx === 'REINDEX_REQUIRED'
+          ? 'active'
+          : 'todo'
+  return [
+    { key: 'collect', label: '采集', state: 'done' },
+    { key: 'distill', label: '蒸馏', state: distillFailed ? 'error' : 'done' },
+    { key: 'publish', label: '发布博客', state: publishState },
+    { key: 'index', label: '入知识库', state: indexState },
+  ]
+})
+
+/* ---- 预览 TOC（从渲染后的 h1-h3 提取，滚动高亮） ---- */
+const mdPreviewRef = ref<HTMLElement | null>(null)
+const toc = ref<{ id: string; text: string; level: number }[]>([])
+const activeTocId = ref('')
+
+const buildToc = () => {
+  const el = mdPreviewRef.value
+  if (!el) {
+    toc.value = []
+    return
+  }
+  const heads = Array.from(el.querySelectorAll('h1, h2, h3')) as HTMLElement[]
+  toc.value = heads.map((h, i) => {
+    if (!h.id) h.id = `kb-toc-${i}`
+    return { id: h.id, text: h.textContent || '', level: Number(h.tagName.slice(1)) }
+  })
+  activeTocId.value = toc.value[0]?.id || ''
+}
+
+const scrollToHeading = (id: string) => {
+  const el = mdPreviewRef.value
+  if (!el) return
+  const target = el.querySelector(`#${CSS.escape(id)}`) as HTMLElement | null
+  if (target) {
+    el.scrollTo({ top: Math.max(target.offsetTop - 12, 0), behavior: 'smooth' })
+    activeTocId.value = id
+  }
+}
+
+const onPreviewScroll = () => {
+  const el = mdPreviewRef.value
+  if (!el || !toc.value.length) return
+  const scrollTop = el.scrollTop
+  let current = toc.value[0]?.id ?? ''
+  for (const item of toc.value) {
+    const t = el.querySelector(`#${CSS.escape(item.id)}`) as HTMLElement | null
+    if (t && t.offsetTop - 20 <= scrollTop) current = item.id
+  }
+  activeTocId.value = current
+}
 
 const rawOpen = ref(false)
 
@@ -82,6 +160,10 @@ const indexForm = reactive({
 /* ---- Markdown 编辑器 ---- */
 const editorTextarea = ref<HTMLTextAreaElement | null>(null)
 const editorTab = ref<'edit' | 'preview'>('edit')
+
+watch([editorTab, previewHtml], () => {
+  if (editorTab.value === 'preview') nextTick(buildToc)
+})
 
 const wordCount = computed(() => {
   const text = form.distilledMd || ''
@@ -363,22 +445,38 @@ onMounted(async () => {
       <div class="admin-page-hero" style="padding: 16px 24px">
         <div class="hero-left">
           <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
-            <a-button type="link" style="padding: 0" @click="router.push('/admin/knowledge/notes')">
-              ← 返回列表
-            </a-button>
+            <IconAction
+              :icon="ArrowLeft"
+              label="返回列表"
+              variant="ghost"
+              size="sm"
+              motion="slide"
+              @click="router.push('/admin/knowledge/notes')"
+            />
             <FileEdit :size="20" style="flex-shrink: 0; color: var(--color-primary)" />
             <span style="font-size: 20px; font-weight: 600; color: var(--color-text-primary)">
               {{ form.title || '精读详情' }}
             </span>
-            <a-tag>{{ sourceTypeLabel(note?.sourceType) }}</a-tag>
+            <KnowledgeStatusChip type="source" :status="note?.sourceType" />
           </div>
-          <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap">
-            <a-tag :color="publishStatusColor(note?.publishStatus)">
-              {{ publishStatusLabel(note?.publishStatus) }}
-            </a-tag>
-            <a-tag :color="indexStatusColor(note?.indexStatus)">
-              {{ indexStatusLabel(note?.indexStatus) }}
-            </a-tag>
+
+          <!-- 状态步骤条 -->
+          <ol class="kb-steps">
+            <li
+              v-for="(step, i) in statusSteps"
+              :key="step.key"
+              class="kb-steps__item"
+              :class="`is-${step.state}`"
+            >
+              <span class="kb-steps__dot">{{ i + 1 }}</span>
+              <span class="kb-steps__label">{{ step.label }}</span>
+              <span v-if="i < statusSteps.length - 1" class="kb-steps__line" />
+            </li>
+          </ol>
+
+          <div style="display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap">
+            <KnowledgeStatusChip type="publish" :status="note?.publishStatus" />
+            <KnowledgeStatusChip type="index" :status="note?.indexStatus" />
             <span v-if="note?.sourceUrl" style="font-size: 12px; color: var(--color-text-muted)">
               来源：
               <a
@@ -495,12 +593,27 @@ onMounted(async () => {
               placeholder="在此编辑 Markdown 内容…"
             />
 
-            <!-- 预览区 -->
-            <div
-              v-show="editorTab === 'preview'"
-              class="md-preview blog-prose"
-              v-html="previewHtml"
-            />
+            <!-- 预览区 + 目录 -->
+            <div v-show="editorTab === 'preview'" class="md-preview-wrap">
+              <div
+                ref="mdPreviewRef"
+                class="md-preview blog-prose"
+                v-html="previewHtml"
+                @scroll="onPreviewScroll"
+              />
+              <aside v-if="toc.length" class="md-toc">
+                <div class="md-toc__title"><ListTree :size="15" /> 目录</div>
+                <ul class="md-toc__list">
+                  <li
+                    v-for="item in toc"
+                    :key="item.id"
+                    :class="[`lvl-${item.level}`, { 'is-active': activeTocId === item.id }]"
+                  >
+                    <a @click="scrollToHeading(item.id)">{{ item.text }}</a>
+                  </li>
+                </ul>
+              </aside>
+            </div>
 
             <!-- 状态栏 -->
             <div class="editor-status-bar">
@@ -528,9 +641,7 @@ onMounted(async () => {
             <div class="info-card-body">
               <template v-if="note?.blogPostId">
                 <div style="margin-bottom: 8px">已关联博客 #{{ note.blogPostId }}</div>
-                <a-tag :color="publishStatusColor(note?.publishStatus)">
-                  {{ publishStatusLabel(note?.publishStatus) }}
-                </a-tag>
+                <KnowledgeStatusChip type="publish" :status="note?.publishStatus" />
                 <div style="margin-top: 8px">
                   <a-button type="link" size="small" @click="router.push(`/blog/edit/${note.blogPostId}`)">
                     打开博客编辑器 →
@@ -540,7 +651,7 @@ onMounted(async () => {
               <template v-else>
                 <div style="color: var(--color-text-muted); margin-bottom: 8px">尚未发布为博客</div>
                 <a-button
-                  v-if="canPublishBlog(note?.publishStatus)"
+                  v-if="blogEnabled && canPublishBlog(note?.publishStatus)"
                   type="primary"
                   size="small"
                   @click="openPublish"
@@ -557,9 +668,7 @@ onMounted(async () => {
             <div class="info-card-body">
               <template v-if="note?.knowledgeDocumentId">
                 <div style="margin-bottom: 8px">已入库，文档 #{{ note.knowledgeDocumentId }}</div>
-                <a-tag :color="indexStatusColor(note?.indexStatus)">
-                  {{ indexStatusLabel(note?.indexStatus) }}
-                </a-tag>
+                <KnowledgeStatusChip type="index" :status="note?.indexStatus" />
                 <div style="margin-top: 8px">
                   <a-button v-if="kbId != null" type="link" size="small" @click="openKb">
                     打开知识库 →
@@ -602,42 +711,61 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- 底部操作栏 -->
-      <div class="admin-action-bar">
-        <a-button type="primary" size="large" :loading="saving" @click="handleSave">
-          保存修改
-        </a-button>
-        <a-button size="large" @click="handleRedistill">
-          重新蒸馏
-        </a-button>
-        <a-button
-          v-if="canPublishBlog(note?.publishStatus)"
-          size="large"
+      <!-- 底部操作栏（吸底） -->
+      <div class="admin-action-bar kb-action-bar">
+        <IconAction
+          :icon="Save"
+          label="保存修改"
+          variant="primary"
+          size="lg"
+          motion="pop"
+          :loading="saving"
+          @click="handleSave"
+        />
+        <IconAction
+          :icon="RefreshCw"
+          label="重新蒸馏"
+          variant="soft"
+          size="lg"
+          motion="spin"
+          @click="handleRedistill"
+        />
+        <IconAction
+          v-if="blogEnabled && canPublishBlog(note?.publishStatus)"
+          :icon="Newspaper"
+          label="发布博客"
+          variant="soft"
+          size="lg"
+          motion="pop"
           @click="openPublish"
-        >
-          发布博客
-        </a-button>
-        <a-button
-          v-if="canSyncBlog(note?.publishStatus)"
-          size="large"
+        />
+        <IconAction
+          v-if="blogEnabled && canSyncBlog(note?.publishStatus)"
+          :icon="Link2"
+          label="同步博客"
+          variant="soft"
+          size="lg"
+          motion="slide"
           @click="handleSync"
-        >
-          同步博客
-        </a-button>
-        <a-button
+        />
+        <IconAction
           v-if="canIndexKb(note?.indexStatus)"
-          size="large"
+          :icon="LibraryBig"
+          label="加入知识库"
+          variant="soft"
+          size="lg"
+          motion="pop"
           @click="openIndex"
-        >
-          加入知识库
-        </a-button>
-        <a-button
+        />
+        <IconAction
           v-if="canReindexKb(note?.indexStatus)"
-          size="large"
+          :icon="RotateCcw"
+          label="重建索引"
+          variant="soft"
+          size="lg"
+          motion="spin"
           @click="handleReindex"
-        >
-          重建索引
-        </a-button>
+        />
       </div>
     </a-spin>
 
@@ -763,14 +891,187 @@ onMounted(async () => {
   outline: none !important;
 }
 
-/* ---- 预览区 ---- */
+/* ---- 状态步骤条 ---- */
+.kb-steps {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 12px 0 0;
+  padding: 0;
+}
+.kb-steps__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+.kb-steps__dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+.kb-steps__label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.kb-steps__line {
+  width: 34px;
+  height: 2px;
+  margin: 0 8px;
+  background: var(--color-border);
+  border-radius: 2px;
+}
+.kb-steps__item.is-done .kb-steps__dot {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #34d399;
+}
+.kb-steps__item.is-done .kb-steps__label {
+  color: var(--color-text-secondary);
+}
+.kb-steps__item.is-active .kb-steps__dot {
+  background: var(--color-primary-12);
+  border-color: var(--color-primary-35);
+  color: var(--color-primary-light);
+  box-shadow: 0 0 0 4px var(--color-primary-08);
+}
+.kb-steps__item.is-active .kb-steps__label {
+  color: var(--color-primary-light);
+}
+.kb-steps__item.is-error .kb-steps__dot {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+.kb-steps__item.is-error .kb-steps__label {
+  color: #f87171;
+}
+
+/* ---- 预览区 + 目录 ---- */
+.md-preview-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
 .md-preview {
+  flex: 1;
+  min-width: 0;
   min-height: 420px;
   max-height: 640px;
   overflow: auto;
   padding: 20px 24px;
   background: rgba(255, 255, 255, 0.02);
   color: var(--color-text-primary);
+  scroll-behavior: smooth;
+}
+/* 限制阅读宽度，提升长文可读性 */
+.md-preview.blog-prose :deep(p),
+.md-preview.blog-prose :deep(h1),
+.md-preview.blog-prose :deep(h2),
+.md-preview.blog-prose :deep(h3),
+.md-preview.blog-prose :deep(h4),
+.md-preview.blog-prose :deep(ul),
+.md-preview.blog-prose :deep(ol),
+.md-preview.blog-prose :deep(blockquote),
+.md-preview.blog-prose :deep(pre),
+.md-preview.blog-prose :deep(table) {
+  max-width: var(--prose-max-width, 72ch);
+}
+
+.md-toc {
+  width: 220px;
+  flex-shrink: 0;
+  align-self: stretch;
+  max-height: 640px;
+  overflow: auto;
+  padding: 16px 12px;
+  border-left: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+}
+.md-toc__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 10px;
+}
+.md-toc__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.md-toc__list li a {
+  display: block;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all var(--transition-fast);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.md-toc__list li.lvl-2 a {
+  padding-left: 18px;
+}
+.md-toc__list li.lvl-3 a {
+  padding-left: 28px;
+  font-size: 12px;
+}
+.md-toc__list li a:hover {
+  color: var(--color-text-primary);
+  background: var(--color-surface-hover);
+}
+.md-toc__list li.is-active a {
+  color: var(--color-primary-light);
+  border-left-color: var(--color-primary);
+  background: var(--color-primary-08);
+}
+
+/* ---- 吸底操作栏 ---- */
+.kb-action-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  flex-wrap: wrap;
+  background: var(--color-overlay-strong);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--color-border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.28);
+}
+
+@media (max-width: 768px) {
+  .md-preview-wrap {
+    flex-direction: column;
+  }
+  .md-toc {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--color-border);
+    position: static;
+    max-height: 200px;
+  }
 }
 
 /* ---- 原文弹窗 ---- */

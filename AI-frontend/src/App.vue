@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { ConfigProvider } from 'ant-design-vue'
 import zhCN from 'ant-design-vue/es/locale/zh_CN'
-import BasicLayout from './layouts/BasicLayout.vue'
+import PublicLayout from './layouts/PublicLayout.vue'
+import WorkspaceLayout from './layouts/WorkspaceLayout.vue'
 import MouseTrail from '@/components/MouseTrail.vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import FloatingPlayer from '@/design/FloatingPlayer.vue'
@@ -13,6 +15,9 @@ import { useAudioPlayer } from '@/design'
 import { siteConfig } from '@/config/site'
 
 const showLyric = ref(false)
+const route = useRoute()
+
+const isWorkspace = computed(() => route.meta.shell === 'workspace')
 
 const antdTheme = computed(() => ({
   token: {
@@ -37,10 +42,8 @@ const antdTheme = computed(() => ({
   },
 }))
 
-// 初始化播放器
 const { addToPlaylist, state: playerState } = useAudioPlayer()
 
-// 只在播放列表为空时添加示例歌曲（避免页面切换时重复添加）
 if (playerState.value.playlist.length === 0) {
   addToPlaylist([
     {
@@ -64,27 +67,18 @@ if (playerState.value.playlist.length === 0) {
   ])
 }
 
-
-
-
-
 const loginUserStore = useLoginUserStore()
-loginUserStore.fetchLoginUser().catch(() => {
-  // 后端未启动或未登录时保持未登录状态，不影响页面打开
-})
-
+loginUserStore.fetchLoginUser().catch(() => {})
 </script>
+
 <template>
   <ConfigProvider :locale="zhCN" :theme="antdTheme">
     <MouseTrail />
-    <BasicLayout />
+    <WorkspaceLayout v-if="isWorkspace" />
+    <PublicLayout v-else />
   </ConfigProvider>
-  <!-- 全局悬浮播放器 -->
   <FloatingPlayer @open-lyric="showLyric = true" />
-  <!-- 悬浮歌词窗口 -->
   <FloatingLyric :visible="showLyric" @close="showLyric = false" />
-  <!-- 全站气泡菜单 -->
   <FloatingBubbleMenu v-if="siteConfig.effects.bubbleMenu.enabled" />
-  <!-- 团子宠物 -->
   <PetDango v-if="siteConfig.effects.petDango.enabled" />
 </template>

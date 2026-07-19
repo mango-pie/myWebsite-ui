@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, h } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { listMyAppByPage, deleteApp } from '@/api/appController'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { siteConfig } from '@/config/site'
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { Edit, Trash2, FlaskConical, LogIn } from 'lucide-vue-next'
 import LabCreatePanel from '@/components/lab/LabCreatePanel.vue'
+import IconAction from '@/components/ui/IconAction.vue'
 
 function fromNow(str: string | undefined) {
   if (!str) return ''
@@ -73,9 +74,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <div id="labPage">
+  <div id="labPage" data-room="lab">
     <header class="lab-page__header">
-      <h1 class="lab-page__title">{{ siteConfig.heroLabTitle }}</h1>
+      <div class="lab-page__title-row">
+        <FlaskConical :size="28" class="lab-page__icon" />
+        <h1 class="lab-page__title">{{ siteConfig.heroLabTitle }}</h1>
+      </div>
       <p class="lab-page__subtitle">{{ siteConfig.labPage.subtitle }}</p>
     </header>
 
@@ -104,17 +108,19 @@ onMounted(() => {
               </div>
               <div class="app-card__shine" />
               <div class="app-card__overlay">
-                <a-button
-                  type="text"
-                  :icon="h(EditOutlined)"
-                  class="app-card__overlay-btn"
+                <IconAction
+                  :icon="Edit"
+                  variant="soft"
+                  size="sm"
+                  aria-label="编辑"
                   @click.stop="router.push('/app/edit/' + app.id)"
                 />
-                <a-button
-                  type="text"
-                  danger
-                  :icon="h(DeleteOutlined)"
-                  class="app-card__overlay-btn"
+                <IconAction
+                  :icon="Trash2"
+                  variant="danger"
+                  size="sm"
+                  motion="shake"
+                  aria-label="删除"
                   @click.stop="doDeleteMyApp(app.id)"
                 />
               </div>
@@ -140,7 +146,7 @@ onMounted(() => {
 
     <section v-else class="lab-page__login-hint theme-glass-card">
       <p>登录后可在此查看和管理你的实验作品</p>
-      <a-button type="primary" @click="router.push('/user/login')">去登录</a-button>
+      <IconAction :icon="LogIn" label="去登录" variant="primary" @click="router.push('/user/login')" />
     </section>
   </div>
 </template>
@@ -158,6 +164,17 @@ onMounted(() => {
   margin-top: 24px;
   margin-bottom: 28px;
   text-align: center;
+}
+
+.lab-page__title-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.lab-page__icon {
+  color: #c4b5fd;
 }
 
 .lab-page__title {

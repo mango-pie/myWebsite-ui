@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { Type, Clock } from 'lucide-vue-next'
 
 type ClockMode = 'text' | 'analog'
 
@@ -83,7 +84,14 @@ onUnmounted(() => {
     }"
   >
     <div class="clock-card__header">
-      <a-segmented v-model:value="mode" :options="modeOptions" size="small" class="clock-card__switcher" />
+      <a-segmented v-model:value="mode" :options="modeOptions" size="small" class="clock-card__switcher">
+        <template #label="{ value, label }">
+          <span class="clock-switch-label">
+            <component :is="value === 'text' ? Type : Clock" :size="13" :stroke-width="2" />
+            <span>{{ label }}</span>
+          </span>
+        </template>
+      </a-segmented>
     </div>
 
     <transition name="clock-fade" mode="out-in">
@@ -184,6 +192,16 @@ onUnmounted(() => {
 
 :deep(.clock-card__switcher .ant-segmented-thumb) {
   background: var(--gradient-primary);
+}
+
+.clock-switch-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.clock-switch-label :deep(svg) {
+  flex-shrink: 0;
 }
 
 .text-clock {

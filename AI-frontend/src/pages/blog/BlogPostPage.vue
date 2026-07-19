@@ -5,14 +5,9 @@ import { renderBlogMarkdown } from '@/utils/blogMarkdown'
 import {
   CalendarOutlined,
   TagOutlined,
-  EyeOutlined,
-  HeartOutlined,
   MessageOutlined,
-  ShareAltOutlined,
-  ArrowLeftOutlined,
-  UserOutlined,
-  EditOutlined,
 } from '@ant-design/icons-vue'
+import { ArrowLeft, Pencil, Heart, Share2, Eye, Copy } from 'lucide-vue-next'
 import { message, Spin } from 'ant-design-vue'
 import { getBlogPostVo, incrementLikeCount, incrementViewCount } from '@/api/blogPostController'
 import { getTagCloud } from '@/api/blogTagController'
@@ -238,10 +233,10 @@ onMounted(async () => {
           <img :src="post.coverUrl || 'https://picsum.photos/seed/default/1200/600'" :alt="post.title" />
           <div class="post-header__overlay">
             <button class="post-header__back" @click="goBack">
-              <ArrowLeftOutlined /> 返回
+              <ArrowLeft :size="16" class="btn-icon btn-icon--back" /> 返回
             </button>
             <button v-if="canEdit" class="post-header__back post-header__edit" @click="handleEdit">
-              <EditOutlined /> 编辑
+              <Pencil :size="16" class="btn-icon btn-icon--edit" /> 编辑
             </button>
           </div>
         </div>
@@ -271,10 +266,10 @@ onMounted(async () => {
             </div>
             <div class="post-stats">
               <span v-if="blogUx.viewCountEnabled" class="post-stat">
-                <EyeOutlined /> {{ post.viewCount || 0 }}
+                <Eye :size="15" class="meta-icon-eye" /> {{ post.viewCount || 0 }}
               </span>
               <span v-if="blogUx.allowLike" class="post-stat">
-                <HeartOutlined /> {{ post.likeCount || 0 }}
+                <Heart :size="15" class="meta-icon-beat" /> {{ post.likeCount || 0 }}
               </span>
             </div>
           </div>
@@ -302,13 +297,13 @@ onMounted(async () => {
               :class="{ 'action-btn--liked': isLiked }"
               @click="handleLike"
             >
-              <HeartOutlined /> {{ post.likeCount || 0 }}
+              <Heart :size="16" class="action-btn__heart" :fill="isLiked ? 'currentColor' : 'none'" /> {{ post.likeCount || 0 }}
             </button>
             <button 
               class="action-btn"
               @click="showShareModal = true"
             >
-              <ShareAltOutlined /> 分享
+              <Share2 :size="16" class="action-btn__share" /> 分享
             </button>
           </div>
         </article>
@@ -373,7 +368,9 @@ onMounted(async () => {
         <div class="share-modal">
           <p>复制链接分享给朋友：</p>
           <input type="text" :value="window.location.href" readonly class="share-modal__input" />
-          <button class="share-modal__btn" @click="handleShare">复制链接</button>
+          <button class="share-modal__btn" @click="handleShare">
+            <Copy :size="15" class="btn-icon" /> 复制链接
+          </button>
         </div>
       </a-modal>
     </Spin>
@@ -384,6 +381,56 @@ onMounted(async () => {
 #blogPostPage {
   min-height: 100vh;
   background: transparent;
+}
+
+/* 图标微动效 */
+.btn-icon,
+.post-stat svg,
+.action-btn svg {
+  vertical-align: -0.16em;
+}
+.post-header__back .btn-icon {
+  transition: transform var(--transition-fast);
+}
+.post-header__back:hover .btn-icon--back {
+  transform: translateX(-3px);
+}
+.post-header__edit:hover .btn-icon--edit {
+  transform: rotate(-12deg) scale(1.1);
+}
+.action-btn__heart,
+.action-btn__share {
+  transition: transform var(--transition-fast);
+}
+.action-btn:hover .action-btn__heart {
+  animation: postHeartBeat 0.6s ease;
+}
+.action-btn--liked .action-btn__heart {
+  color: #ff4d6d;
+}
+.action-btn:hover .action-btn__share {
+  transform: rotate(-12deg) scale(1.12);
+}
+.share-modal__btn .btn-icon {
+  transition: transform var(--transition-fast);
+}
+.share-modal__btn:hover .btn-icon {
+  transform: scale(1.15);
+}
+@keyframes postHeartBeat {
+  0%, 100% { transform: scale(1); }
+  30% { transform: scale(1.3); }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(1.22); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .post-header__back:hover .btn-icon,
+  .action-btn:hover .action-btn__heart,
+  .action-btn:hover .action-btn__share,
+  .share-modal__btn:hover .btn-icon {
+    animation: none;
+    transform: none;
+  }
 }
 
 .empty-state {

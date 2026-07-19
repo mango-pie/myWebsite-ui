@@ -7,6 +7,8 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { Pencil, LogOut, Save, X, LogIn, UserPlus } from 'lucide-vue-next'
+import IconAction from '@/components/ui/IconAction.vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { userLogout, updateUser } from '@/api/userController'
 
@@ -114,8 +116,8 @@ const handleLogout = async () => {
             </a-descriptions>
 
             <a-space>
-              <a-button type="primary" @click="startEdit">修改信息</a-button>
-              <a-button danger @click="handleLogout">退出登录</a-button>
+              <IconAction :icon="Pencil" label="修改信息" variant="primary" motion="pop" @click="startEdit" />
+              <IconAction :icon="LogOut" label="退出登录" variant="danger" motion="slide" @click="handleLogout" />
             </a-space>
           </template>
 
@@ -140,8 +142,8 @@ const handleLogout = async () => {
                 />
               </a-form-item>
               <a-space>
-                <a-button type="primary" @click="saveProfile">保存</a-button>
-                <a-button @click="cancelEdit">取消</a-button>
+                <IconAction :icon="Save" label="保存" variant="primary" motion="pop" @click="saveProfile" />
+                <IconAction :icon="X" label="取消" variant="soft" @click="cancelEdit" />
               </a-space>
             </a-form>
           </template>
@@ -153,8 +155,8 @@ const handleLogout = async () => {
         <a-result status="403" title="未登录" sub-title="登录后即可查看个人信息。">
           <template #extra>
             <a-space>
-              <a-button type="primary" @click="handleGoLogin">去登录</a-button>
-              <a-button @click="handleGoRegister">去注册</a-button>
+              <IconAction :icon="LogIn" label="去登录" variant="primary" motion="pop" @click="handleGoLogin" />
+              <IconAction :icon="UserPlus" label="去注册" variant="soft" motion="pop" @click="handleGoRegister" />
             </a-space>
           </template>
         </a-result>

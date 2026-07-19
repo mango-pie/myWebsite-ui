@@ -15,6 +15,7 @@ import {
   BugOutlined,
 } from '@ant-design/icons-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
+import { useCapabilitiesStore } from '@/stores/capabilities'
 import { MENU_ITEMS, filterMenuItems, type MenuItemConfig } from '@/config/permission'
 import { siteConfig } from '@/config/site'
 import { getChatEntryPath } from '@/utils/chatSession'
@@ -43,6 +44,7 @@ interface SavedState {
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
+const capsStore = useCapabilitiesStore()
 
 const position = ref({ x: 0, y: 0 })
 const isDragging = ref(false)
@@ -78,7 +80,12 @@ function flattenMenuItems(items: MenuItemConfig[]): BubbleMenuItem[] {
 
 const flatMenuItems = computed(() => {
   const user = loginUserStore.loginUser?.id ? loginUserStore.loginUser : null
-  return flattenMenuItems(filterMenuItems(MENU_ITEMS, user))
+  return flattenMenuItems(
+    filterMenuItems(MENU_ITEMS, user, {
+      loaded: capsStore.loaded,
+      enabled: capsStore.enabled,
+    }),
+  )
 })
 
 const innerRingItems = computed(() =>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, inject, ref, watch } from 'vue'
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { studyContextKey } from '@/composables/study/useStudyContext'
 
 const props = defineProps<{
@@ -63,9 +64,13 @@ function nextMonth() {
 <template>
   <div class="study-habit-calendar-wrap">
     <div class="study-habit-calendar-nav">
-      <a-button size="small" type="text" @click="prevMonth">‹</a-button>
+      <a-button size="small" type="text" class="cal-nav-btn cal-nav-btn--prev" @click="prevMonth">
+        <ChevronLeft :size="16" />
+      </a-button>
       <span>{{ year }}年{{ month }}月</span>
-      <a-button size="small" type="text" @click="nextMonth">›</a-button>
+      <a-button size="small" type="text" class="cal-nav-btn cal-nav-btn--next" @click="nextMonth">
+        <ChevronRight :size="16" />
+      </a-button>
     </div>
     <div class="study-habit-calendar">
       <div v-for="w in weekLabels" :key="w" class="study-habit-calendar__cell study-habit-calendar__cell--head">
@@ -95,5 +100,23 @@ function nextMonth() {
   font-size: 0.82rem;
   color: var(--color-text-secondary);
   margin-bottom: 6px;
+}
+
+.cal-nav-btn :deep(svg) {
+  transition: transform var(--transition-fast);
+}
+.cal-nav-btn--prev:hover :deep(svg) {
+  transform: translateX(-2px);
+}
+.cal-nav-btn--next:hover :deep(svg) {
+  transform: translateX(2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cal-nav-btn :deep(svg) {
+    transition: none;
+  }
+  .cal-nav-btn:hover :deep(svg) {
+    transform: none;
+  }
 }
 </style>

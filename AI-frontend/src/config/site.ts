@@ -19,6 +19,14 @@ export const siteConfig = {
   bio: '在代码与日常之间慢慢摸索的普通人。喜欢记录技术笔记，偶尔用 AI 做点有趣的小实验。',
   avatar: siteAvatarSrc,
 
+  rooms: {
+    blog: { title: '随笔', hint: '杂志式阅读与记录' },
+    diary: { title: '日记', hint: '写给自己的手账' },
+    knowledge: { title: '知识库', hint: '文档与问答' },
+    lab: { title: '实验室', hint: '一句话生成小应用' },
+    chat: { title: '对话', hint: '继续未完的交谈' },
+  },
+
   blogTitle: '随笔',
   blogSubtitle: '记录想法与实验笔记',
 

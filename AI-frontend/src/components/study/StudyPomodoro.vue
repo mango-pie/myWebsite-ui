@@ -2,6 +2,8 @@
 import { computed, inject, ref, watch } from 'vue'
 import { studyContextKey } from '@/composables/study/useStudyContext'
 import { FOCUS_STATUS } from '@/constants/study'
+import { Play, Pause, Check, RotateCcw } from 'lucide-vue-next'
+import IconAction from '@/components/ui/IconAction.vue'
 
 const ctx = inject(studyContextKey)!
 
@@ -82,15 +84,15 @@ async function abandon() {
       </a-button>
     </div>
 
-    <div class="study-pomodoro__actions">
+    <div class="study-pomodoro__actions" :class="{ 'is-running': isRunning }">
       <template v-if="!hasActive">
-        <a-button type="primary" @click="start">开始专注</a-button>
+        <IconAction :icon="Play" label="开始专注" variant="primary" motion="pop" @click="start" />
       </template>
       <template v-else>
-        <a-button v-if="isRunning" @click="pause">暂停</a-button>
-        <a-button v-if="isPaused" type="primary" @click="resume">继续</a-button>
-        <a-button type="primary" @click="complete">完成</a-button>
-        <a-button danger @click="abandon">放弃</a-button>
+        <IconAction v-if="isRunning" :icon="Pause" label="暂停" variant="soft" @click="pause" />
+        <IconAction v-if="isPaused" :icon="Play" label="继续" variant="primary" motion="pop" @click="resume" />
+        <IconAction :icon="Check" label="完成" variant="primary" motion="pop" @click="complete" />
+        <IconAction :icon="RotateCcw" label="放弃" variant="danger" motion="shake" @click="abandon" />
       </template>
     </div>
 
@@ -107,3 +109,18 @@ async function abandon() {
     </div>
   </div>
 </template>
+
+<style scoped>
+.study-pomodoro__actions.is-running :deep(.icon-action--soft) {
+  animation: pomodoroBreath 2.4s ease-in-out infinite;
+}
+@keyframes pomodoroBreath {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.28); }
+  50% { box-shadow: 0 0 0 5px rgba(124, 58, 237, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .study-pomodoro__actions.is-running :deep(.icon-action--soft) {
+    animation: none;
+  }
+}
+</style>

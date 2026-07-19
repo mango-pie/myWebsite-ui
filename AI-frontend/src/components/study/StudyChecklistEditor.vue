@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { Trash2 } from 'lucide-vue-next'
 
 const props = defineProps<{
   items?: API.StudyTaskChecklistVO[]
@@ -35,7 +36,9 @@ function submitNew() {
         @update:checked="(checked: boolean) => emit('toggle', item, checked)"
       />
       <span>{{ item.title }}</span>
-      <a-button type="link" size="small" danger @click="emit('delete', item.id!)">删</a-button>
+      <a-button type="link" size="small" danger class="checklist-del-btn" @click="emit('delete', item.id!)">
+        <Trash2 :size="14" class="checklist-del-icon" />
+      </a-button>
     </div>
     <a-input
       v-model:value="newTitle"
@@ -49,5 +52,21 @@ function submitNew() {
 <style scoped>
 .study-checklist {
   margin-top: 16px;
+}
+
+.checklist-del-icon {
+  vertical-align: -0.14em;
+  transition: transform var(--transition-fast);
+}
+.checklist-del-btn:hover .checklist-del-icon {
+  transform: scale(1.15);
+}
+@media (prefers-reduced-motion: reduce) {
+  .checklist-del-icon {
+    transition: none;
+  }
+  .checklist-del-btn:hover .checklist-del-icon {
+    transform: none;
+  }
 }
 </style>

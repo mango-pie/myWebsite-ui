@@ -45,22 +45,37 @@ export interface MenuItemConfig {
   path?: string
   /** 不设 = 所有人可见；'user' = 仅登录后可见；'admin' = 仅管理员可见 */
   requiredRole?: RequiredRole
+  /** 依赖的后端模块 key；模块关闭时隐藏该项（缺省 = 平台常驻） */
+  requireModule?: string
   children?: MenuItemConfig[]
+}
+
+/** 能力判断入参（避免 config 直接依赖 store，防循环引用） */
+export interface CapabilityGate {
+  loaded: boolean
+  enabled: (name: string) => boolean
+}
+
+/** 模块是否应隐藏：仅在能力已加载且明确关闭时隐藏（未加载时不隐藏，避免首屏误伤） */
+function moduleHidden(requireModule: string | undefined, caps?: CapabilityGate): boolean {
+  if (!requireModule || !caps) return false
+  return caps.loaded && !caps.enabled(requireModule)
 }
 
 export const MENU_ITEMS: MenuItemConfig[] = [
   { key: 'home', label: '首页', path: '/' },
-  { key: 'blogHome', label: '随笔', path: '/blog' },
-  { key: 'knowledge', label: '知识库', path: '/knowledge', requiredRole: 'user' },
-  { key: 'diary', label: '日记', path: '/diary', requiredRole: 'user' },
-  { key: 'lab', label: '实验室', path: '/lab' },
+  { key: 'blogHome', label: '随笔', path: '/blog', requireModule: 'blog' },
+  { key: 'knowledge', label: '知识库', path: '/knowledge', requiredRole: 'user', requireModule: 'knowledge' },
+  { key: 'diary', label: '日记', path: '/diary', requiredRole: 'user', requireModule: 'diary' },
+  { key: 'lab', label: '实验室', path: '/lab', requireModule: 'app-lab' },
   {
     key: 'readingWorkbench',
     label: 'AI 精读',
     requiredRole: 'admin',
+    requireModule: 'knowledge',
     children: [
-      { key: 'knowledgeIngest', label: '内容采集', path: '/admin/knowledge/ingest', requiredRole: 'admin' },
-      { key: 'knowledgeNotes', label: '精读列表', path: '/admin/knowledge/notes', requiredRole: 'admin' },
+      { key: 'knowledgeIngest', label: '内容采集', path: '/admin/knowledge/ingest', requiredRole: 'admin', requireModule: 'knowledge' },
+      { key: 'knowledgeNotes', label: '精读列表', path: '/admin/knowledge/notes', requiredRole: 'admin', requireModule: 'knowledge' },
     ],
   },
   {
@@ -69,16 +84,16 @@ export const MENU_ITEMS: MenuItemConfig[] = [
     requiredRole: 'admin',
     children: [
       { key: 'userManage', label: '用户管理', path: '/admin/userManage', requiredRole: 'admin' },
-      { key: 'appManage', label: '应用管理', path: '/admin/appManage', requiredRole: 'admin' },
-      { key: 'blogManage', label: '博客管理', path: '/admin/blogManage', requiredRole: 'admin' },
+      { key: 'appManage', label: '应用管理', path: '/admin/appManage', requiredRole: 'admin', requireModule: 'app-lab' },
+      { key: 'blogManage', label: '博客管理', path: '/admin/blogManage', requiredRole: 'admin', requireModule: 'blog' },
       { key: 'siteSettings', label: '站点设置', path: '/admin/settings/site', requiredRole: 'admin' },
     ],
   },
-  { key: 'opsCenter', label: '运维中心', path: '/admin/ops/usage', requiredRole: 'admin' },
+  { key: 'opsCenter', label: '运维中心', path: '/admin/ops/usage', requiredRole: 'admin', requireModule: 'ops' },
   { key: 'about', label: '关于', path: '/about' },
-  { key: 'study', label: '学习', path: '/administrator/study', requiredRole: 'administrator' },
+  { key: 'study', label: '学习', path: '/administrator/study', requiredRole: 'administrator', requireModule: 'study' },
   { key: 'test', label: '测试', path: '/test', requiredRole: 'administrator' },
-  { key: 'chat', label: '对话', path: '/chat', requiredRole: 'user' },
+  { key: 'chat', label: '对话', path: '/chat', requiredRole: 'user', requireModule: 'chat' },
 ]
 
 /** 当前用户是否具备管理员角色 */
@@ -115,11 +130,15 @@ export function canAccessRoute(
   return false
 }
 
-/** 是否应在菜单中展示该项（根据当前用户与 item.requiredRole） */
+/** 是否应在菜单中展示该项（根据当前用户 requiredRole 与模块能力 requireModule） */
 export function canShowMenuItem(
   item: MenuItemConfig,
   user: { id?: number; userRole?: string } | null,
+  caps?: CapabilityGate,
 ): boolean {
+  // 模块开关：明确关闭时隐藏
+  if (moduleHidden(item.requireModule, caps)) return false
+
   // 检查当前项是否满足权限
   const currentItemVisible = (() => {
     if (!item.requiredRole) return true
@@ -133,7 +152,7 @@ export function canShowMenuItem(
 
   // 递归过滤子菜单
   if (item.children) {
-    const visibleChildren = item.children.filter(child => canShowMenuItem(child, user))
+    const visibleChildren = item.children.filter(child => canShowMenuItem(child, user, caps))
     // 如果当前项有子菜单但没有可见的子项，则不显示当前项
     if (!item.path && visibleChildren.length === 0) return false
   }
@@ -145,14 +164,15 @@ export function canShowMenuItem(
 export function filterMenuItems(
   items: MenuItemConfig[],
   user: { id?: number; userRole?: string } | null,
+  caps?: CapabilityGate,
 ): MenuItemConfig[] {
   return items
-    .filter(item => canShowMenuItem(item, user))
+    .filter(item => canShowMenuItem(item, user, caps))
     .map(item => {
       if (item.children) {
         return {
           ...item,
-          children: filterMenuItems(item.children, user),
+          children: filterMenuItems(item.children, user, caps),
         }
       }
       return item

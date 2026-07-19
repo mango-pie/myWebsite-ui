@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { Plus } from 'lucide-vue-next'
 
 const emit = defineEmits<{
   submit: [title: string]
@@ -30,8 +31,28 @@ async function handleSubmit() {
       @press-enter="handleSubmit"
     >
       <template #suffix>
-        <a-button type="link" size="small" :loading="loading" @click="handleSubmit">添加</a-button>
+        <a-button type="link" size="small" class="quick-add-btn" :loading="loading" @click="handleSubmit">
+          <Plus :size="15" class="quick-add-icon" /> 添加
+        </a-button>
       </template>
     </a-input>
   </div>
 </template>
+
+<style scoped>
+.quick-add-icon {
+  vertical-align: -0.16em;
+  transition: transform var(--transition-fast);
+}
+.quick-add-btn:hover .quick-add-icon {
+  transform: rotate(90deg) scale(1.1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .quick-add-icon {
+    transition: none;
+  }
+  .quick-add-btn:hover .quick-add-icon {
+    transform: none;
+  }
+}
+</style>

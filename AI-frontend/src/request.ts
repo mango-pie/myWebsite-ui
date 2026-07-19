@@ -62,6 +62,13 @@ myAxios.interceptors.response.use(
     return response
   },
   function (error) {
+    // 模块关闭后其 Controller 不注册，API 直接 404：给友好提示。
+    // 跳过能力探测等首屏探测接口，避免误报。
+    const url = String(error.config?.url || error.response?.config?.url || '')
+    const isProbe = url.includes('/app/modules')
+    if (error.response?.status === 404 && !isProbe) {
+      message.warning('该功能未启用或不存在')
+    }
     return Promise.reject(error)
   },
 )

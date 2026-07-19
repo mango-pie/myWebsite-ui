@@ -12,12 +12,16 @@ import { getAppById, deployApp } from '@/api/appController'
 import { getLatestChatHistory, listAppChatHistory } from '@/api/chatHistoryController'
 import { loadAppSettings, resolveDeployBaseUrl, type AppUxSettings } from '@/utils/appSettings'
 import {
-  RocketOutlined,
-  SendOutlined,
-  ArrowLeftOutlined,
-  CheckCircleFilled,
-  ReloadOutlined,
-} from '@ant-design/icons-vue'
+  Rocket,
+  Send,
+  ArrowLeft,
+  CheckCircle2,
+  RefreshCw,
+  Info,
+  Copy,
+  ExternalLink,
+  X,
+} from 'lucide-vue-next'
 import { readSseChatStream } from '@/utils/sseChatStream'
 import { marked, Renderer } from 'marked'
 import hljs from 'highlight.js/lib/core'
@@ -301,15 +305,19 @@ onMounted(async () => {
     <!-- 顶部栏 -->
     <div class="chat-header">
       <div class="chat-header__left">
-        <a-button type="text" :icon="h(ArrowLeftOutlined)" @click="router.push('/')" />
+        <a-button type="text" class="chat-icon-btn" :icon="h(ArrowLeft)" @click="router.push('/')" />
         <span class="chat-header__title">{{ appInfo?.appName ?? '应用生成' }}</span>
       </div>
       <div class="chat-header__right">
-        <a-button style="margin-right: 8px" @click="goToDetail">应用详情</a-button>
+        <a-button style="margin-right: 8px" @click="goToDetail">
+          <template #icon><Info :size="15" /></template>
+          应用详情
+        </a-button>
         <a-button
           v-if="appUx.deployEnabled"
           type="primary"
-          :icon="h(RocketOutlined)"
+          class="deploy-btn"
+          :icon="h(Rocket)"
           :loading="deploying"
           @click="handleDeploy(false)"
         >
@@ -325,12 +333,12 @@ onMounted(async () => {
         <div class="chat-messages">
           <!-- 加载更多按钮 -->
           <div v-if="hasMoreHistory" class="load-more-container">
-            <a-button 
-              type="link" 
-              :loading="loadingHistory" 
+            <a-button
+              type="link"
+              :loading="loadingHistory"
               @click="loadMoreHistory"
-              icon="<ReloadOutlined />"
             >
+              <template #icon><RefreshCw :size="15" /></template>
               加载更多历史消息
             </a-button>
           </div>
@@ -370,7 +378,7 @@ onMounted(async () => {
           <a-button
             type="primary"
             shape="circle"
-            :icon="h(SendOutlined)"
+            :icon="h(Send)"
             :disabled="isStreaming || !inputValue.trim()"
             class="chat-send-btn"
             @click="handleSend"
@@ -405,17 +413,26 @@ onMounted(async () => {
       width="420px"
     >
       <div class="deploy-modal">
-        <CheckCircleFilled class="deploy-modal__icon" />
+        <CheckCircle2 class="deploy-modal__icon" :size="48" />
         <div class="deploy-modal__title">网站部署成功！</div>
         <div class="deploy-modal__url-row">
           <a-input :value="deployedUrl" readonly class="deploy-modal__url-input" />
-          <a-button type="primary" @click="copyDeployUrl">复制</a-button>
+          <a-button type="primary" @click="copyDeployUrl">
+            <template #icon><Copy :size="15" /></template>
+            复制
+          </a-button>
         </div>
         <div class="deploy-modal__actions">
           <a :href="deployedUrl" target="_blank">
-            <a-button type="primary">访问网站</a-button>
+            <a-button type="primary">
+              <template #icon><ExternalLink :size="15" /></template>
+              访问网站
+            </a-button>
           </a>
-          <a-button @click="deployModalVisible = false">关闭</a-button>
+          <a-button @click="deployModalVisible = false">
+            <template #icon><X :size="15" /></template>
+            关闭
+          </a-button>
         </div>
       </div>
     </a-modal>
@@ -458,6 +475,25 @@ onMounted(async () => {
 
 .deploy-modal__icon {
   color: var(--color-success);
+}
+
+.chat-icon-btn svg {
+  transition: transform var(--transition-fast);
+}
+.chat-icon-btn:hover svg {
+  transform: scale(1.12);
+}
+.deploy-btn svg {
+  transition: transform var(--transition-normal);
+}
+.deploy-btn:hover svg {
+  transform: translateY(-2px) rotate(8deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-icon-btn:hover svg,
+  .deploy-btn:hover svg {
+    transform: none;
+  }
 }
 
 .deploy-modal__title {

@@ -163,18 +163,32 @@ export async function searchKnowledgePreview(
   })
 }
 
-/** POST /admin/knowledge/ingest/batch-url — 多源合并为 1 篇 note */
+/** POST /admin/knowledge/ingest/batch-url — 多源合并为 1 篇 note（默认 async 立即返回 job） */
 export async function ingestKnowledgeBatchUrl(
   body: API.KnowledgeIngestBatchUrlRequest,
   options?: { [key: string]: unknown },
 ) {
-  return request<API.BaseResponseKnowledgeIngestBatchResultVO>(
+  return request<API.BaseResponseKnowledgeReadingJobVO>(
     '/admin/knowledge/ingest/batch-url',
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       data: body,
       timeout: LONG_TIMEOUT,
+      ...(options || {}),
+    },
+  )
+}
+
+/** GET /admin/knowledge/reading-jobs/{jobId} */
+export async function getKnowledgeReadingJob(
+  jobId: number | string,
+  options?: { [key: string]: unknown },
+) {
+  return request<API.BaseResponseKnowledgeReadingJobVO>(
+    `/admin/knowledge/reading-jobs/${jobId}`,
+    {
+      method: 'GET',
       ...(options || {}),
     },
   )

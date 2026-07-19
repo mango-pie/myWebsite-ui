@@ -10,8 +10,10 @@ import {
 } from '@/api/knowledge'
 import { isAdminRole } from '@/config/permission'
 import { useLoginUserStore } from '@/stores/loginUser'
+import { LibraryBig, Plus, Search, RotateCcw, Settings, FolderOpen, MessagesSquare, MoreHorizontal } from 'lucide-vue-next'
+import IconAction from '@/components/ui/IconAction.vue'
 import '@/assets/admin-theme.css'
-import { LibraryBig } from 'lucide-vue-next'
+import '@/assets/knowledge-shell.css'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
@@ -168,7 +170,7 @@ onMounted(fetchData)
 </script>
 
 <template>
-  <div class="kb-list-page admin-theme-page">
+  <div class="kb-list-page admin-theme-page kb-room-page">
     <!-- 面包屑 -->
     <a-breadcrumb class="admin-breadcrumb">
       <a-breadcrumb-item>
@@ -185,13 +187,14 @@ onMounted(fetchData)
       </div>
       <div class="hero-extra">
         <a-space>
-          <a-button
+          <IconAction
             v-if="canManageSettings"
+            :icon="Settings"
+            label="知识库设置"
+            variant="soft"
             @click="router.push('/admin/settings/knowledge')"
-          >
-            知识库设置
-          </a-button>
-          <a-button type="primary" size="large" @click="openCreate">＋ 新建知识库</a-button>
+          />
+          <IconAction :icon="Plus" label="新建知识库" variant="primary" size="lg" @click="openCreate" />
         </a-space>
       </div>
     </div>
@@ -214,8 +217,8 @@ onMounted(fetchData)
         <a-select-option :value="1">正常</a-select-option>
         <a-select-option :value="0">禁用</a-select-option>
       </a-select>
-      <a-button type="primary" @click="onSearch">搜索</a-button>
-      <a-button @click="onReset">重置</a-button>
+      <IconAction :icon="Search" label="搜索" variant="primary" size="sm" motion="slide" @click="onSearch" />
+      <IconAction :icon="RotateCcw" label="重置" variant="ghost" size="sm" motion="spin" @click="onReset" />
     </div>
 
     <!-- 数据表格 -->
@@ -237,7 +240,8 @@ onMounted(fetchData)
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'name'">
-            <a style="cursor: pointer" @click="router.push(`/knowledge/${record.id}`)">
+            <a class="kb-name-link" @click="router.push(`/knowledge/${record.id}`)">
+              <FolderOpen :size="15" class="kb-name-icon" />
               {{ record.name }}
             </a>
           </template>
@@ -260,10 +264,24 @@ onMounted(fetchData)
           </template>
           <template v-else-if="column.key === 'action'">
             <a-space :size="4">
-              <a-button type="link" size="small" @click="router.push(`/knowledge/${record.id}`)">进入</a-button>
-              <a-button type="link" size="small" @click="router.push(`/knowledge/${record.id}/chat`)">问答</a-button>
+              <IconAction
+                :icon="FolderOpen"
+                label="进入"
+                variant="ghost"
+                size="sm"
+                @click="router.push(`/knowledge/${record.id}`)"
+              />
+              <IconAction
+                :icon="MessagesSquare"
+                label="问答"
+                variant="ghost"
+                size="sm"
+                @click="router.push(`/knowledge/${record.id}/chat`)"
+              />
               <a-dropdown :trigger="['click']" placement="bottomRight">
-                <button class="admin-action-trigger" title="更多操作">···</button>
+                <button class="admin-action-trigger kb-more-btn" title="更多操作">
+                  <MoreHorizontal :size="16" />
+                </button>
                 <template #overlay>
                   <a-menu @click="({ key }: { key: string }) => {
                     if (key === 'edit') openEdit(record)
@@ -283,7 +301,7 @@ onMounted(fetchData)
         <template #emptyText>
           <a-empty description="还没有知识库">
             <template #children>
-              <a-button type="primary" @click="openCreate">创建第一个知识库</a-button>
+              <IconAction :icon="Plus" label="创建第一个知识库" variant="primary" motion="pop" @click="openCreate" />
             </template>
           </a-empty>
         </template>
@@ -324,4 +342,39 @@ onMounted(fetchData)
 
 <style scoped>
 /* admin-theme.css handles all theming */
+.kb-name-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.kb-name-icon {
+  color: var(--color-primary);
+  transition: transform var(--transition-fast);
+}
+.kb-name-link:hover .kb-name-icon {
+  transform: scale(1.15);
+}
+.kb-more-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.kb-more-btn :deep(svg),
+.kb-more-btn svg {
+  transition: transform var(--transition-fast);
+}
+.kb-more-btn:hover svg {
+  transform: scale(1.2);
+}
+@media (prefers-reduced-motion: reduce) {
+  .kb-name-icon,
+  .kb-more-btn svg {
+    transition: none;
+  }
+  .kb-name-link:hover .kb-name-icon,
+  .kb-more-btn:hover svg {
+    transform: none;
+  }
+}
 </style>

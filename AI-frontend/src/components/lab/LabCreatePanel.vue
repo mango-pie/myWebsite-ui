@@ -2,11 +2,12 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { SendOutlined } from '@ant-design/icons-vue'
+import { Send } from 'lucide-vue-next'
 import { addApp } from '@/api/appController'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { siteConfig } from '@/config/site'
 import { loadAppSettings, type AppUxSettings } from '@/utils/appSettings'
+import IconAction from '@/components/ui/IconAction.vue'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
@@ -74,16 +75,15 @@ onMounted(async () => {
         @keydown.enter.exact.prevent="handleCreate"
       />
       <div class="lab-create__footer">
-        <a-button
-          type="primary"
-          size="large"
+        <IconAction
+          :icon="Send"
+          label="开始生成"
+          variant="primary"
+          size="lg"
+          motion="send"
           :loading="creating"
-          class="lab-create__send-btn"
           @click="handleCreate"
-        >
-          <SendOutlined />
-          开始生成
-        </a-button>
+        />
       </div>
     </div>
     <div v-if="appUx.codegenEnabled" class="lab-create__quick-tags">

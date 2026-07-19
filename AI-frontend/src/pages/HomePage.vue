@@ -1,430 +1,524 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { computed, onMounted, ref, type Component } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  BookOpen,
+  NotebookPen,
+  LibraryBig,
+  FlaskConical,
+  MessagesSquare,
+} from 'lucide-vue-next'
 import { listMyAppByPage } from '@/api/appController'
 import { getPublishedBlogPostPage } from '@/api/blogPostController'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { siteConfig } from '@/config/site'
-import { CalendarOutlined } from '@ant-design/icons-vue'
-import HomeClock from '@/components/home/HomeClock.vue'
 import DailyHitokoto from '@/components/home/DailyHitokoto.vue'
+import HomeClock from '@/components/home/HomeClock.vue'
+import { vTilt } from '@/composables/useTilt'
+import { useCountUp } from '@/composables/useCountUp'
 
-function formatPostDate(str: string | undefined) {
-  if (!str) return ''
-  const d = new Date(str)
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
+interface RoomCard {
+  key: string
+  title: string
+  hint: string
+  path: string
+  icon: Component
+  accent: string
+  requireLogin?: boolean
+  meta?: string
 }
-
-const siteLaunch = new Date('2025-01-01')
-const uptimeDays = computed(() => {
-  const diff = Date.now() - siteLaunch.getTime()
-  return Math.max(1, Math.floor(diff / 86400000))
-})
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 
-const latestPosts = ref<API.BlogPostVO[]>([])
+const latestTitle = ref('')
 const postTotal = ref(0)
-const postsLoading = ref(false)
 const myTotal = ref(0)
 
-const fetchLatestPosts = async () => {
-  postsLoading.value = true
+const postDisplay = useCountUp(postTotal)
+const myDisplay = useCountUp(myTotal)
+
+const isLoggedIn = computed(() => !!loginUserStore.loginUser.id)
+
+const rooms = computed<RoomCard[]>(() => {
+  const list: RoomCard[] = [
+    {
+      key: 'blog',
+      title: siteConfig.rooms.blog.title,
+      hint: siteConfig.rooms.blog.hint,
+      path: '/blog',
+      icon: BookOpen,
+      accent: 'rose',
+      meta: latestTitle.value
+        ? `最近：${latestTitle.value}`
+        : postTotal.value
+          ? `${postTotal.value} 篇随笔`
+          : '还没有随笔',
+    },
+    {
+      key: 'lab',
+      title: siteConfig.rooms.lab.title,
+      hint: siteConfig.rooms.lab.hint,
+      path: '/lab',
+      icon: FlaskConical,
+      accent: 'violet',
+      meta: isLoggedIn.value && myTotal.value ? `${myTotal.value} 个实验` : '生成可运行的小应用',
+    },
+  ]
+
+  if (isLoggedIn.value) {
+    list.splice(
+      1,
+      0,
+      {
+        key: 'diary',
+        title: siteConfig.rooms.diary.title,
+        hint: siteConfig.rooms.diary.hint,
+        path: '/diary',
+        icon: NotebookPen,
+        accent: 'lilac',
+        requireLogin: true,
+        meta: '打开今日手账',
+      },
+      {
+        key: 'knowledge',
+        title: siteConfig.rooms.knowledge.title,
+        hint: siteConfig.rooms.knowledge.hint,
+        path: '/knowledge',
+        icon: LibraryBig,
+        accent: 'blue',
+        requireLogin: true,
+        meta: '检索与问答',
+      },
+    )
+    list.push({
+      key: 'chat',
+      title: siteConfig.rooms.chat.title,
+      hint: siteConfig.rooms.chat.hint,
+      path: '/chat',
+      icon: MessagesSquare,
+      accent: 'rose',
+      requireLogin: true,
+      meta: '进入对话工作台',
+    })
+  }
+
+  return list
+})
+
+const enter = (path: string) => {
+  router.push(path)
+}
+
+onMounted(async () => {
   try {
-    const res = await getPublishedBlogPostPage({ pageNum: 1, pageSize: 6 })
+    const res = await getPublishedBlogPostPage({ pageNum: 1, pageSize: 1 })
     if (res.data.code === 0 && res.data.data) {
-      latestPosts.value = res.data.data.records || []
       postTotal.value = res.data.data.totalRow || 0
+      latestTitle.value = res.data.data.records?.[0]?.title || ''
     }
-  } finally {
-    postsLoading.value = false
+  } catch {
+    /* ignore */
   }
-}
 
-const fetchMyTotal = async () => {
-  if (!loginUserStore.loginUser.id) {
-    myTotal.value = 0
-    return
+  if (loginUserStore.loginUser.id) {
+    try {
+      const res = await listMyAppByPage({ pageNum: 1, pageSize: 1 })
+      if (res.data.code === 0 && res.data.data) {
+        myTotal.value = res.data.data.totalRow || 0
+      }
+    } catch {
+      /* ignore */
+    }
   }
-  const res = await listMyAppByPage({ pageNum: 1, pageSize: 1 })
-  if (res.data.code === 0 && res.data.data) {
-    myTotal.value = res.data.data.totalRow || 0
-  }
-}
-
-onMounted(() => {
-  fetchLatestPosts()
-  fetchMyTotal()
 })
 </script>
 
 <template>
-  <div id="homePage">
-    <div class="home-top">
-      <section class="home-card intro-card">
-        <div class="intro-card__body">
-          <a-avatar :size="88" :src="siteConfig.avatar" class="intro-card__avatar" />
-          <div class="intro-card__content">
-            <h1 class="intro-card__name">{{ siteConfig.ownerName }}</h1>
-            <p class="intro-card__site">{{ siteConfig.siteName }}</p>
-            <p class="intro-card__bio">{{ siteConfig.bio }}</p>
-          </div>
-        </div>
-        <div class="intro-card__stats">
-          <div class="stat-chip" @click="router.push('/blog')">
-            <span class="stat-chip__num">{{ postTotal }}</span>
-            <span class="stat-chip__label">{{ siteConfig.statsLabels.posts }}</span>
-          </div>
-          <div v-if="loginUserStore.loginUser.id" class="stat-chip" @click="router.push('/lab')">
-            <span class="stat-chip__num">{{ myTotal }}</span>
-            <span class="stat-chip__label">{{ siteConfig.statsLabels.experiments }}</span>
-          </div>
-          <div class="stat-chip">
-            <span class="stat-chip__num">{{ uptimeDays }}</span>
-            <span class="stat-chip__label">{{ siteConfig.statsLabels.uptime }}天</span>
-          </div>
+  <div class="home-hall">
+    <div class="hall-top">
+      <section class="hall-hero">
+        <p class="hall-hero__eyebrow">{{ siteConfig.siteSubtitle }}</p>
+        <h1 class="hall-hero__brand">{{ siteConfig.siteName }}</h1>
+        <p class="hall-hero__bio">{{ siteConfig.bio }}</p>
+        <div class="hall-hero__quote">
+          <DailyHitokoto variant="plain" />
         </div>
       </section>
-
-      <section class="home-card clock-card">
+      <aside class="hall-clock">
         <HomeClock variant="plain" />
-      </section>
+      </aside>
     </div>
 
-    <section class="home-card hitokoto-card">
-      <DailyHitokoto variant="plain" />
-    </section>
-
-    <section class="content-section">
-      <div class="content-section__header">
-        <span class="content-section__title">{{ siteConfig.sections.latestPosts }}</span>
-        <a class="content-section__more" @click="router.push('/blog')">全部随笔 →</a>
-      </div>
-      <a-spin :spinning="postsLoading">
-        <a-empty v-if="!latestPosts.length && !postsLoading" description="暂无随笔，去博客写第一篇吧" />
-        <div v-else class="home-post-grid">
-          <article
-            v-for="post in latestPosts"
-            :key="post.id"
-            class="home-post"
-            @click="router.push('/blog/' + post.id)"
-          >
-            <div class="home-post__cover" :class="{ 'home-post__cover--empty': !post.coverUrl }">
-              <img v-if="post.coverUrl" :src="post.coverUrl" :alt="post.title || '随笔封面'" />
-            </div>
-            <div class="home-post__body">
-              <div class="home-post__meta">
-                <CalendarOutlined />
-                <span>{{ formatPostDate(post.createdTime) }}</span>
-                <span v-if="post.categoryName" class="home-post__category">{{ post.categoryName }}</span>
-              </div>
-              <h3 class="home-post__title">{{ post.title || '无标题' }}</h3>
-              <p class="home-post__summary">{{ post.summary || '暂无摘要' }}</p>
-            </div>
-          </article>
-        </div>
-      </a-spin>
+    <section class="hall-rooms" aria-label="房间入口">
+      <button
+        v-for="(room, index) in rooms"
+        :key="room.key"
+        v-tilt
+        type="button"
+        class="room-door"
+        :class="`room-door--${room.accent}`"
+        :data-room-key="room.key"
+        :style="{ '--i': index }"
+        @click="enter(room.path)"
+      >
+        <span class="room-door__glow" aria-hidden="true" />
+        <span class="room-door__icon">
+          <component :is="room.icon" :size="36" :stroke-width="1.75" />
+        </span>
+        <span class="room-door__body">
+          <span class="room-door__title">{{ room.title }}</span>
+          <span class="room-door__hint">{{ room.hint }}</span>
+          <span class="room-door__meta">
+            <template v-if="room.key === 'blog' && !latestTitle && postTotal">
+              <span class="room-door__count">{{ postDisplay }}</span> 篇随笔
+            </template>
+            <template v-else-if="room.key === 'lab' && isLoggedIn && myTotal">
+              <span class="room-door__count">{{ myDisplay }}</span> 个实验
+            </template>
+            <template v-else>{{ room.meta }}</template>
+          </span>
+        </span>
+      </button>
     </section>
   </div>
 </template>
 
 <style scoped>
-#homePage {
-  max-width: 1200px;
+.home-hall {
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 0 20px 80px;
-  position: relative;
-  z-index: 1;
-}
-
-.home-card {
-  background: var(--color-bg-card);
-  backdrop-filter: blur(16px);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-lg);
-}
-
-.home-top {
-  display: grid;
-  grid-template-columns: 1fr min(280px, 32%);
-  gap: 20px;
-  margin-top: 16px;
-}
-
-.intro-card {
-  padding: 32px;
+  padding: 24px 8px 64px;
+  min-height: calc(100vh - 180px);
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  justify-content: center;
+  gap: 48px;
 }
 
-.intro-card__body {
-  display: flex;
-  align-items: flex-start;
-  gap: 24px;
+.hall-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  gap: 28px;
+  align-items: start;
 }
 
-.intro-card__avatar {
-  flex-shrink: 0;
-  border: 3px solid rgba(232, 121, 169, 0.4);
-  box-shadow: var(--shadow-glow);
+.hall-hero {
+  text-align: left;
+  min-width: 0;
+  animation: riseIn 500ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
-.intro-card__name {
-  font-size: 32px;
+.hall-clock {
+  padding: 16px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  animation: riseIn 500ms cubic-bezier(0.22, 1, 0.36, 1) 120ms backwards;
+}
+
+.hall-hero__eyebrow {
+  margin: 0 0 12px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.hall-hero__brand {
+  margin: 0 0 16px;
+  font-size: clamp(42px, 7vw, 64px);
   font-weight: 700;
+  line-height: 1.1;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 4px;
 }
 
-.intro-card__site {
-  font-size: 15px;
-  color: var(--color-text-secondary);
-  margin-bottom: 10px;
-}
-
-.intro-card__bio {
-  font-size: 15px;
-  color: var(--color-text-secondary);
+.hall-hero__bio {
+  margin: 0 0 20px;
+  font-size: 17px;
   line-height: 1.7;
-  margin: 0;
+  color: var(--color-text-secondary);
 }
 
-.intro-card__stats {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding-top: 20px;
-  border-top: 1px solid var(--color-border);
+.hall-hero__quote {
+  opacity: 0.85;
+  max-width: 520px;
 }
 
-.stat-chip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 12px 20px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  min-width: 80px;
-}
-
-.stat-chip:hover {
-  border-color: var(--color-border-hover);
-  background: rgba(232, 121, 169, 0.08);
-  transform: translateY(-2px);
-}
-
-.stat-chip__num {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-}
-
-.stat-chip__label {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  margin-top: 4px;
-}
-
-.clock-card {
-  position: relative;
-  padding: 20px;
-  padding-top: 52px;
-  display: block;
-}
-
-.clock-card :deep(.clock-card__header) {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  margin: 0;
-  justify-content: flex-end;
-}
-
-.hitokoto-card {
-  margin-top: 20px;
-  padding: 24px 28px;
-}
-
-.content-section {
-  margin-top: 40px;
-}
-
-.content-section__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
-.content-section__title {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.content-section__more {
-  font-size: 13px;
-  color: var(--color-primary);
-  cursor: pointer;
-  transition: opacity var(--transition-fast);
-}
-
-.content-section__more:hover {
-  opacity: 0.8;
-}
-
-.home-post-grid {
+.hall-rooms {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
 }
 
-.home-post {
+.room-door {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  border-radius: var(--radius-lg);
+  align-items: flex-start;
+  gap: 20px;
+  min-height: 200px;
+  padding: 24px 22px;
   border: 1px solid var(--color-border);
-  background: var(--color-bg-card);
-  backdrop-filter: blur(12px);
-  overflow: hidden;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
   cursor: pointer;
-  transition: all var(--transition-normal);
+  transform: perspective(720px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transform-style: preserve-3d;
+  animation: riseIn 500ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(160ms + var(--i, 0) * 60ms);
+  transition:
+    border-color 0.25s ease,
+    background 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
-.home-post:hover {
-  border-color: rgba(232, 121, 169, 0.35);
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-glow);
+.room-door:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
 }
 
-.home-post__cover {
-  width: 100%;
-  height: 160px;
-  flex-shrink: 0;
-  overflow: hidden;
-  background: var(--blog-cover-fallback);
+.room-door__glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    260px circle at var(--mx, 50%) var(--my, 50%),
+    var(--color-primary-12),
+    transparent 60%
+  );
+  transition: opacity 0.25s ease;
 }
 
-.home-post__cover--empty {
-  display: flex;
+.room-door:hover .room-door__glow {
+  opacity: 1;
+}
+
+.room-door > :not(.room-door__glow) {
+  position: relative;
+  z-index: 1;
+}
+
+.room-door__icon {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  transition: transform 0.25s ease;
 }
 
-.home-post__cover--empty::after {
-  content: '♪';
-  font-size: 36px;
-  color: rgba(255, 255, 255, 0.35);
+.room-door:hover .room-door__icon {
+  transform: scale(1.08);
 }
 
-.home-post__cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.35s ease;
+.room-door__icon :deep(svg) {
+  transition: transform 0.25s ease;
+  transform-origin: center;
 }
 
-.home-post:hover .home-post__cover img {
-  transform: scale(1.06);
+.room-door[data-room-key='blog']:hover .room-door__icon :deep(svg) {
+  animation: iconFlip 0.6s ease;
 }
 
-.home-post__body {
-  flex: 1;
-  padding: 16px 18px 18px;
-  min-width: 0;
+.room-door[data-room-key='lab']:hover .room-door__icon :deep(svg) {
+  animation: iconShake 0.6s ease;
 }
 
-.home-post__meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  font-size: 12px;
-  color: var(--color-text-muted);
-  margin-bottom: 10px;
+.room-door[data-room-key='chat']:hover .room-door__icon :deep(svg) {
+  animation: iconBounce 0.6s ease;
 }
 
-.home-post__category {
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--color-primary-08);
+.room-door[data-room-key='diary']:hover .room-door__icon :deep(svg) {
+  animation: iconWiggle 0.6s ease;
+}
+
+.room-door[data-room-key='knowledge']:hover .room-door__icon :deep(svg) {
+  animation: iconPulse 0.6s ease;
+}
+
+.room-door__count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
   color: var(--color-primary-light);
 }
 
-.home-post__title {
-  font-size: 16px;
+.room-door--rose .room-door__icon {
+  color: var(--color-primary-light);
+  background: var(--color-primary-12);
+}
+
+.room-door--blue .room-door__icon {
+  color: var(--color-secondary-light);
+  background: var(--color-secondary-20);
+}
+
+.room-door--violet .room-door__icon {
+  color: #c4b5fd;
+  background: rgba(167, 139, 250, 0.16);
+}
+
+.room-door--lilac .room-door__icon {
+  color: #e9d5ff;
+  background: rgba(201, 160, 220, 0.16);
+}
+
+.room-door__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+}
+
+.room-door__title {
+  font-size: 22px;
   font-weight: 600;
   color: var(--color-text-primary);
-  margin-bottom: 8px;
+}
+
+.room-door__hint {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.room-door__meta {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.home-post__summary {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  line-height: 1.6;
-  margin: 0;
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-@media (max-width: 900px) {
-  .home-top {
+@keyframes iconFlip {
+  0% {
+    transform: perspective(200px) rotateY(0deg);
+  }
+  50% {
+    transform: perspective(200px) rotateY(-24deg);
+  }
+  100% {
+    transform: perspective(200px) rotateY(0deg);
+  }
+}
+
+@keyframes iconShake {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-9deg);
+  }
+  75% {
+    transform: rotate(9deg);
+  }
+}
+
+@keyframes iconBounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-6px);
+  }
+  70% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes iconWiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-6deg) translateX(-1px);
+  }
+  60% {
+    transform: rotate(5deg) translateX(1px);
+  }
+}
+
+@keyframes iconPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.16);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hall-hero,
+  .hall-clock,
+  .room-door {
+    animation: none;
+  }
+
+  .room-door {
+    transform: none;
+  }
+
+  .room-door:hover .room-door__icon,
+  .room-door:hover .room-door__icon :deep(svg) {
+    animation: none;
+    transform: none;
+  }
+
+  .room-door__glow {
+    display: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .hall-top {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-hall {
+    gap: 32px;
+    padding-top: 12px;
+    justify-content: flex-start;
+  }
+
+  .hall-rooms {
     grid-template-columns: 1fr;
   }
 
-  .clock-card {
-    order: -1;
-    padding: 48px 16px 16px;
-  }
-
-  .home-post-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .intro-card {
-    padding: 24px 20px;
-  }
-
-  .intro-card__body {
-    flex-direction: column;
+  .room-door {
+    flex-direction: row;
     align-items: center;
-    text-align: center;
-  }
-
-  .intro-card__stats {
-    justify-content: center;
-  }
-
-  .intro-card__name {
-    font-size: 26px;
-  }
-
-  .hitokoto-card {
-    padding: 20px;
-  }
-
-  .home-post-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .home-post__cover {
-    height: 180px;
+    min-height: 0;
+    padding: 18px 16px;
   }
 }
 </style>

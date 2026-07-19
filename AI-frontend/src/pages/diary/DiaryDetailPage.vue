@@ -2,13 +2,8 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message, Modal, Spin } from 'ant-design-vue'
-import {
-  ArrowLeftOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  LeftOutlined,
-  RightOutlined,
-} from '@ant-design/icons-vue'
+import { ArrowLeft, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import IconAction from '@/components/ui/IconAction.vue'
 import { deleteDiaryEntry, getDiaryEntryVo, getDiaryPrevNext } from '@/integrations/diaryController'
 import { renderBlogMarkdown } from '@/utils/blogMarkdown'
 import { diaryDisplayTitle, formatDiaryDate, getMoodEmoji } from '@/utils/diaryFormat'
@@ -104,19 +99,10 @@ onMounted(() => fetchEntry())
     <a-spin :spinning="loading">
       <div v-if="entry" class="diary-detail-container">
         <div class="diary-detail-toolbar">
-          <a-button type="text" @click="handleBack">
-            <template #icon><ArrowLeftOutlined /></template>
-            返回
-          </a-button>
+          <IconAction :icon="ArrowLeft" label="返回" variant="ghost" motion="slide" @click="handleBack" />
           <div class="diary-detail-toolbar__actions">
-            <a-button @click="handleEdit">
-              <template #icon><EditOutlined /></template>
-              编辑
-            </a-button>
-            <a-button danger @click="handleDelete">
-              <template #icon><DeleteOutlined /></template>
-              删除
-            </a-button>
+            <IconAction :icon="Pencil" label="编辑" variant="soft" motion="pop" @click="handleEdit" />
+            <IconAction :icon="Trash2" label="删除" variant="danger" motion="shake" @click="handleDelete" />
           </div>
         </div>
 
@@ -140,7 +126,7 @@ onMounted(() => fetchEntry())
             :disabled="!prevNext?.prevId"
             @click="goPrev"
           >
-            <LeftOutlined />
+            <ChevronLeft :size="18" class="diary-nav-icon diary-nav-icon--prev" />
             <span v-if="prevNext?.prevDate">上一篇 · {{ prevNext.prevDate }}</span>
             <span v-else>没有更早的日记</span>
           </button>
@@ -152,14 +138,14 @@ onMounted(() => fetchEntry())
           >
             <span v-if="prevNext?.nextDate">下一篇 · {{ prevNext.nextDate }}</span>
             <span v-else>没有更新的日记</span>
-            <RightOutlined />
+            <ChevronRight :size="18" class="diary-nav-icon diary-nav-icon--next" />
           </button>
         </nav>
       </div>
 
       <div v-else-if="!loading" class="diary-detail-empty">
         <p>日记不存在或无权访问</p>
-        <a-button type="primary" @click="handleBack">返回日记主页</a-button>
+        <IconAction :icon="ArrowLeft" label="返回日记主页" variant="primary" motion="slide" @click="handleBack" />
       </div>
     </a-spin>
   </div>
@@ -256,5 +242,27 @@ onMounted(() => fetchEntry())
   text-align: center;
   padding: 80px 24px;
   color: var(--color-text-secondary);
+}
+
+.diary-detail-empty :deep(.icon-action) {
+  margin: 0 auto;
+}
+
+.diary-nav-icon {
+  transition: transform var(--transition-fast);
+}
+.diary-detail-nav__btn:hover:not(:disabled) .diary-nav-icon--prev {
+  transform: translateX(-4px);
+}
+.diary-detail-nav__btn:hover:not(:disabled) .diary-nav-icon--next {
+  transform: translateX(4px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .diary-nav-icon {
+    transition: none;
+  }
+  .diary-detail-nav__btn:hover:not(:disabled) .diary-nav-icon {
+    transform: none;
+  }
 }
 </style>

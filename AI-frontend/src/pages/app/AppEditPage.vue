@@ -7,6 +7,8 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { Save, RotateCcw, MessagesSquare } from 'lucide-vue-next'
+import IconAction from '@/components/ui/IconAction.vue'
 import { getAppById, getAppByIdByAdmin, updateApp, updateAppByAdmin } from '@/api/appController'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { isAdminRole } from '@/config/permission'
@@ -160,11 +162,9 @@ onMounted(async () => {
             <!-- 操作按钮 -->
             <a-form-item>
               <a-space>
-                <a-button type="primary" :loading="submitting" @click="handleSubmit">
-                  保存修改
-                </a-button>
-                <a-button @click="handleReset">重置</a-button>
-                <a-button type="default" @click="goToChat">进入对话</a-button>
+                <IconAction :icon="Save" label="保存修改" variant="primary" motion="pop" :loading="submitting" @click="handleSubmit" />
+                <IconAction :icon="RotateCcw" label="重置" variant="soft" motion="spin" @click="handleReset" />
+                <IconAction :icon="MessagesSquare" label="进入对话" variant="soft" motion="pop" @click="goToChat" />
               </a-space>
             </a-form-item>
           </a-form>

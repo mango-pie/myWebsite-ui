@@ -14,8 +14,31 @@ export type KnowledgeSearchDraft = {
   candidates: API.KnowledgeSearchCandidate[]
   selectedUrls: string[]
   searchDone: boolean
-  batchResult: API.KnowledgeIngestBatchResultVO | null
+  batchResult: API.KnowledgeReadingJobVO | null
   activeTab: string
+}
+
+export function isReadingJobInProgress(job: API.KnowledgeReadingJobVO | null | undefined): boolean {
+  if (!job?.jobId) return false
+  const status = String(job.status || '').toUpperCase()
+  return status === 'PENDING' || status === 'RUNNING'
+}
+
+export function readingJobProgressLabel(progress: string | null | undefined): string {
+  switch (String(progress || '').toUpperCase()) {
+    case 'QUEUED':
+      return '排队中'
+    case 'READING':
+      return '正在读取网页'
+    case 'DISTILLING':
+      return '正在重构精读'
+    case 'DONE':
+      return '完成'
+    case 'ERROR':
+      return '失败'
+    default:
+      return progress ? String(progress) : '处理中'
+  }
 }
 
 export function loadKnowledgeSearchDraft(): KnowledgeSearchDraft | null {
@@ -51,11 +74,11 @@ export function loadKnowledgeSearchDraft(): KnowledgeSearchDraft | null {
 /** 兼容旧草稿（多 note items[]）；无法识别则丢弃 batch 段 */
 function normalizeBatchResult(
   raw: unknown,
-): API.KnowledgeIngestBatchResultVO | null {
+): API.KnowledgeReadingJobVO | null {
   if (raw == null || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
   if (Array.isArray(r.items)) return null
-  return raw as API.KnowledgeIngestBatchResultVO
+  return raw as API.KnowledgeReadingJobVO
 }
 
 export function saveKnowledgeSearchDraft(state: KnowledgeSearchDraft): void {
