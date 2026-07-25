@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>纸间 · 手账贴纸系 v2 · 工作区</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css" rel="stylesheet">
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+:root {
+  --paper: #FDF9F0;
+  --paper-surface: #F5EDDB;
+  --ink: #45403A;
+  --ink-soft: #8A8271;
+  --hairline: #E4DAC4;
+  --accent: #3D8BC2;
+  --st-sakura: #F4A9C0;
+  --st-sky: #A9D6EE;
+  --st-mint: #A5D8B9;
+  --st-cream: #F7D98D;
+  --radius-card: 14px;
+  --shadow-day: 0 2px 0 rgba(69,64,58,.06), 0 14px 28px -14px rgba(120,95,50,.22);
+  --sticker-rot: 2deg;
+  --tape-alpha: .82;
+  --dot-size: 24px;
+  --fd: "ZCOOL KuaiLe", "LXGW WenKai", "Noto Sans SC", sans-serif;
+  --fb: "LXGW WenKai", "Noto Sans SC", "ZCOOL KuaiLe", sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font: 16px / 1.7 var(--fb);
+  color: var(--ink);
+  background: var(--paper);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+h1, h2, h3, h4 { font-family: var(--fd); font-weight: 400; margin: 0 0 16px; letter-spacing: .02em; color: var(--ink); }
+h1 { font-size: clamp(32px, 5vw, 56px); line-height: 1.15; }
+h2 { font-size: clamp(22px, 3vw, 32px); line-height: 1.2; }
+h3 { font-size: 20px; }
+p { margin: 0 0 14px; text-wrap: pretty; }
+a { color: var(--accent); text-decoration: underline wavy; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-style: solid; }
+button { font-family: inherit; cursor: pointer; }
+
+.paper-bg {
+  position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  background-image: radial-gradient(rgba(69,64,58,.2) 1px, transparent 1px);
+  background-size: var(--dot-size) var(--dot-size);
+  opacity: .24;
+}
+.paper-grain {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.deco-edge {
+  position: fixed; top: 0; bottom: 0; width: 140px;
+  pointer-events: none; z-index: 2;
+}
+.deco-edge.left { left: 16px; }
+.deco-edge.right { right: 16px; }
+@media (max-width: 1599px) { .deco-edge { display: none; } }
+.deco-item { position: absolute; }
+
+.shell {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(253,249,240,.92);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1.5px dashed var(--hairline);
+  padding: 14px 32px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.shell .mark { font: 28px var(--fd); color: var(--ink); letter-spacing: .08em; display: flex; align-items: center; gap: 8px; }
+.shell .mark .mark-deco { color: var(--st-cream); display: inline-flex; }
+.shell nav { display: flex; gap: 24px; font: 14px var(--fd); }
+.shell nav a {
+  color: var(--ink); text-decoration: none; padding: 6px 4px;
+  border-bottom: 2px solid transparent; transition: all .25s;
+}
+.shell nav a.active, .shell nav a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+.foot {
+  border-top: 1.5px dashed var(--hairline);
+  padding: 40px 32px; text-align: center;
+  color: var(--ink-soft); font-size: 13px;
+}
+.foot .wave { display: block; margin: 0 auto 14px; color: var(--hairline); }
+
+.sticker {
+  background: #FFFDF8; border: 2px solid var(--hairline);
+  border-radius: var(--radius-card); box-shadow: var(--shadow-day);
+  position: relative;
+  transform: rotate(var(--rot, calc(var(--sticker-rot, 2deg) * -1)));
+  transition: transform 320ms cubic-bezier(.2,.8,.2,1), box-shadow 320ms ease-out;
+  animation: stickerIn .55s cubic-bezier(.2,.8,.2,1) both;
+}
+.sticker:hover {
+  transform: rotate(0deg) translateY(-2px) scale(1.01);
+  box-shadow: 0 2px 0 rgba(69,64,58,.08), 0 20px 36px -16px rgba(120,95,50,.28);
+}
+.sticker.pos { --rot: var(--sticker-rot, 2deg); }
+.sticker:nth-child(1) { --rot: calc(var(--sticker-rot, 2deg) * -1); animation-delay: .04s; }
+.sticker:nth-child(2) { --rot: var(--sticker-rot, 2deg); animation-delay: .1s; }
+.sticker:nth-child(3) { --rot: calc(var(--sticker-rot, 2deg) * -.6); animation-delay: .16s; }
+.sticker:nth-child(4) { --rot: calc(var(--sticker-rot, 2deg) * .8); animation-delay: .22s; }
+.sticker:nth-child(5) { --rot: calc(var(--sticker-rot, 2deg) * -1.2); animation-delay: .28s; }
+.sticker:nth-child(6) { --rot: calc(var(--sticker-rot, 2deg) * .5); animation-delay: .34s; }
+@keyframes stickerIn {
+  from { opacity: 0; transform: translateY(12px) rotate(var(--rot, 0deg)); }
+  to { opacity: 1; transform: translateY(0) rotate(var(--rot, 0deg)); }
+}
+
+.tape {
+  position: absolute; width: var(--tw, 80px); height: 20px;
+  background: var(--tc, var(--st-sakura)); opacity: var(--tape-alpha, .82);
+  border-radius: 2px;
+  background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,.35) 4px, rgba(255,255,255,.35) 8px);
+  transform: rotate(var(--tilt, 3deg));
+  box-shadow: 0 1px 2px rgba(120,95,50,.15);
+  mix-blend-mode: multiply; pointer-events: none;
+}
+
+.stitch { border: 1.5px dashed var(--hairline); border-radius: 10px; }
+
+.stamp {
+  font: 20px / 1 var(--fd);
+  display: inline-flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  width: 60px; height: 60px;
+  border: 2px solid var(--accent); border-radius: 50%;
+  color: var(--accent); transform: rotate(-8deg); position: relative;
+}
+.stamp::after {
+  content: ""; position: absolute; inset: -5px;
+  border: 1.5px dashed var(--accent); border-radius: 50%; opacity: .4;
+}
+.stamp .d { font-size: 22px; }
+.stamp .m { font-size: 8px; letter-spacing: 1.5px; margin-top: 2px; }
+
+.pill {
+  display: inline-flex; padding: 4px 12px; border-radius: 999px;
+  font: 12px var(--fd); background: var(--st-sky); color: var(--ink);
+  border: 1.5px solid var(--hairline); letter-spacing: .04em;
+  transition: all .2s; cursor: pointer; text-decoration: none;
+}
+.pill:hover { transform: translateY(-1px) rotate(-1deg); }
+.pill[data-tone="sakura"] { background: var(--st-sakura); }
+.pill[data-tone="mint"] { background: var(--st-mint); }
+.pill[data-tone="cream"] { background: var(--st-cream); }
+.pill[data-tone="sky"] { background: var(--st-sky); }
+.pill[data-tone="outline"] { background: transparent; }
+
+.btn {
+  background: var(--accent); color: #FFFDF8; border: none;
+  padding: 10px 20px; border-radius: 999px;
+  font: 14px var(--fd); letter-spacing: .04em;
+  cursor: pointer; box-shadow: 0 2px 0 rgba(69,64,58,.06), 0 8px 16px -10px rgba(61,139,194,.5);
+  transition: all .25s cubic-bezier(.2,.8,.2,1);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 2px 0 rgba(69,64,58,.06), 0 12px 22px -10px rgba(61,139,194,.55); }
+.btn:active { transform: translateY(0); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.btn.ghost { background: transparent; color: var(--ink); box-shadow: none; border: 1.5px dashed var(--hairline); }
+.btn.ghost:hover { border-style: solid; border-color: var(--accent); color: var(--accent); box-shadow: none; }
+.btn.sm { padding: 6px 14px; font-size: 12px; }
+
+.placeholder {
+  border: 1.5px dashed var(--hairline); background: var(--paper-surface);
+  color: var(--ink-soft); display: flex; align-items: center; justify-content: center;
+  font: 12px var(--fd); border-radius: 10px; letter-spacing: .04em;
+}
+
+.form-input, .form-textarea {
+  width: 100%; padding: 10px 14px;
+  border: 1.5px dashed var(--hairline); border-radius: 10px;
+  background: #FFFDF8; font: 15px var(--fb); color: var(--ink);
+  outline: none; transition: border-color .2s, box-shadow .2s;
+}
+.form-input:focus, .form-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(61,139,194,.12); border-style: solid; }
+.form-textarea { min-height: 200px; resize: vertical; line-height: 1.8; }
+
+.container { max-width: 1360px; margin: 0 auto; padding: 48px 32px; }
+
+.screen { display: none; }
+.screen.active { display: block; animation: fadeRise .45s ease-out; }
+@keyframes fadeRise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.page-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 28px; flex-wrap: wrap; }
+.page-header h1 { margin: 0; }
+.page-header .actions { display: flex; gap: 10px; }
+
+.diary-layout { display: grid; grid-template-columns: 1fr 280px; gap: 32px; }
+.diary-list { display: flex; flex-direction: column; gap: 20px; }
+.diary-entry { padding: 20px 22px; display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: start; }
+.diary-entry .content h3 { font-size: 18px; margin-bottom: 6px; }
+.diary-entry .content p { font-size: 14px; color: var(--ink-soft); margin: 0; }
+.diary-entry .meta { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+
+.calendar { background: #FFFDF8; border: 1.5px dashed var(--hairline); border-radius: 14px; padding: 20px; box-shadow: var(--shadow-day); position: sticky; top: 90px; }
+.calendar .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font: 16px var(--fd); }
+.calendar .cal-header button { background: none; border: none; color: var(--ink-soft); font-size: 18px; padding: 4px 8px; border-radius: 6px; transition: background .2s; }
+.calendar .cal-header button:hover { background: var(--paper-surface); }
+.calendar .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font: 12px var(--fd); }
+.calendar .cal-grid .day-name { color: var(--ink-soft); padding: 4px 0; font-size: 11px; }
+.calendar .cal-grid .day { padding: 6px 0; border-radius: 6px; cursor: pointer; transition: background .2s; position: relative; }
+.calendar .cal-grid .day:hover { background: var(--paper-surface); }
+.calendar .cal-grid .day.has-diary::after { content: ""; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+.calendar .cal-grid .day.today { background: var(--st-sky); font-weight: 700; }
+
+.write-layout { max-width: 720px; margin: 0 auto; }
+.write-layout .stamp-wrap { text-align: center; margin-bottom: 24px; }
+.write-layout .field { margin-bottom: 20px; }
+.write-layout .field label { display: block; font: 13px var(--fd); color: var(--ink-soft); margin-bottom: 8px; letter-spacing: .06em; }
+.mood-selector { display: flex; gap: 8px; flex-wrap: wrap; }
+.mood-selector .pill { padding: 6px 14px; font-size: 13px; }
+.mood-selector .pill.active { background: var(--accent); color: #FFFDF8; border-color: var(--accent); }
+.write-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 20px; border-top: 1.5px dashed var(--hairline); }
+.save-indicator { font: 12px var(--fd); color: var(--ink-soft); display: flex; align-items: center; gap: 6px; }
+.save-indicator .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--st-mint); }
+
+.chat-layout { display: grid; grid-template-columns: 240px 1fr; gap: 0; min-height: calc(100vh - 140px); border: 1.5px dashed var(--hairline); border-radius: 14px; overflow: hidden; background: #FFFDF8; box-shadow: var(--shadow-day); }
+.conv-sidebar { border-right: 1.5px dashed var(--hairline); padding: 16px; display: flex; flex-direction: column; gap: 12px; background: var(--paper); }
+.conv-list { display: flex; flex-direction: column; gap: 8px; flex: 1; overflow-y: auto; }
+.conv-item { padding: 10px 12px; border-radius: 10px; font: 13px var(--fd); cursor: pointer; transition: background .2s; border: 1.5px solid transparent; }
+.conv-item:hover { background: var(--paper-surface); }
+.conv-item.active { background: var(--st-sky); border-color: var(--hairline); }
+.conv-item .conv-title { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.conv-item .conv-time { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+
+.chat-main { display: flex; flex-direction: column; }
+.chat-header { padding: 14px 20px; border-bottom: 1.5px dashed var(--hairline); font: 15px var(--fd); display: flex; align-items: center; gap: 10px; }
+.chat-messages { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; max-height: 500px; }
+.message { display: flex; gap: 10px; max-width: 80%; }
+.message.user { align-self: flex-end; flex-direction: row-reverse; }
+.message .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--paper-surface); border: 1.5px dashed var(--hairline); display: flex; align-items: center; justify-content: center; font: 14px var(--fd); color: var(--ink-soft); flex-shrink: 0; }
+.message.user .avatar { background: var(--st-sky); }
+.message .bubble { background: var(--paper); border: 1.5px solid var(--hairline); border-radius: 12px; padding: 10px 14px; font-size: 14px; line-height: 1.6; }
+.message.user .bubble { background: var(--st-sky); border-color: rgba(61,139,194,.2); }
+.message .bubble .streaming { display: inline-flex; gap: 3px; }
+.message .bubble .streaming span { width: 5px; height: 5px; border-radius: 50%; background: var(--ink-soft); animation: bounce 1.2s infinite; }
+.message .bubble .streaming span:nth-child(2) { animation-delay: .2s; }
+.message .bubble .streaming span:nth-child(3) { animation-delay: .4s; }
+@keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+
+.chat-input { padding: 16px 20px; border-top: 1.5px dashed var(--hairline); display: flex; gap: 10px; align-items: center; }
+.chat-input input { flex: 1; padding: 10px 14px; border: 1.5px dashed var(--hairline); border-radius: 10px; background: var(--paper); font: 14px var(--fb); outline: none; transition: border-color .2s; }
+.chat-input input:focus { border-color: var(--accent); border-style: solid; }
+
+.kb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+.kb-card { padding: 22px 20px; }
+.kb-card h3 { font-size: 18px; margin-bottom: 10px; }
+.kb-card .kb-stats { display: flex; gap: 12px; font: 12px var(--fd); color: var(--ink-soft); margin-bottom: 12px; }
+.kb-card .kb-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.rag-layout { display: grid; grid-template-columns: 1fr 260px; gap: 0; min-height: calc(100vh - 140px); border: 1.5px dashed var(--hairline); border-radius: 14px; overflow: hidden; background: #FFFDF8; box-shadow: var(--shadow-day); }
+.rag-sidebar { border-left: 1.5px dashed var(--hairline); padding: 20px; background: var(--paper); }
+.rag-sidebar h4 { font-size: 14px; margin-bottom: 12px; }
+.rag-info { font: 13px var(--fb); }
+.rag-info .stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed var(--hairline); }
+.rag-info .stat:last-child { border-bottom: none; }
+.rag-main { display: flex; flex-direction: column; }
+.rag-header { padding: 14px 20px; border-bottom: 1.5px dashed var(--hairline); font: 15px var(--fd); display: flex; align-items: center; gap: 10px; }
+.rag-messages { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; max-height: 500px; }
+.rag-messages .source-badge { display: inline-flex; padding: 2px 8px; border-radius: 999px; font: 10px var(--fd); background: var(--st-cream); color: var(--ink); margin-left: 6px; }
+.rag-input { padding: 16px 20px; border-top: 1.5px dashed var(--hairline); display: flex; gap: 10px; align-items: center; }
+.rag-input input { flex: 1; padding: 10px 14px; border: 1.5px dashed var(--hairline); border-radius: 10px; background: var(--paper); font: 14px var(--fb); outline: none; transition: border-color .2s; }
+.rag-input input:focus { border-color: var(--accent); border-style: solid; }
+
+.pager {
+  position: fixed; left: 20px; bottom: 20px; z-index: 100;
+  background: rgba(255,253,248,.94); border: 2px dashed var(--hairline);
+  padding: 10px; border-radius: 14px; box-shadow: var(--shadow-day);
+  font: 12px var(--fd); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  max-width: 160px;
+}
+.pager .pager-title { font-size: 10px; color: var(--ink-soft); margin-bottom: 6px; letter-spacing: .18em; }
+.pager button {
+  display: block; width: 100%; background: transparent; border: none;
+  text-align: left; padding: 5px 8px; border-radius: 6px;
+  cursor: pointer; color: var(--ink); font: inherit; transition: all .2s;
+}
+.pager button:hover { background: var(--paper-surface); }
+.pager button.active { background: var(--accent); color: #FFFDF8; }
+@media (max-width: 1599px) { .pager { left: 14px; } }
+
+.tweaks { position: fixed; right: 20px; bottom: 20px; z-index: 100; }
+.tweaks-toggle {
+  background: var(--ink); color: var(--paper); padding: 8px 14px;
+  border-radius: 999px; border: none; font: 13px var(--fd);
+  letter-spacing: .04em; box-shadow: var(--shadow-day); transition: all .2s;
+}
+.tweaks-toggle:hover { background: var(--accent); }
+.tweaks-panel {
+  display: none; position: absolute; right: 0; bottom: 44px;
+  background: #FFFDF8; border: 2px dashed var(--hairline);
+  border-radius: 14px; padding: 16px; width: 250px;
+  box-shadow: var(--shadow-day);
+}
+.tweaks-panel.open { display: block; animation: fadeRise .25s ease-out; }
+.tweaks-panel h4 { font-size: 14px; margin: 0 0 12px; letter-spacing: .15em; }
+.tweak-item { margin-bottom: 12px; }
+.tweak-item label { display: flex; justify-content: space-between; font: 11px var(--fd); color: var(--ink-soft); margin-bottom: 5px; }
+.tweak-item label .v { color: var(--ink); }
+.tweak-item input[type=range] { width: 100%; accent-color: var(--accent); }
+
+@media (max-width: 1100px) {
+  .diary-layout { grid-template-columns: 1fr; }
+  .calendar { position: static; }
+  .chat-layout { grid-template-columns: 1fr; }
+  .conv-sidebar { display: none; }
+  .rag-layout { grid-template-columns: 1fr; }
+  .rag-sidebar { display: none; }
+}
+@media (max-width: 640px) {
+  .shell { padding: 12px 20px; }
+  .shell nav { gap: 14px; font-size: 12px; }
+  .container { padding: 32px 18px; }
+  .pager { left: 10px; bottom: 10px; max-width: 140px; }
+  .tweaks { right: 10px; bottom: 10px; }
+}
+</style>
+</head>
+<body>
+<div class="paper-bg"></div>
+<div class="paper-grain"></div>
+
+<div class="deco-edge left">
+  <div class="deco-item" style="top: 100px; left: 8px; transform: rotate(-3deg);">
+    <div style="background:#FFFDF8; border:1.5px dashed var(--hairline); border-radius:10px; padding:10px 12px; width:110px; box-shadow:var(--shadow-day); position:relative;">
+      <span class="tape" style="--tc:var(--st-mint); --tw:44px; --tilt:-4deg; top:-7px; right:6px; height:14px;"></span>
+      <div style="font:10px var(--fd); color:var(--ink-soft); letter-spacing:.15em; margin-bottom:3px;">工 作 区</div>
+      <div style="font:12px var(--fd); color:var(--ink);">站主私域</div>
+    </div>
+  </div>
+  <div class="deco-item" style="top: 45%; left: 20px; color: var(--st-cream); opacity: .45;">
+    <svg width="56" height="56" viewBox="0 0 56 56"><path d="M28 4 L31 22 L48 24 L33 32 L38 50 L28 40 L18 50 L23 32 L8 24 L25 22 Z" fill="currentColor"/></svg>
+  </div>
+  <div class="deco-item" style="bottom: 120px; left: 14px;">
+    <div class="stamp" style="width:50px; height:50px; font-size:16px;">
+      <span class="d" data-day>--</span>
+      <span class="m" data-month>---</span>
+    </div>
+  </div>
+</div>
+
+<div class="deco-edge right">
+  <div class="deco-item" style="top: 120px; right: 6px; transform: rotate(4deg);">
+    <div style="background:#FFFDF8; border:1.5px dashed var(--hairline); border-radius:10px; padding:10px 12px; width:110px; box-shadow:var(--shadow-day); position:relative;">
+      <span class="tape" style="--tc:var(--st-sky); --tw:48px; --tilt:5deg; top:-7px; left:10px; height:14px;"></span>
+      <div style="font:10px var(--fd); color:var(--ink-soft); letter-spacing:.15em; margin-bottom:3px;">密 度</div>
+      <div style="font:12px var(--fd); color:var(--ink);">信息优先</div>
+    </div>
+  </div>
+  <div class="deco-item" style="top: 50%; right: 16px; color: var(--st-sakura); opacity: .4;">
+    <svg width="70" height="18" viewBox="0 0 70 18"><path d="M0 9 Q8 2, 18 9 T36 9 T54 9 T70 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+  </div>
+  <div class="deco-item" style="bottom: 120px; right: 10px; transform: rotate(-5deg);">
+    <div style="background:var(--st-cream); border:1.5px solid var(--hairline); border-radius:50%; width:50px; height:50px; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-day);">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-linecap="round"><path d="M12 2 L14 10 L22 11 L15 16 L18 24 L12 19 L6 24 L9 16 L2 11 L10 10 Z"/></svg>
+    </div>
+  </div>
+</div>
+
+<header class="shell">
+  <div class="mark">
+    <span class="mark-deco">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L14 10 L22 11 L15 16 L18 24 L12 19 L6 24 L9 16 L2 11 L10 10 Z"/></svg>
+    </span>
+    纸间 · 工作区
+  </div>
+  <nav>
+    <a href="#" data-page="01" class="active">日记</a>
+    <a href="#" data-page="02">写作</a>
+    <a href="#" data-page="03">对话</a>
+    <a href="#" data-page="04">知识库</a>
+    <a href="#" data-page="05">问答</a>
+  </nav>
+</header>
+
+<main>
+
+<section class="screen active" data-screen-label="01 日记">
+  <div class="container">
+    <div class="page-header">
+      <h1>日记</h1>
+      <div class="actions">
+        <a class="btn" href="#" data-page="02"><i data-lucide="pen-line" style="width:14px;height:14px"></i>写日记</a>
+      </div>
+    </div>
+    <div class="diary-layout">
+      <div class="diary-list">
+        <article class="sticker diary-entry">
+          <div class="stamp"><span class="d">22</span><span class="m">JUL</span></div>
+          <div class="content">
+            <h3>晴 · 手账与代码</h3>
+            <p>[日记摘要占位 · 正文前 100 字，待接入 diary 接口]</p>
+            <div class="meta">
+              <span class="pill" data-tone="cream">晴朗</span>
+              <span style="font:12px var(--fd); color:var(--ink-soft);">2026 · 07 · 22</span>
+            </div>
+          </div>
+        </article>
+        <article class="sticker diary-entry pos">
+          <div class="stamp"><span class="d">19</span><span class="m">JUL</span></div>
+          <div class="content">
+            <h3>多云 · 整理知识库</h3>
+            <p>[日记摘要占位 · 正文前 100 字，待接入 diary 接口]</p>
+            <div class="meta">
+              <span class="pill" data-tone="sky">多云</span>
+              <span style="font:12px var(--fd); color:var(--ink-soft);">2026 · 07 · 19</span>
+            </div>
+          </div>
+        </article>
+        <article class="sticker diary-entry">
+          <div class="stamp"><span class="d">15</span><span class="m">JUL</span></div>
+          <div class="content">
+            <h3>小雨 · 读《设计心理学》</h3>
+            <p>[日记摘要占位 · 正文前 100 字，待接入 diary 接口]</p>
+            <div class="meta">
+              <span class="pill" data-tone="mint">小雨</span>
+              <span style="font:12px var(--fd); color:var(--ink-soft);">2026 · 07 · 15</span>
+            </div>
+          </div>
+        </article>
+        <article class="sticker diary-entry pos">
+          <div class="stamp"><span class="d">10</span><span class="m">JUL</span></div>
+          <div class="content">
+            <h3>晴 · 周末散步</h3>
+            <p>[日记摘要占位 · 正文前 100 字，待接入 diary 接口]</p>
+            <div class="meta">
+              <span class="pill" data-tone="cream">晴朗</span>
+              <span style="font:12px var(--fd); color:var(--ink-soft);">2026 · 07 · 10</span>
+            </div>
+          </div>
+        </article>
+      </div>
+      <div class="calendar">
+        <div class="cal-header">
+          <button>&lt;</button>
+          <span>2026 · 07</span>
+          <button>&gt;</button>
+        </div>
+        <div class="cal-grid">
+          <div class="day-name">日</div><div class="day-name">一</div><div class="day-name">二</div><div class="day-name">三</div><div class="day-name">四</div><div class="day-name">五</div><div class="day-name">六</div>
+          <div class="day"></div><div class="day"></div><div class="day"></div><div class="day">1</div><div class="day">2</div><div class="day has-diary">3</div><div class="day">4</div>
+          <div class="day">5</div><div class="day">6</div><div class="day has-diary">7</div><div class="day">8</div><div class="day">9</div><div class="day has-diary">10</div><div class="day">11</div>
+          <div class="day">12</div><div class="day">13</div><div class="day">14</div><div class="day has-diary">15</div><div class="day">16</div><div class="day">17</div><div class="day">18</div>
+          <div class="day">19</div><div class="day">20</div><div class="day">21</div><div class="day has-diary today">22</div><div class="day">23</div><div class="day">24</div><div class="day">25</div>
+          <div class="day">26</div><div class="day">27</div><div class="day">28</div><div class="day">29</div><div class="day">30</div><div class="day">31</div><div class="day"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" data-screen-label="02 写作">
+  <div class="container">
+    <div class="write-layout">
+      <div class="stamp-wrap">
+        <div class="stamp" style="display:inline-flex;"><span class="d" data-day>--</span><span class="m" data-month>---</span></div>
+      </div>
+      <div class="field">
+        <label>标题</label>
+        <input class="form-input" type="text" placeholder="[diaryEntry.title]">
+      </div>
+      <div class="field">
+        <label>心情</label>
+        <div class="mood-selector">
+          <span class="pill active" data-tone="cream">晴朗</span>
+          <span class="pill" data-tone="sky">多云</span>
+          <span class="pill" data-tone="mint">小雨</span>
+          <span class="pill" data-tone="sakura">大风</span>
+          <span class="pill" data-tone="outline">雷暴</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>正文</label>
+        <textarea class="form-textarea" placeholder="[diaryEntry.content · Markdown 支持]"></textarea>
+      </div>
+      <div class="write-footer">
+        <div class="save-indicator"><span class="dot"></span>已自动保存</div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn ghost sm"><i data-lucide="sparkles" style="width:12px;height:12px"></i>AI 辅助</button>
+          <button class="btn sm"><i data-lucide="save" style="width:12px;height:12px"></i>保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" data-screen-label="03 对话">
+  <div class="container" style="padding:32px 20px;">
+    <div class="chat-layout">
+      <div class="conv-sidebar">
+        <button class="btn sm" style="width:100%; justify-content:center;"><i data-lucide="plus" style="width:12px;height:12px"></i>新对话</button>
+        <div class="conv-list">
+          <div class="conv-item active">
+            <span class="conv-title">手账与代码联想</span>
+            <div class="conv-time">今天 14:32</div>
+          </div>
+          <div class="conv-item">
+            <span class="conv-title">Vue 3 最佳实践</span>
+            <div class="conv-time">昨天 09:15</div>
+          </div>
+          <div class="conv-item">
+            <span class="conv-title">知识库整理方案</span>
+            <div class="conv-time">07 · 20</div>
+          </div>
+          <div class="conv-item">
+            <span class="conv-title">日记 API 设计</span>
+            <div class="conv-time">07 · 18</div>
+          </div>
+        </div>
+      </div>
+      <div class="chat-main">
+        <div class="chat-header">
+          <i data-lucide="message-circle" style="width:16px;height:16px; color:var(--accent);"></i>
+          手账与代码联想
+        </div>
+        <div class="chat-messages">
+          <div class="message user">
+            <div class="avatar">我</div>
+            <div class="bubble">你好，今天有什么计划？</div>
+          </div>
+          <div class="message">
+            <div class="avatar">AI</div>
+            <div class="bubble">你好！今天可以写一篇随笔，或者整理知识库文档。需要帮忙吗？</div>
+          </div>
+          <div class="message user">
+            <div class="avatar">我</div>
+            <div class="bubble">帮我整理一下知识库</div>
+          </div>
+          <div class="message">
+            <div class="avatar">AI</div>
+            <div class="bubble">好的，正在分析你的知识库结构<span class="streaming"><span></span><span></span><span></span></span></div>
+          </div>
+        </div>
+        <div class="chat-input">
+          <button class="btn ghost sm"><i data-lucide="paperclip" style="width:12px;height:12px"></i></button>
+          <input type="text" placeholder="[sseChatStream 接入点]">
+          <button class="btn sm"><i data-lucide="send" style="width:12px;height:12px"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" data-screen-label="04 知识库">
+  <div class="container">
+    <div class="page-header">
+      <h1>知识库</h1>
+      <div class="actions">
+        <button class="btn"><i data-lucide="plus" style="width:14px;height:14px"></i>新建知识库</button>
+      </div>
+    </div>
+    <div class="kb-grid">
+      <div class="sticker kb-card">
+        <h3>前端学习笔记</h3>
+        <div class="kb-stats">
+          <span><i data-lucide="file-text" style="width:12px;height:12px; display:inline; vertical-align:-1px;"></i>12 文档</span>
+          <span><i data-lucide="clock" style="width:12px;height:12px; display:inline; vertical-align:-1px;"></i>07 · 22 更新</span>
+        </div>
+        <div class="kb-badges">
+          <span class="pill" data-tone="mint">已就绪</span>
+          <span class="pill" data-tone="outline">私有</span>
+        </div>
+      </div>
+      <div class="sticker kb-card pos">
+        <h3>Vue 3 最佳实践</h3>
+        <div class="kb-stats">
+          <span><i data-lucide="file-text" style="width:12px;height:12px; display:inline; vertical-align:-1px;"></i>8 文档</span>
+          <span><i data-lucide="clock" style="width:12px;height:12px; display:inline; vertical-align:-1px;"></i>07 · 20 更新</span>
+        </div>
+        <div class="kb-badges">
+          <span class="pill" data-tone="mint">已就绪</span>
+          <span class="pill" data-tone="sky">公开</span>
+        </div>
+      </div>
+      <div class="sticker kb-card">
+        <h3>TypeScript 类型体操</h3>
+        <div class="kb-stats">
+          <span><i data-lucide="file-text" style="width:12px;height:12px; display:inline; vertical-align:-1px;"></i>5 文档</span>
+          <span><i data-lucide="loader" style="width:12px;height:12px; display:inline; vertical-align:-1px;"></i>解析中</span>
+        </div>
+        <div class="kb-badges">
+          <span class="pill" data-tone="cream">解析中</span>
+          <span class="pill" data-tone="outline">私有</span>
+        </div>
+      </div>
+      <div class="sticker kb-card pos">
+        <h3>项目复盘</h3>
+        <div class="kb-stats">
+          <span><i data-lucide="file-text" style="width:12px;height:12px; display:inline; vertical-align:-1px;"></i>3 文档</span>
+          <span><i data-lucide="clock" style="width:12px;height:12px; display:inline; vertical-align:-1px;"></i>07 · 15 更新</span>
+        </div>
+        <div class="kb-badges">
+          <span class="pill" data-tone="mint">已就绪</span>
+          <span class="pill" data-tone="outline">私有</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" data-screen-label="05 问答">
+  <div class="container" style="padding:32px 20px;">
+    <div class="rag-layout">
+      <div class="rag-main">
+        <div class="rag-header">
+          <i data-lucide="brain" style="width:16px;height:16px; color:var(--accent);"></i>
+          前端学习笔记 · 问答
+        </div>
+        <div class="rag-messages">
+          <div class="message user">
+            <div class="avatar">我</div>
+            <div class="bubble">Vue 3 的 Composition API 有什么优势？</div>
+          </div>
+          <div class="message">
+            <div class="avatar">AI</div>
+            <div class="bubble">
+              根据知识库文档，Composition API 的优势包括：<br>
+              1. 更好的逻辑组织和复用<span class="source-badge">vue3-best-practices.md</span><br>
+              2. 更灵活的代码组织方式<span class="source-badge">composition-patterns.md</span><br>
+              3. 更好的 TypeScript 支持
+            </div>
+          </div>
+          <div class="message user">
+            <div class="avatar">我</div>
+            <div class="bubble">能举个具体例子吗？</div>
+          </div>
+          <div class="message">
+            <div class="avatar">AI</div>
+            <div class="bubble">当然，看这个示例<span class="streaming"><span></span><span></span><span></span></span></div>
+          </div>
+        </div>
+        <div class="rag-input">
+          <input type="text" placeholder="[knowledgeChat 接入点]">
+          <button class="btn sm"><i data-lucide="send" style="width:12px;height:12px"></i></button>
+        </div>
+      </div>
+      <div class="rag-sidebar">
+        <h4>知识库信息</h4>
+        <div class="rag-info">
+          <div class="stat"><span>名称</span><span>前端学习笔记</span></div>
+          <div class="stat"><span>文档数</span><span>12</span></div>
+          <div class="stat"><span>状态</span><span style="color:var(--st-mint);">已就绪</span></div>
+          <div class="stat"><span>可见性</span><span>私有</span></div>
+          <div class="stat"><span>最后更新</span><span>07 · 22</span></div>
+        </div>
+        <div style="margin-top:20px;">
+          <button class="btn ghost sm" style="width:100%; justify-content:center;"><i data-lucide="upload" style="width:12px;height:12px"></i>上传文档</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <svg class="wave" width="100" height="14" viewBox="0 0 100 14"><path d="M0 7 Q12 1, 25 7 T50 7 T75 7 T100 7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+  纸间 · 工作区 · 手账贴纸系 v2
+</footer>
+
+<nav class="pager">
+  <div class="pager-title">WORK</div>
+  <button data-page="01" class="active">01 · 日记列表</button>
+  <button data-page="02">02 · 日记写作</button>
+  <button data-page="03">03 · AI 对话</button>
+  <button data-page="04">04 · 知识库</button>
+  <button data-page="05">05 · 知识问答</button>
+</nav>
+
+<aside class="tweaks">
+  <button class="tweaks-toggle" id="tweaks-toggle">Tweaks</button>
+  <div class="tweaks-panel" id="tweaks-panel">
+    <h4>TWEAKS</h4>
+    <div class="tweak-item">
+      <label>贴纸旋转 <span class="v" id="v-rot">2deg</span></label>
+      <input type="range" min="0" max="6" step="0.5" value="2" id="t-rot">
+    </div>
+    <div class="tweak-item">
+      <label>胶带透明度 <span class="v" id="v-tape">0.82</span></label>
+      <input type="range" min="0.4" max="1" step="0.02" value="0.82" id="t-tape">
+    </div>
+    <div class="tweak-item">
+      <label>背景点阵 <span class="v" id="v-dot">24px</span></label>
+      <input type="range" min="12" max="40" step="1" value="24" id="t-dot">
+    </div>
+  </div>
+</aside>
+
+<script>
+(function(){
+  var MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  var today = new Date();
+  var dd = String(today.getDate()).padStart(2, '0');
+  var mm = MONTHS[today.getMonth()];
+  document.querySelectorAll('[data-day]').forEach(function(el){ el.textContent = dd; });
+  document.querySelectorAll('[data-month]').forEach(function(el){ el.textContent = mm; });
+
+  var screens = document.querySelectorAll('.screen');
+  var navLinks = document.querySelectorAll('[data-page]');
+  function go(pageId) {
+    screens.forEach(function(s){
+      var isActive = s.getAttribute('data-screen-label').indexOf(pageId) === 0;
+      s.classList.toggle('active', isActive);
+      if (isActive) {
+        s.querySelectorAll('.sticker').forEach(function(st, i){
+          st.style.animation = 'none';
+          st.offsetHeight;
+          st.style.animation = '';
+          st.style.animationDelay = (i * 0.05) + 's';
+        });
+      }
+    });
+    document.querySelectorAll('.pager button').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-page') === pageId);
+    });
+    document.querySelectorAll('.shell nav a').forEach(function(a){
+      a.classList.toggle('active', a.getAttribute('data-page') === pageId);
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    lucide.createIcons();
+  }
+  navLinks.forEach(function(el){
+    el.addEventListener('click', function(e){
+      var target = el.getAttribute('data-page');
+      if (!target) return;
+      e.preventDefault();
+      go(target);
+    });
+  });
+
+  document.getElementById('tweaks-toggle').addEventListener('click', function(){
+    document.getElementById('tweaks-panel').classList.toggle('open');
+  });
+
+  document.getElementById('t-rot').addEventListener('input', function(e){
+    var v = e.target.value + 'deg';
+    document.documentElement.style.setProperty('--sticker-rot', v);
+    document.getElementById('v-rot').textContent = v;
+  });
+  document.getElementById('t-tape').addEventListener('input', function(e){
+    var v = parseFloat(e.target.value).toFixed(2);
+    document.documentElement.style.setProperty('--tape-alpha', v);
+    document.getElementById('v-tape').textContent = v;
+  });
+  document.getElementById('t-dot').addEventListener('input', function(e){
+    var v = e.target.value + 'px';
+    document.documentElement.style.setProperty('--dot-size', v);
+    document.getElementById('v-dot').textContent = v;
+  });
+
+  document.querySelectorAll('.mood-selector .pill').forEach(function(pill){
+    pill.addEventListener('click', function(){
+      document.querySelectorAll('.mood-selector .pill').forEach(function(p){ p.classList.remove('active'); });
+      pill.classList.add('active');
+    });
+  });
+
+  document.querySelectorAll('.conv-item').forEach(function(item){
+    item.addEventListener('click', function(){
+      document.querySelectorAll('.conv-item').forEach(function(i){ i.classList.remove('active'); });
+      item.classList.add('active');
+    });
+  });
+
+  lucide.createIcons();
+})();
+</script>
+</body>
+</html>

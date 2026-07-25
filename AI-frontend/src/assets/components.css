@@ -1,0 +1,235 @@
+.paper-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(69, 64, 58, 0.2) 1px, transparent 1px);
+  background-size: var(--dot-size) var(--dot-size);
+  opacity: 0.28;
+}
+
+.paper-grain {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.sticker {
+  background: #FFFDF8;
+  border: 2px solid var(--hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-day);
+  position: relative;
+  transform: rotate(var(--rot, calc(var(--sticker-rot, 2deg) * -1)));
+  transition:
+    transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 320ms ease-out;
+}
+
+.sticker:hover {
+  transform: rotate(0deg) translateY(-3px) scale(1.01);
+  box-shadow: 0 2px 0 rgba(69, 64, 58, 0.08), 0 22px 40px -18px rgba(120, 95, 50, 0.28);
+}
+
+.tape {
+  position: absolute;
+  width: var(--tw, 90px);
+  height: 22px;
+  background: var(--tc, var(--st-sakura));
+  opacity: var(--tape-alpha, 0.82);
+  border-radius: 2px;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    rgba(255, 255, 255, 0.35) 4px,
+    rgba(255, 255, 255, 0.35) 8px
+  );
+  transform: rotate(var(--tilt, 3deg));
+  box-shadow: 0 1px 2px rgba(120, 95, 50, 0.15);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.stitch {
+  border: 1.5px dashed var(--hairline);
+  border-radius: 10px;
+}
+
+.stamp {
+  font: 22px / 1 var(--fd);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 68px;
+  height: 68px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  color: var(--accent);
+  transform: rotate(-8deg);
+  position: relative;
+}
+
+.stamp::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border: 1.5px dashed var(--accent);
+  border-radius: 50%;
+  opacity: 0.4;
+}
+
+.stamp .d {
+  font-size: 24px;
+}
+
+.stamp .m {
+  font-size: 9px;
+  letter-spacing: 2px;
+  margin-top: 3px;
+}
+
+.pill {
+  display: inline-flex;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font: 13px var(--fd);
+  background: var(--st-sky);
+  color: var(--ink);
+  border: 1.5px solid var(--hairline);
+  letter-spacing: 0.05em;
+  transition: all 0.2s;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.pill:hover {
+  transform: translateY(-1px) rotate(-1deg);
+}
+
+.pill[data-tone='sakura'] {
+  background: var(--st-sakura);
+}
+.pill[data-tone='mint'] {
+  background: var(--st-mint);
+}
+.pill[data-tone='cream'] {
+  background: var(--st-cream);
+}
+.pill[data-tone='sky'] {
+  background: var(--st-sky);
+}
+.pill[data-tone='outline'] {
+  background: transparent;
+}
+.pill[data-tone='danger'] {
+  background: #F5C6C6;
+}
+
+.btn {
+  background: var(--accent);
+  color: #FFFDF8;
+  border: none;
+  padding: 11px 24px;
+  border-radius: 999px;
+  font: 15px var(--fd);
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  box-shadow:
+    0 2px 0 rgba(69, 64, 58, 0.06),
+    0 10px 20px -12px rgba(61, 139, 194, 0.55);
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 0 rgba(69, 64, 58, 0.06),
+    0 16px 28px -12px rgba(61, 139, 194, 0.6);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.btn.ghost {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: none;
+  border: 1.5px dashed var(--hairline);
+}
+
+.btn.ghost:hover {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: none;
+}
+
+.placeholder {
+  border: 1.5px dashed var(--hairline);
+  background: var(--paper-surface);
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 13px var(--fd);
+  border-radius: 10px;
+  letter-spacing: 0.05em;
+}
+
+.container {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 64px 32px;
+}
+
+.section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin: 48px 0 24px;
+}
+
+.section-title h2 {
+  margin: 0;
+}
+
+.section-title .count {
+  font: 14px var(--fd);
+  color: var(--ink-soft);
+}
+
+@keyframes fadeRise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes stickerIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) rotate(var(--rot, 0deg));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(var(--rot, 0deg));
+  }
+}

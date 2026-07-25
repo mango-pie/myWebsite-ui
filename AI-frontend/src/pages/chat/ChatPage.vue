@@ -1,10 +1,7 @@
 <script setup lang="ts">
-// @ts-nocheck
-// Large refactored file for Ask/Agent dual mode. TS/Volar binding errors here are often IDE cache after big edits.
-// Runtime is unaffected. Restart TS server in Cursor (Ctrl+Shift+P) to re-check if desired.
 defineOptions({ name: 'ChatPage' })
 
-import { ref, onMounted, onUnmounted, onActivated, onDeactivated, nextTick, h, watch, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import {
@@ -16,21 +13,13 @@ import {
   resolveDefault,
 } from '@/api/chatConversationController'
 import { getConfigs, getAgentConfig } from '@/api/chatController'
-import { config as getTtsConfig } from '@/api/ttsController'
-import { uploadChatAttachment } from '@/integrations/chatAttachmentController'
 import {
   Send,
   ArrowLeft,
-  Volume2,
-  Square,
   Trash2,
   MessageSquarePlus,
-  ListChecks,
   X,
-  CheckCheck,
-  Eraser,
   History,
-  ImagePlus,
 } from 'lucide-vue-next'
 import { chatSseLog } from '@/utils/sseChatStream'
 import {
@@ -40,7 +29,6 @@ import {
   nextChatClientId,
   type ChatMessage,
 } from '@/composables/useChatStreamStore'
-import AgentToolCard from '@/components/chat/AgentToolCard.vue'
 import {
   getChatConfigStorageKey,
   saveLastChatConversationId,
@@ -87,22 +75,7 @@ const convIdNum = computed(() => Number(conversationId.value))
 const conversationInfo = ref<API.ChatConversationVO | null>(null)
 const conversations = ref<API.ChatConversationVO[]>([])
 const loadingConversations = ref(false)
-const deletingConversationId = ref<number | null>(null)
-const multiSelectMode = ref(false)
-const selectedConversationIds = ref<number[]>([])
-const batchDeleting = ref(false)
-const roles = ref<API.ChatConfigVO[]>([])
-const loadingRoles = ref(false)
-const switchingRole = ref(false)
 
-interface AttachedImage {
-  previewUrl: string
-  attachmentId: string
-}
-
-const MAX_ATTACHED_IMAGES = 3
-
-// 会话流状态由全局 store 持有（按 conversationId），切页/切会话都不中断
 const session = computed(() => getChatSession(conversationId.value))
 const messages = computed<ChatMessage[]>({
   get: () => session.value.messages.value,
@@ -115,1277 +88,597 @@ const isStreaming = computed(() => session.value.isStreaming.value)
 const messagesEndRef = ref<HTMLElement | null>(null)
 const inputValue = ref('')
 
-// Derived
-const agentHint = computed(() => {
-  if (agentConfig.value?.agentHint) return agentConfig.value.agentHint
-  return 'Agent 模式可创建待办、博客草稿、保存日记等；不会自动发布或删除。'
-})
-const isAgentMode = computed(() => chatMode.value === 'agent')
-
-const loadingHistory = ref(false)
-const hasMoreHistory = computed<boolean>({
-  get: () => session.value.hasMoreHistory.value,
-  set: (v) => {
-    session.value.hasMoreHistory.value = v
-  },
-})
-const historyPageNum = computed<number>({
-  get: () => session.value.historyPageNum.value,
-  set: (v) => {
-    session.value.historyPageNum.value = v
-  },
-})
-const totalHistoryPages = computed<number>({
-  get: () => session.value.totalHistoryPages.value,
-  set: (v) => {
-    session.value.totalHistoryPages.value = v
-  },
-})
-
-// Ask / Agent dual mode (persisted)
 const chatMode = ref<'ask' | 'agent'>(
   (typeof localStorage !== 'undefined' ? (localStorage.getItem('chatMode') as 'ask' | 'agent' | null) : null) || 'ask',
 )
-const agentConfig = ref<API.AgentConfigVO | null>(null)
-const agentConfigLoaded = ref(false)
+
 const HISTORY_PAGE_SIZE = 10
 
-/** 当前会话绑定的 AstrBot 预设 configId */
-const currentConfigId = ref<string>('')
-
-// Image attach state (AstrBot attachmentId + local blob preview)
-const attaching = ref(false)
-const attachedImages = ref<AttachedImage[]>([])
-const fileInputRef = ref<HTMLInputElement | null>(null)
-
-// TTS state (module-scoped guard for one-at-a-time playback)
-let ttsInitDone = false
-let currentTtsAudio: HTMLAudioElement | null = null
-let currentTtsUrl: string | null = null
-const ttsSynthesizing = ref<string | null>(null)
-/** 站点设置 tts.enabled；默认 true，关闭后隐藏朗读入口 */
-const ttsEnabled = ref(true)
-
-const nextClientId = nextChatClientId
-
-function getMsgKey(msg: ChatMessage, idx: number): string {
-  return (msg.id || msg._clientId || String(idx)) as string
-}
-
-function triggerAttach() {
-  fileInputRef.value?.click()
-}
-
-function revokeAttachedPreview(url: string) {
-  if (url.startsWith('blob:')) {
-    URL.revokeObjectURL(url)
-  }
-}
-
-function clearAttachedPreviews() {
-  for (const item of attachedImages.value) {
-    revokeAttachedPreview(item.previewUrl)
-  }
-  attachedImages.value = []
-}
-
-async function handleAttachFile(e: Event) {
-  const target = e.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file) return
-  if (!file.type.startsWith('image/')) {
-    message.error('仅支持图片附件')
-    target.value = ''
-    return
-  }
-  if (file.size > 5 * 1024 * 1024) {
-    message.error('图片大小不超过 5MB')
-    target.value = ''
-    return
-  }
-  if (attachedImages.value.length >= MAX_ATTACHED_IMAGES) {
-    message.error(`单条消息最多 ${MAX_ATTACHED_IMAGES} 张图片`)
-    target.value = ''
-    return
-  }
-
-  const previewUrl = URL.createObjectURL(file)
-  attaching.value = true
-  try {
-    const data = await uploadChatAttachment(file)
-    const attachmentId = data.attachmentId?.trim()
-    if (!attachmentId) {
-      revokeAttachedPreview(previewUrl)
-      message.error('图片上传失败：未返回 attachmentId')
-      return
-    }
-    attachedImages.value.push({ previewUrl, attachmentId })
-  } catch (err: any) {
-    revokeAttachedPreview(previewUrl)
-    message.error(err?.message || '图片上传失败')
-  } finally {
-    attaching.value = false
-    target.value = ''
-  }
-}
-
-function removeAttached(idx: number) {
-  const item = attachedImages.value[idx]
-  if (item) {
-    revokeAttachedPreview(item.previewUrl)
-    attachedImages.value.splice(idx, 1)
-  }
-}
-
-const stopStreaming = () => {
-  stopChatStream(conversationId.value)
-}
-
-async function loadTtsEnabled() {
-  try {
-    const res = await getTtsConfig()
-    if (res.data.code === 0 && res.data.data && typeof res.data.data.enabled === 'boolean') {
-      ttsEnabled.value = res.data.data.enabled
-    }
-  } catch {
-    // keep default true if config unavailable
-  }
-}
-
-/** Fire-and-forget preload of reference audio using the backend proxy (current config) */
-function ensureTtsInit() {
-  if (!ttsEnabled.value || ttsInitDone) return
-  ttsInitDone = true
-  const base = import.meta.env.VITE_API_BASE_URL
-  fetch(`${base}/tts/ref/init`, { method: 'POST', credentials: 'include' }).catch(() => {
-    // ignore preload errors; actual synthesize will surface issues
-  })
-}
-
-/** Play TTS for a finished AI message using exact user-specified fetch calls.
- *  - stops any prior TTS clip (pause + revoke)
- *  - shows per-message loading via ttsSynthesizing key
- *  - revokes blob URL on end/error
- */
-async function playAiMessage(msg: ChatMessage, idx: number) {
-  if (!ttsEnabled.value) {
-    message.warning('TTS 已在设置中关闭')
-    return
-  }
-  const content = (msg.content || '').trim()
-  if (!content) return
-  const key = getMsgKey(msg, idx)
-  if (ttsSynthesizing.value === key) return
-
-  // one-at-a-time guard: stop previous audio
-  if (currentTtsAudio) {
-    currentTtsAudio.pause()
-    currentTtsAudio = null
-  }
-  if (currentTtsUrl) {
-    URL.revokeObjectURL(currentTtsUrl)
-    currentTtsUrl = null
-  }
-
-  ttsSynthesizing.value = key
-
-  try {
-    const base = import.meta.env.VITE_API_BASE_URL
-
-    // exact call pattern provided by user for init (already done on mount)
-    // synthesize:
-    const res = await fetch(`${base}/tts/synthesize`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: content, speedFactor: 0.95 })
-    })
-
-    if (!res.ok) {
-      let errMsg = '语音合成失败'
-      try {
-        const errJson = await res.json()
-        if (errJson && (errJson.message || errJson.msg)) {
-          errMsg = errJson.message || errJson.msg
-        }
-      } catch {
-        // non-json error body
-      }
-      message.error(errMsg)
-      return
-    }
-
-    const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    currentTtsUrl = url
-
-    const audio = new Audio(url)
-    currentTtsAudio = audio
-
-    audio.onended = () => {
-      if (currentTtsUrl === url) {
-        URL.revokeObjectURL(url)
-        currentTtsUrl = null
-        currentTtsAudio = null
-      }
-    }
-    audio.onerror = () => {
-      message.error('播放失败')
-      if (currentTtsUrl === url) {
-        URL.revokeObjectURL(url)
-        currentTtsUrl = null
-        currentTtsAudio = null
-      }
-    }
-
-    await audio.play()
-  } catch {
-    message.error('语音合成失败，请重试')
-  } finally {
-    ttsSynthesizing.value = null
-  }
-}
-
-const scrollToBottom = async (instant = false) => {
-  await nextTick()
-  messagesEndRef.value?.scrollIntoView({
-    behavior: instant ? 'auto' : 'smooth',
-    block: 'end',
-  })
-}
-
-/** 打字机期间直接滚动，不走 nextTick，避免多段时堆积卡顿 */
-function scrollToBottomFast() {
-  messagesEndRef.value?.scrollIntoView({ behavior: 'auto', block: 'end' })
-}
-
-const aiMarkdownCache = new Map<string, string>()
-
-function getAiMarkdownHtml(msg: ChatMessage): string {
-  const content = msg.content ?? ''
-  if (msg._renderedHtml !== undefined && msg._renderedHtmlContent === content) {
-    return msg._renderedHtml
-  }
-  const key = `${msg._clientId || msg.id || ''}:${content}`
-  const cached = aiMarkdownCache.get(key)
-  if (cached) {
-    msg._renderedHtml = cached
-    msg._renderedHtmlContent = content
-    return cached
-  }
-  const html = renderMarkdown(content)
-  aiMarkdownCache.set(key, html)
-  msg._renderedHtml = html
-  msg._renderedHtmlContent = content
-  return html
-}
-
-const scrollToTop = async () => {
-  await nextTick()
-  const messagesContainer = document.querySelector('.chat-messages')
-  messagesContainer?.scrollTo({ top: 0, behavior: 'smooth' })
-}
-
-function renderMarkdown(text: string): string {
-  return marked.parse(text) as string
-}
-
-/** Drop consecutive AI rows with identical content (old bug saved the same reply twice). */
-function dedupConsecutiveAiMessages(list: ChatMessage[]): ChatMessage[] {
-  const out: ChatMessage[] = []
-  for (const m of list) {
-    const prev = out[out.length - 1]
-    if (
-      prev?.role === 'ai'
-      && m.role === 'ai'
-      && (prev.content || '').trim() === (m.content || '').trim()
-    ) {
-      chatSseLog('deduped consecutive duplicate AI history message', {
-        prevId: prev.id,
-        currId: m.id,
-      })
-      continue
-    }
-    out.push(m)
-  }
-  return out
-}
-
-// --- Ask / Agent mode helpers ---
-async function fetchAgentConfig() {
-  if (agentConfigLoaded.value) return
-  try {
-    const res = await getAgentConfig()
-    if (res.data.code === 0 && res.data.data) {
-      agentConfig.value = res.data.data
-    }
-  } catch (e) {
-    // non-fatal; Agent option may be hidden or default to ask
-    chatSseLog('fetchAgentConfig failed (non-fatal)', e)
-  } finally {
-    agentConfigLoaded.value = true
-  }
-}
-
-function setChatMode(m: 'ask' | 'agent') {
-  if (isStreaming.value) return
-  chatMode.value = m
-  try {
-    localStorage.setItem('chatMode', m)
-  } catch {}
-}
-
-// --- End mode helpers ---
-
-function mapHistoryMessage(msg: API.ChatMessageVO): ChatMessage {
-  return {
-    id: msg.id?.toString(),
-    role: msg.messageType === 'user' ? 'user' : 'ai',
-    content: msg.content || '',
-    createTime: msg.createTime,
-  }
-}
-
-const fetchConversationInfo = async () => {
-  const id = convIdNum.value
-  if (!id) return
-  const res = await getConversation({ id })
-  if (res.data.code === 0 && res.data.data) {
-    conversationInfo.value = res.data.data
-    if (res.data.data.configId) {
-      currentConfigId.value = res.data.data.configId
-    }
-  }
-
-  const queryCfg = (route.query.configId as string | undefined) || ''
-  if (queryCfg) {
-    currentConfigId.value = queryCfg
-    localStorage.setItem(getChatConfigStorageKey(queryCfg), queryCfg)
-  } else if (currentConfigId.value) {
-    localStorage.setItem(getChatConfigStorageKey(currentConfigId.value), currentConfigId.value)
-  }
-}
-
-const fetchConversations = async () => {
-  if (!currentConfigId.value) return
+async function loadConversations() {
   loadingConversations.value = true
   try {
-    const res = await listConversations({ configId: currentConfigId.value })
-    if (res.data.code === 0 && res.data.data) {
+    const res = await listConversations({})
+    if (res.data?.code === 0 && res.data?.data) {
       conversations.value = res.data.data
     }
+  } catch (e) {
+    chatSseLog('loadConversations error', e)
   } finally {
     loadingConversations.value = false
   }
 }
 
-const loadHistoryPage = async (pageNum: number, prepend: boolean) => {
-  const id = convIdNum.value
-  if (!id) return
+async function createNewConversation() {
+  try {
+    const res = await createConversation({ title: '新对话' })
+    if (res.data?.code === 0 && res.data?.data) {
+      const newId = String(res.data.data)
+      saveLastChatConversationId(newId)
+      router.push(`/chat/${newId}`)
+      message.success('已创建新对话')
+    }
+  } catch (e) {
+    message.error('创建对话失败')
+  }
+}
 
-  const res = await listMessages({
-    id,
-    pageNum,
-    pageSize: HISTORY_PAGE_SIZE,
+async function deleteConversationById(id: number) {
+  Modal.confirm({
+    title: '确认删除',
+    content: '删除后无法恢复，确定要删除吗？',
+    okText: '删除',
+    okType: 'danger',
+    cancelText: '取消',
+    async onOk() {
+      try {
+        const res = await deleteConversation({ id })
+        if (res.data?.code === 0) {
+          message.success('已删除')
+          await loadConversations()
+          if (convIdNum.value === id) {
+            router.push('/chat')
+          }
+        }
+      } catch (e) {
+        message.error('删除失败')
+      }
+    },
   })
+}
 
-  if (res.data.code !== 0 || !res.data.data) return
+async function loadConversationInfo() {
+  if (!convIdNum.value) return
+  try {
+    const res = await getConversation({ id: convIdNum.value })
+    if (res.data?.code === 0 && res.data?.data) {
+      conversationInfo.value = res.data.data
+    }
+  } catch (e) {
+    chatSseLog('loadConversationInfo error', e)
+  }
+}
 
-  const records = res.data.data.records || []
-  if (records.length === 0) {
-    if (pageNum <= 1) hasMoreHistory.value = false
+async function loadMessages() {
+  if (!convIdNum.value) return
+  try {
+    const res = await listMessages({
+      id: convIdNum.value,
+      pageNum: 1,
+      pageSize: 50,
+    })
+    if (res.data?.code === 0 && res.data?.data) {
+      const historyMsgs = res.data.data.records || []
+      messages.value = historyMsgs.map((m: API.ChatMessageVO) => ({
+        role: m.messageType === 'user' ? 'user' : 'ai',
+        content: m.content || '',
+        id: String(m.id),
+        createTime: m.createTime,
+      }))
+    }
+  } catch (e) {
+    chatSseLog('loadMessages error', e)
+  }
+}
+
+async function sendMessage() {
+  if (!inputValue.value.trim() || isStreaming.value) return
+  if (!convIdNum.value) {
+    message.warning('请先选择或创建对话')
     return
   }
-
-  let mapped = records.map(mapHistoryMessage)
-  mapped = dedupConsecutiveAiMessages(mapped)
-
-  if (prepend) {
-    messages.value = [...mapped, ...messages.value]
-    await scrollToTop()
-  } else {
-    messages.value = mapped
-    await scrollToBottom()
-  }
-
-  // Extra safety: dedup across the whole current list (catches junction between
-  // a freshly loaded older page and the messages we already had).
-  messages.value = dedupConsecutiveAiMessages(messages.value)
-
-  hasMoreHistory.value = pageNum > 1
-}
-
-const fetchChatHistory = async (isLoadMore = false) => {
-  const id = convIdNum.value
-  if (loadingHistory.value || !id) return
-
-  loadingHistory.value = true
-  try {
-    if (isLoadMore) {
-      if (historyPageNum.value <= 1) {
-        hasMoreHistory.value = false
-        return
-      }
-      historyPageNum.value -= 1
-      await loadHistoryPage(historyPageNum.value, true)
-    } else {
-      const probe = await listMessages({
-        id,
-        pageNum: 1,
-        pageSize: HISTORY_PAGE_SIZE,
-      })
-      if (probe.data.code !== 0 || !probe.data.data) return
-
-      const total = probe.data.data.totalPage ?? 1
-      totalHistoryPages.value = Math.max(1, total)
-      historyPageNum.value = totalHistoryPages.value
-      await loadHistoryPage(historyPageNum.value, false)
-    }
-  } finally {
-    loadingHistory.value = false
-  }
-}
-
-const loadMoreHistory = async () => {
-  if (hasMoreHistory.value) {
-    await fetchChatHistory(true)
-  }
-}
-
-const sendMessage = async (userMsg: string) => {
-  const id = convIdNum.value
-  if (isStreaming.value || !id) return
-  const trimmed = (userMsg || '').trim()
-  if (!trimmed && attachedImages.value.length === 0) return
-
-  const imagesToSend = [...attachedImages.value]
-  const previewImages = imagesToSend.map((item) => item.previewUrl)
-  const displayContent = trimmed || (imagesToSend.length === 1 ? '[图片]' : `[图片]×${imagesToSend.length}`)
-  attachedImages.value = []
 
   const userMessage: ChatMessage = {
     role: 'user',
-    content: displayContent,
-    previewImages: previewImages.length ? previewImages : undefined,
-    _clientId: nextClientId('u'),
+    content: inputValue.value,
+    _clientId: nextChatClientId('u'),
   }
+
   inputValue.value = ''
 
-  const requestBody: Record<string, unknown> = { conversationId: id, mode: chatMode.value }
-  if (imagesToSend.length > 0) {
-    const segments: API.ChatMessageSegment[] = []
-    if (trimmed) {
-      segments.push({ type: 'plain', text: trimmed })
-    }
-    for (const img of imagesToSend) {
-      segments.push({ type: 'image', attachmentId: img.attachmentId })
-    }
-    requestBody.segments = segments
-  } else {
-    requestBody.message = trimmed
-  }
-
-  await scrollToBottom()
-  // 流式过程完全交给全局 store：即便本组件被切走/卸载，回复仍会继续写入该会话
-  await startChatStream(String(id), {
-    userMessage,
-    requestBody,
-    mode: chatMode.value,
-  })
-}
-
-const handleSend = () => {
-  const hasContent = inputValue.value.trim() || attachedImages.value.length > 0
-  if (hasContent) sendMessage(inputValue.value)
-}
-
-const handleKeydown = (e: KeyboardEvent) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault()
-    if (!isStreaming.value) handleSend()
-  }
-}
-
-const goBack = () => {
-  router.push('/')
-}
-
-const loadRoles = async () => {
-  loadingRoles.value = true
   try {
-    const res = await getConfigs()
-    if (res.data.code === 0 && res.data.data) {
-      roles.value = res.data.data
-    }
+    await startChatStream(String(convIdNum.value), {
+      userMessage,
+      requestBody: {
+        message: userMessage.content,
+        conversationId: convIdNum.value,
+        mode: chatMode.value,
+      },
+      mode: chatMode.value,
+    })
   } catch (e) {
-    console.warn('加载聊天角色列表失败', e)
-  } finally {
-    loadingRoles.value = false
+    message.error('发送失败')
   }
 }
 
-const switchRole = async (nextConfigId: string) => {
-  if (!nextConfigId || nextConfigId === currentConfigId.value) return
-  if (isStreaming.value) {
-    message.warning('请等待当前回复结束后再切换角色')
-    return
+function stopStream() {
+  if (convIdNum.value) {
+    stopChatStream(String(convIdNum.value))
   }
-  switchingRole.value = true
+}
+
+function switchMode(mode: 'ask' | 'agent') {
+  chatMode.value = mode
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('chatMode', mode)
+  }
+}
+
+function renderMarkdown(content: string): string {
+  if (!content) return ''
   try {
-    const res = await resolveDefault({ configId: nextConfigId })
-    if (res.data.code !== 0 || res.data.data?.id == null) {
-      message.error('切换角色失败，' + (res.data.message || '未知错误'))
-      return
-    }
-    const id = res.data.data.id
-    saveLastChatConversationId(id)
-    localStorage.setItem(getChatConfigStorageKey(nextConfigId), nextConfigId)
-    if (String(id) === conversationId.value) {
-      currentConfigId.value = nextConfigId
-      await initPage()
-      return
-    }
-    router.push({ path: `/chat/${id}`, query: { configId: nextConfigId } })
+    return marked.parse(content) as string
   } catch {
-    message.error('切换角色失败，请重试')
-  } finally {
-    switchingRole.value = false
+    return content
   }
 }
 
-const goNewChat = async () => {
-  if (!currentConfigId.value) {
-    router.push('/chat?new=1')
-    return
-  }
-  try {
-    const res = await createConversation({
-      configId: currentConfigId.value,
-      title: '新对话',
-    })
-    if (res.data.code === 0 && res.data.data?.id != null) {
-      saveLastChatConversationId(res.data.data.id)
-      router.push({
-        path: `/chat/${res.data.data.id}`,
-        query: { configId: currentConfigId.value },
-      })
-    } else {
-      message.error('创建新对话失败，' + (res.data.message || '未知错误'))
-    }
-  } catch {
-    message.error('创建新对话失败，请重试')
-  }
-}
-
-const switchConversation = (id?: number) => {
-  if (id == null || String(id) === conversationId.value) return
-  if (multiSelectMode.value) return
-  router.push({
-    path: `/chat/${id}`,
-    query: currentConfigId.value ? { configId: currentConfigId.value } : {},
+function scrollToBottom() {
+  nextTick(() => {
+    messagesEndRef.value?.scrollIntoView({ behavior: 'smooth' })
   })
 }
 
-const toggleMultiSelectMode = () => {
-  if (isStreaming.value) {
-    message.warning('请等待当前回复结束后再操作')
-    return
+import { nextTick, watch } from 'vue'
+
+watch(messages, () => {
+  scrollToBottom()
+}, { deep: true })
+
+onMounted(async () => {
+  await loadConversations()
+  if (convIdNum.value) {
+    await loadConversationInfo()
+    await loadMessages()
   }
-  multiSelectMode.value = !multiSelectMode.value
-  selectedConversationIds.value = []
-}
-
-const isConversationSelected = (id?: number) => {
-  if (id == null) return false
-  return selectedConversationIds.value.includes(id)
-}
-
-const toggleConversationSelection = (id?: number) => {
-  if (id == null) return
-  const idx = selectedConversationIds.value.indexOf(id)
-  if (idx >= 0) {
-    selectedConversationIds.value.splice(idx, 1)
-  } else {
-    selectedConversationIds.value.push(id)
-  }
-}
-
-const selectAllConversations = () => {
-  selectedConversationIds.value = conversations.value
-    .map((c) => c.id)
-    .filter((id): id is number => id != null)
-}
-
-const clearConversationSelection = () => {
-  selectedConversationIds.value = []
-}
-
-const handleSidebarItemClick = (conv: API.ChatConversationVO) => {
-  if (multiSelectMode.value) {
-    toggleConversationSelection(conv.id)
-    return
-  }
-  switchConversation(conv.id)
-}
-
-async function deleteConversationsByIds(ids: number[]) {
-  const uniqueIds = [...new Set(ids)]
-  const results = await Promise.all(
-    uniqueIds.map((id) => deleteConversation({ id })),
-  )
-  const failed = results.filter((res) => res.data.code !== 0)
-  if (failed.length > 0) {
-    throw new Error(failed[0]?.data.message || '部分对话删除失败')
-  }
-}
-
-const handleBatchDeleteConversations = () => {
-  const ids = [...selectedConversationIds.value]
-  if (ids.length === 0) {
-    message.warning('请先选择要删除的对话')
-    return
-  }
-  if (isStreaming.value) {
-    message.warning('请等待当前回复结束后再删除')
-    return
-  }
-
-  Modal.confirm({
-    title: '批量删除对话',
-    content: `确定删除选中的 ${ids.length} 个对话吗？此操作不可恢复。`,
-    okText: '删除',
-    okType: 'danger',
-    cancelText: '取消',
-    async onOk() {
-      batchDeleting.value = true
-      try {
-        await deleteConversationsByIds(ids)
-        message.success(`已删除 ${ids.length} 个对话`)
-        const deletedCurrent = ids.some((id) => String(id) === conversationId.value)
-        multiSelectMode.value = false
-        selectedConversationIds.value = []
-        if (deletedCurrent) {
-          await navigateAfterDeleteCurrent()
-        } else {
-          await fetchConversations()
-        }
-      } catch (err: any) {
-        message.error(err?.message || '批量删除失败，请重试')
-        await fetchConversations()
-      } finally {
-        batchDeleting.value = false
-      }
-    },
-  })
-}
-
-const navigateAfterDeleteCurrent = async () => {
-  await fetchConversations()
-  const next = conversations.value.find((c) => String(c.id) !== conversationId.value)
-  if (next?.id != null) {
-    switchConversation(next.id)
-    return
-  }
-  if (!currentConfigId.value) {
-    router.push('/chat?new=1')
-    return
-  }
-  const res = await resolveDefault({ configId: currentConfigId.value })
-  if (res.data.code === 0 && res.data.data?.id != null) {
-    saveLastChatConversationId(res.data.data.id)
-    router.push({
-      path: `/chat/${res.data.data.id}`,
-      query: { configId: currentConfigId.value },
-    })
-  } else {
-    router.push('/chat?new=1')
-  }
-}
-
-const handleDeleteConversation = (conv: API.ChatConversationVO, event: MouseEvent) => {
-  event.stopPropagation()
-  if (conv.id == null) return
-  if (isStreaming.value) {
-    message.warning('请等待当前回复结束后再删除')
-    return
-  }
-
-  Modal.confirm({
-    title: '删除对话',
-    content: `确定删除「${conv.title || '未命名对话'}」吗？此操作不可恢复。`,
-    okText: '删除',
-    okType: 'danger',
-    cancelText: '取消',
-    async onOk() {
-      deletingConversationId.value = conv.id!
-      try {
-        const res = await deleteConversation({ id: conv.id! })
-        if (res.data.code !== 0) {
-          message.error('删除失败，' + (res.data.message || '未知错误'))
-          return
-        }
-        message.success('已删除')
-        const wasCurrent = String(conv.id) === conversationId.value
-        if (wasCurrent) {
-          await navigateAfterDeleteCurrent()
-        } else {
-          await fetchConversations()
-        }
-      } catch {
-        message.error('删除失败，请重试')
-      } finally {
-        deletingConversationId.value = null
-      }
-    },
-  })
-}
-
-const formatConversationMeta = (conv: API.ChatConversationVO) => {
-  const count = conv.messageCount ?? 0
-  if (conv.lastMessageAt) {
-    const d = new Date(conv.lastMessageAt)
-    const time = Number.isNaN(d.getTime()) ? conv.lastMessageAt : d.toLocaleString()
-    return `${count} 条 · ${time}`
-  }
-  return `${count} 条`
-}
-
-function resetChatState() {
-  messages.value = []
-  hasMoreHistory.value = true
-  historyPageNum.value = 0
-  totalHistoryPages.value = 0
-}
-
-/** 把当前可见实例的滚动/结束回调注册到 store session；组件不在时这些回调为 undefined（no-op） */
-function bindSessionCallbacks() {
-  const s = session.value
-  s.onScroll = scrollToBottomFast
-  s.onStreamEnd = () => {
-    void fetchConversations()
-  }
-}
-
-const initPage = async () => {
-  const id = conversationId.value
-  if (!id || !/^\d+$/.test(id)) return
-
-  saveLastChatConversationId(id)
-
-  await Promise.all([fetchConversationInfo(), loadRoles(), loadTtsEnabled()])
-
-  // 历史只在该会话首次进入时加载；切回来时保留 store 里（含后台流入）的内容，不清空重拉
-  if (!session.value.historyLoaded.value) {
-    resetChatState()
-    await fetchChatHistory()
-    session.value.historyLoaded.value = true
-  }
-
-  await fetchConversations()
-  ensureTtsInit()
-  void fetchAgentConfig() // load once for mode switch + hint (non-blocking)
-
-  const initPrompt = route.query.initPrompt as string | undefined
-  if (initPrompt && messages.value.length === 0 && !isStreaming.value) {
-    await sendMessage(decodeURIComponent(initPrompt))
-    router.replace({
-      path: route.path,
-      query: currentConfigId.value ? { configId: currentConfigId.value } : {},
-    })
-  }
-}
-
-watch(conversationId, (newId, oldId) => {
-  if (newId && newId !== oldId) {
-    bindSessionCallbacks()
-    void initPage()
-  }
-})
-
-onMounted(() => {
-  bindSessionCallbacks()
-  void initPage()
-})
-
-// keepAlive 恢复：重新绑定回调、刷新会话列表、滚到底；不重拉历史（store 已保留）
-onActivated(() => {
-  bindSessionCallbacks()
-  void fetchConversations()
-  void scrollToBottom(true)
-})
-
-// keepAlive 缓存（切走）：不中止流，仅解绑滚动，避免后台流去滚动隐藏视图
-onDeactivated(() => {
-  const s = session.value
-  if (s.onScroll === scrollToBottomFast) s.onScroll = undefined
-})
-
-onUnmounted(() => {
-  // 关键：不中止流（切走后后台继续写入 store），也不回收已发送消息的图片预览（会话保留以便切回来查看）
-  const s = session.value
-  if (s.onScroll === scrollToBottomFast) s.onScroll = undefined
-  s.onStreamEnd = undefined
-  clearAttachedPreviews()
 })
 </script>
 
 <template>
-  <div class="chat-page">
-  <div class="chat-header">
-    <div class="chat-header__left">
-      <a-button type="text" class="chat-icon-btn" :icon="h(ArrowLeft)" @click="goBack" />
-      <a-select
-        v-if="roles.length > 0"
-        :value="currentConfigId || undefined"
-        :options="roles.map((r) => ({ value: r.id, label: r.name || r.id }))"
-        :loading="loadingRoles || switchingRole"
-        :disabled="isStreaming || switchingRole"
-        class="chat-header__role-select"
-        placeholder="选择角色"
-        @change="switchRole"
-      />
-      <span v-else class="chat-header__title">{{ conversationInfo?.configName ?? conversationInfo?.title ?? 'AI 对话' }}</span>
-    </div>
-    <div class="chat-header__right">
-      <a-button type="link" size="small" class="chat-header__new" @click="goNewChat">
-        <template #icon><MessageSquarePlus :size="15" /></template>
-        新对话
-      </a-button>
-      <span v-if="isStreaming" class="chat-streaming-hint">思考中…</span>
-    </div>
-  </div>
-
-    <div class="chat-body">
-      <aside v-if="currentConfigId" class="chat-sidebar">
-        <div class="chat-sidebar__header">
-          <span class="chat-sidebar__header-title">{{ conversationInfo?.configName ?? '当前角色' }} 的对话</span>
-          <div class="chat-sidebar__header-actions">
-            <a-button
-              v-if="!multiSelectMode"
-              type="link"
-              size="small"
-              :disabled="isStreaming || conversations.length === 0"
-              @click="toggleMultiSelectMode"
-            >
-              <template #icon><ListChecks :size="15" /></template>
-              多选
-            </a-button>
-            <a-button
-              v-else
-              type="link"
-              size="small"
-              :disabled="batchDeleting"
-              @click="toggleMultiSelectMode"
-            >
-              <template #icon><X :size="15" /></template>
-              取消
-            </a-button>
-          </div>
-        </div>
-        <div v-if="multiSelectMode" class="chat-sidebar__batch-bar">
-          <span class="chat-sidebar__batch-info">已选 {{ selectedConversationIds.length }} 项</span>
-          <div class="chat-sidebar__batch-actions">
-            <a-button type="link" size="small" :disabled="batchDeleting" @click="selectAllConversations">
-              <template #icon><CheckCheck :size="15" /></template>
-              全选
-            </a-button>
-            <a-button type="link" size="small" :disabled="batchDeleting || selectedConversationIds.length === 0" @click="clearConversationSelection">
-              <template #icon><Eraser :size="15" /></template>
-              清空
-            </a-button>
-            <a-button
-              type="link"
-              size="small"
-              danger
-              :loading="batchDeleting"
-              :disabled="selectedConversationIds.length === 0"
-              @click="handleBatchDeleteConversations"
-            >
-              <template #icon><Trash2 :size="15" /></template>
-              删除
-            </a-button>
-          </div>
-        </div>
-        <div class="chat-sidebar__scroll">
-          <a-spin :spinning="loadingConversations || batchDeleting">
-            <ul v-if="conversations.length" class="chat-sidebar__list">
-              <li
-                v-for="conv in conversations"
-                :key="conv.id"
-                :class="[
-                  'chat-sidebar__item',
-                  {
-                    'is-active': !multiSelectMode && String(conv.id) === conversationId,
-                    'is-selected': multiSelectMode && isConversationSelected(conv.id),
-                  },
-                ]"
-                @click="handleSidebarItemClick(conv)"
-              >
-                <a-checkbox
-                  v-if="multiSelectMode"
-                  class="chat-sidebar__checkbox"
-                  :checked="isConversationSelected(conv.id)"
-                  @click.stop
-                  @change="toggleConversationSelection(conv.id)"
-                />
-                <div class="chat-sidebar__item-body">
-                  <div class="chat-sidebar__title">{{ conv.title || '未命名对话' }}</div>
-                  <div class="chat-sidebar__meta">{{ formatConversationMeta(conv) }}</div>
-                </div>
-                <button
-                  v-if="!multiSelectMode"
-                  type="button"
-                  class="chat-sidebar__delete"
-                  title="删除对话"
-                  :disabled="deletingConversationId === conv.id || isStreaming"
-                  @click="handleDeleteConversation(conv, $event)"
-                >
-                  <Trash2 :size="15" />
-                </button>
-              </li>
-            </ul>
-            <div v-else class="chat-sidebar__empty">暂无其他对话</div>
-          </a-spin>
-        </div>
-      </aside>
-
-      <div class="chat-container">
-        <div class="chat-messages">
-          <div v-if="hasMoreHistory" class="load-more-container">
-            <a-button
-              type="link"
-              :loading="loadingHistory"
-              @click="loadMoreHistory"
-            >
-              <template #icon><History :size="15" /></template>
-              加载更多历史消息
-            </a-button>
-          </div>
-
-          <div
-            v-for="(msg, idx) in messages"
-            :key="msg.id || msg._clientId || idx"
-            :class="['chat-msg', msg.role === 'user' ? 'chat-msg--user' : 'chat-msg--ai']"
-          >
-            <div v-if="msg.role === 'ai'" class="chat-msg__avatar">🤖</div>
-            <div class="chat-msg__bubble">
-              <template v-if="msg.role === 'ai' && msg.isStreaming">
-                <div class="chat-msg__streaming">
-                  <span v-if="!msg.content" class="chat-msg__typing">
-                    <span class="dot" /><span class="dot" /><span class="dot" />
-                  </span>
-                  <template v-else>{{ msg.content }}</template>
-                </div>
-                <div v-if="msg.tools && msg.tools.length" class="agent-tools">
-                  <AgentToolCard
-                    v-for="(t, tIdx) in msg.tools"
-                    :key="t.step ?? t.tool ?? tIdx"
-                    :tool="t"
-                  />
-                </div>
-              </template>
-              <template v-else-if="msg.role === 'ai'">
-                <div
-                  class="chat-msg__markdown"
-                  v-html="getAiMarkdownHtml(msg)"
-                />
-                <div v-if="msg.tools && msg.tools.length" class="agent-tools">
-                  <AgentToolCard
-                    v-for="(t, tIdx) in msg.tools"
-                    :key="t.step ?? t.tool ?? tIdx"
-                    :tool="t"
-                  />
-                </div>
-              </template>
-              <div v-else class="chat-msg__markdown chat-msg__markdown--user">
-                <div v-if="msg.previewImages?.length" class="chat-msg__inline-images">
-                  <img
-                    v-for="(url, imgIdx) in msg.previewImages"
-                    :key="imgIdx"
-                    :src="url"
-                    alt="图片"
-                  />
-                </div>
-                <div
-                  v-if="msg.content"
-                  v-html="renderMarkdown(msg.content)"
-                />
-              </div>
-            </div>
-
-            <!-- TTS play button: only for finished AI messages when TTS enabled -->
-            <div
-              v-if="ttsEnabled && msg.role === 'ai' && !msg.isStreaming && msg.content"
-              class="chat-msg__tts"
-            >
-              <a-button
-                type="text"
-                size="small"
-                class="chat-icon-btn"
-                :loading="ttsSynthesizing === getMsgKey(msg, idx)"
-                :icon="h(Volume2)"
-                @click="playAiMessage(msg, idx)"
-              />
-            </div>
-
-            <div v-if="msg.role === 'user'" class="chat-msg__avatar">👤</div>
-          </div>
-
-          <div v-if="messages.length === 0" class="empty-state">
-            <div class="empty-state__icon">💬</div>
-            <div class="empty-state__text">开始与 AI 对话吧</div>
-          </div>
-
-          <div ref="messagesEndRef" />
-        </div>
-
-        <!-- Ask / Agent mode switch + hint -->
-        <div class="chat-mode-bar">
-          <a-segmented
-            v-model:value="chatMode"
-            :options="[
-              { label: 'Ask', value: 'ask' },
-              { label: 'Agent', value: 'agent', disabled: agentConfig?.agentEnabled === false }
-            ]"
-            :disabled="isStreaming"
-            @change="(v: 'ask' | 'agent') => setChatMode(v)"
-          />
-          <div v-if="chatMode === 'agent'" class="agent-hint">{{ agentHint }}</div>
-          <div v-else class="agent-hint muted">纯对话模式（AstrBot）</div>
-        </div>
-
-        <div class="chat-input-area">
-          <!-- attach button + hidden file input -->
-          <div class="chat-attach">
-            <a-button
-              type="text"
-              size="small"
-              class="chat-icon-btn chat-attach-btn"
-              :loading="attaching"
-              :disabled="isStreaming"
-              @click="triggerAttach"
-              title="添加图片"
-            >
-              <ImagePlus :size="18" />
-            </a-button>
-            <input
-              ref="fileInputRef"
-              type="file"
-              accept="image/*"
-              style="display: none"
-              @change="handleAttachFile"
-            />
-          </div>
-
-          <!-- attached image previews (cleared on send) -->
-          <div v-if="attachedImages.length" class="chat-attached-thumbs">
-            <div
-              v-for="(item, i) in attachedImages"
-              :key="item.attachmentId"
-              class="chat-attached-thumb"
-              @click="removeAttached(i)"
-              title="点击移除"
-            >
-              <img :src="item.previewUrl" alt="attach" />
-              <span class="chat-attached-thumb__x">×</span>
-            </div>
-          </div>
-
-          <a-textarea
-            v-model:value="inputValue"
-            placeholder="输入您的问题..."
-            :auto-size="{ minRows: 2, maxRows: 5 }"
-            :disabled="isStreaming"
-            @keydown="handleKeydown"
-          />
-          <a-button
-            type="primary"
-            shape="circle"
-            :icon="h(isStreaming ? Square : Send)"
-            :disabled="!isStreaming && !inputValue.trim() && attachedImages.length === 0"
-            class="chat-send-btn"
-            :class="{ 'chat-send-btn--stop': isStreaming }"
-            @click="isStreaming ? stopStreaming() : handleSend()"
-          />
+  <div class="chat-container">
+    <aside class="conv-sidebar">
+      <div class="sidebar-header">
+        <button class="btn-new" @click="createNewConversation">
+          <MessageSquarePlus :size="18" />
+          新对话
+        </button>
+      </div>
+      <div class="conv-list">
+        <div
+          v-for="conv in conversations"
+          :key="conv.id"
+          class="conv-item"
+          :class="{ active: conv.id === convIdNum }"
+          @click="router.push(`/chat/${String(conv.id)}`)"
+        >
+          <div class="conv-title">{{ conv.title || '未命名对话' }}</div>
+          <button class="conv-delete" @click.stop="deleteConversationById(Number(conv.id))">
+            <Trash2 :size="14" />
+          </button>
         </div>
       </div>
-    </div>
+    </aside>
+
+    <main class="chat-main">
+      <header class="chat-header">
+        <div class="header-left">
+          <button class="btn-back" @click="router.push('/chat')">
+            <ArrowLeft :size="18" />
+          </button>
+          <h2>{{ conversationInfo?.title || '对话' }}</h2>
+        </div>
+        <div class="mode-switch">
+          <button :class="{ active: chatMode === 'ask' }" @click="switchMode('ask')">Ask</button>
+          <button :class="{ active: chatMode === 'agent' }" @click="switchMode('agent')">Agent</button>
+        </div>
+      </header>
+
+      <div class="messages-area">
+        <div v-if="messages.length === 0" class="empty-state">
+          <div class="empty-icon">💬</div>
+          <p>开始对话吧</p>
+        </div>
+
+        <div v-for="(msg, idx) in messages" :key="msg._clientId || idx" class="message-wrapper">
+          <div class="sticker message-bubble" :class="msg.role">
+            <div class="tape" v-if="msg.role === 'ai'" />
+            <div class="message-content" v-html="renderMarkdown(msg.content)" />
+            <div v-if="msg.isStreaming" class="streaming-indicator">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+        <div ref="messagesEndRef" />
+      </div>
+
+      <footer class="chat-input-area">
+        <div class="input-wrapper">
+          <textarea
+            v-model="inputValue"
+            placeholder="输入消息... (Enter 发送, Shift+Enter 换行)"
+            @keydown.enter.exact.prevent="sendMessage"
+            :disabled="isStreaming"
+          />
+          <button class="btn-send" @click="sendMessage" :disabled="isStreaming || !inputValue.trim()">
+            <Send :size="20" />
+          </button>
+          <button v-if="isStreaming" class="btn-stop" @click="stopStream">
+            <X :size="20" />
+          </button>
+        </div>
+      </footer>
+    </main>
   </div>
 </template>
 
 <style scoped>
-@import '@/components/chat/chat-shell.css';
-
-.chat-page {
-  padding: 12px;
-  box-sizing: border-box;
-}
-
-.chat-body {
-  justify-content: center;
-  flex: 1;
-  min-height: 0;
-}
-
 .chat-container {
-  flex: 1;
-  width: 100%;
-  max-width: 860px;
-  min-width: 0;
-  min-height: 0;
-}
-
-/* tiny alignment tweak for TTS action; main styles live in shared chat-shell.css */
-.chat-msg__tts {
-  margin-top: 2px;
-}
-
-/* streaming hint */
-.chat-streaming-hint {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  margin-right: 4px;
-}
-
-.chat-header__new {
-  color: var(--color-text-secondary);
-  padding: 0 4px;
-  height: auto;
-}
-
-.chat-header__role-select {
-  min-width: 140px;
-  max-width: 180px;
-}
-
-.chat-header__role-select :deep(.ant-select-selector) {
-  background: rgba(255, 255, 255, 0.04) !important;
-  border-color: var(--color-border) !important;
-  color: var(--color-text-primary);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.chat-header__role-select :deep(.ant-select-selection-placeholder) {
-  color: var(--color-text-muted);
-}
-
-/* attach + thumbs in input area (page specific) */
-.chat-attach {
-  display: inline-flex;
-  align-items: center;
-  margin-right: 4px;
-}
-.chat-attached-thumbs {
   display: flex;
-  gap: 6px;
-  align-items: center;
-  margin-right: 6px;
-  flex-wrap: wrap;
+  height: calc(100vh - 72px);
+  background: var(--paper);
 }
-.chat-attached-thumb {
-  position: relative;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  overflow: hidden;
-  border: 1px solid var(--color-border);
+
+.conv-sidebar {
+  width: 280px;
+  background: var(--paper-surface);
+  border-right: 1.5px dashed var(--hairline);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 20px;
+  border-bottom: 1.5px dashed var(--hairline);
+}
+
+.btn-new {
+  width: 100%;
+  padding: 12px;
+  background: var(--accent);
+  color: #FFFDF8;
+  border: none;
+  border-radius: 999px;
+  font: 14px var(--fd);
   cursor: pointer;
-}
-.chat-attached-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.chat-msg__inline-images {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.chat-msg__inline-images img {
-  max-width: 180px;
-  max-height: 180px;
-  border-radius: 8px;
-  object-fit: cover;
-  border: 1px solid var(--color-border);
-}
-.chat-attached-thumb__x {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  background: rgba(0,0,0,0.6);
-  color: #fff;
-  font-size: 12px;
-  line-height: 12px;
-  width: 14px;
-  height: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-day);
+}
+
+.btn-new:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 0 rgba(69, 64, 58, 0.06), 0 16px 28px -12px rgba(61, 139, 194, 0.6);
+}
+
+.conv-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.conv-item {
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  background: #FFFDF8;
+  border: 2px solid var(--hairline);
+  border-radius: var(--radius-card);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  transform: rotate(calc(var(--sticker-rot, 2deg) * -1));
+}
+
+.conv-item:nth-child(2n) {
+  transform: rotate(var(--sticker-rot, 2deg));
+}
+
+.conv-item:hover {
+  transform: rotate(0deg) translateY(-2px);
+  box-shadow: var(--shadow-day);
+}
+
+.conv-item.active {
+  border-color: var(--accent);
+  background: var(--st-sky);
+}
+
+.conv-title {
+  font: 14px var(--fb);
+  color: var(--ink);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conv-delete {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.conv-item:hover .conv-delete {
+  opacity: 1;
+}
+
+.conv-delete:hover {
+  background: var(--st-sakura);
+  color: var(--ink);
+}
+
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+}
+
+.chat-header {
+  padding: 16px 24px;
+  border-bottom: 1.5px dashed var(--hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(253, 249, 240, 0.92);
+  backdrop-filter: blur(8px);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-back {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.btn-back:hover {
+  background: var(--paper-surface);
+  color: var(--ink);
+}
+
+.chat-header h2 {
+  font: 22px var(--fd);
+  color: var(--ink);
+  margin: 0;
+}
+
+.mode-switch {
+  display: flex;
+  gap: 4px;
+  background: var(--paper-surface);
+  padding: 4px;
+  border-radius: 999px;
+  border: 1.5px dashed var(--hairline);
+}
+
+.mode-switch button {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  font: 13px var(--fd);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-switch button.active {
+  background: var(--accent);
+  color: #FFFDF8;
+}
+
+.messages-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--ink-soft);
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.message-wrapper {
+  margin-bottom: 20px;
+  display: flex;
+}
+
+.message-wrapper:has(.user) {
+  justify-content: flex-end;
+}
+
+.message-bubble {
+  max-width: 70%;
+  padding: 16px 20px;
+  position: relative;
+}
+
+.message-bubble.user {
+  background: var(--st-sky);
+  border-color: rgba(61, 139, 194, 0.2);
+}
+
+.message-bubble.ai {
+  background: #FFFDF8;
+}
+
+.message-bubble .tape {
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  --tc: var(--st-cream);
+  --tilt: -4deg;
+  --tw: 60px;
+}
+
+.message-content {
+  font: 15px / 1.7 var(--fb);
+  color: var(--ink);
+}
+
+.message-content :deep(code) {
+  background: var(--paper-surface);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.message-content :deep(pre) {
+  background: var(--paper-surface);
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.streaming-indicator {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.streaming-indicator span {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
+  background: var(--accent);
+  animation: bounce 1.2s infinite;
 }
 
-/* stop button variant (page specific) */
-.chat-send-btn--stop {
-  background: #ff4d4f !important;
-  animation: chatStopPulse 1.4s ease-in-out infinite;
-}
-.chat-send-btn--stop:hover {
-  background: #ff7875 !important;
-}
-@keyframes chatStopPulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.45);
-  }
-  50% {
-    box-shadow: 0 0 0 6px rgba(255, 77, 79, 0);
-  }
+.streaming-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
 }
 
-/* icon button micro-interactions */
-.chat-icon-btn :deep(svg),
-.chat-icon-btn svg {
-  transition: transform var(--transition-fast);
-}
-.chat-icon-btn:hover :deep(svg),
-.chat-icon-btn:hover svg {
-  transform: scale(1.12);
-}
-.chat-attach-btn:hover svg {
-  transform: scale(1.18) rotate(-6deg);
-}
-.chat-sidebar__delete svg {
-  transition: transform var(--transition-fast);
-}
-.chat-sidebar__delete:hover svg {
-  animation: chatShake 0.4s ease;
-}
-@keyframes chatShake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-2px); }
-  75% { transform: translateX(2px); }
+.streaming-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .chat-send-btn--stop {
-    animation: none;
-  }
-  .chat-icon-btn:hover :deep(svg),
-  .chat-icon-btn:hover svg,
-  .chat-attach-btn:hover svg,
-  .chat-sidebar__delete:hover svg {
-    animation: none;
-    transform: none;
-  }
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-6px); }
 }
 
-/* keep attach thumbs compact inside the input flex row (added per redesign) */
-.chat-input-area .chat-attached-thumbs {
-  max-width: 120px; /* allow 3-4 small thumbs before textarea */
+.chat-input-area {
+  padding: 20px 24px;
+  border-top: 1.5px dashed var(--hairline);
+  background: var(--paper-surface);
+}
+
+.input-wrapper {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  background: #FFFDF8;
+  border: 2px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: 12px;
+  transition: border-color 0.2s;
+}
+
+.input-wrapper:focus-within {
+  border-color: var(--accent);
+}
+
+.input-wrapper textarea {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: 15px / 1.6 var(--fb);
+  color: var(--ink);
+  resize: none;
+  min-height: 60px;
+  max-height: 200px;
+}
+
+.btn-send,
+.btn-stop {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-send {
+  background: var(--accent);
+  color: #FFFDF8;
+  box-shadow: 0 2px 0 rgba(69, 64, 58, 0.06), 0 8px 16px -8px rgba(61, 139, 194, 0.5);
+}
+
+.btn-send:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.btn-send:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-stop {
+  background: var(--st-sakura);
+  color: var(--ink);
+}
+
+.btn-stop:hover {
+  background: var(--st-sakura);
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .conv-sidebar {
+    display: none;
+  }
 }
 </style>

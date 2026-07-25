@@ -5,11 +5,25 @@
  * 注意：勿放在 src/api/，该目录由 openapi2ts 自动生成会覆盖手写文件。
  */
 
-import { resolveNeteaseCover } from '@/utils/musicCover'
+// import { resolveNeteaseCover } from '@/utils/musicCover'
 
-export type { Song } from '@/design/types'
+// export type { Song } from '@/design/types'
 
-import type { Song } from '@/design/types'
+// import type { Song } from '@/design/types'
+
+type Song = {
+  id: string
+  title: string
+  artist: string
+  album: string
+  coverUrl: string
+  audioUrl: string
+  duration: number
+}
+
+function resolveNeteaseCover(album: any, picUrl?: string): string {
+  return picUrl || album?.picUrl || ''
+}
 
 const BASE_URL = '/netease-api'
 
@@ -135,6 +149,7 @@ export function parseLrc(lrc: string): LyricLine[] {
     const match = line.match(/\[(\d{1,2}):(\d{2})[.:](\d{2,3})](.*)/)
     if (!match) continue
     const [, min, sec, ms, text] = match
+    if (!min || !sec || !ms || !text) continue
     const time =
       parseInt(min, 10) * 60 +
       parseInt(sec, 10) +

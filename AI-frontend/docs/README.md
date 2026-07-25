@@ -2,6 +2,10 @@
 
 这里存放 AI 智能知识库 Knowledge AI 的项目需求、阶段规划、简历材料和面试讲解文档。
 
+## 前端重建（当前）
+
+- **[FEATURES.md — 待实现功能总览](./FEATURES.md)**：纸间前端推倒后需重新实现的全部功能、接口对照、优先级与验收清单。
+
 ## 文档列表
 
 - [00 项目需求总览](./00-project-overview.md)
@@ -14,15 +18,16 @@
 
 ## 推荐阅读顺序
 
-1. 先阅读 `00-project-overview.md`，了解项目整体目标、架构和阶段安排。
-2. 按 V1 到 V4 顺序开发，优先保证项目主链路完整。
-3. 核心功能完成后，再阅读 V5 扩展功能，选择适合的加分项补充。
+1. 重建前端时先读 `FEATURES.md`，再按模块实现。
+2. 先阅读 `00-project-overview.md`，了解知识库主链路与阶段安排。
+3. 按 V1 到 V4 顺序加深理解；核心完成后看 V5。
 4. 准备简历和面试时，重点阅读 `06-resume-and-interview.md`。
 
 ## 阶段重点
 
 | 阶段 | 文档 | 核心重点 |
 | --- | --- | --- |
+| 前端重建 | `FEATURES.md` | 全站功能台账、API 对照、P0–P3 排期 |
 | 总览 | `00-project-overview.md` | 项目定位、技术栈、总体架构、开发路线 |
 | V1 | `01-v1-basic-admin.md` | Spring Security、JWT、Redis、用户管理 |
 | V2 | `02-v2-knowledge-document.md` | 知识库管理、文档上传、MinIO、MySQL 元数据 |

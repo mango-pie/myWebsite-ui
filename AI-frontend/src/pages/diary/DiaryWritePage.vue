@@ -1,16 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { ArrowLeft, Save, Check, Sparkles } from 'lucide-vue-next'
-import IconAction from '@/components/ui/IconAction.vue'
+import { ArrowLeft, Save, Sparkles } from 'lucide-vue-next'
 import { getDiaryByDate } from '@/integrations/diaryController'
 import { useDiaryAutoSave } from '@/composables/useDiaryAutoSave'
-import { isDiaryAiEnabled, openDiaryAiPanel } from '@/composables/useDiaryAi'
 import { MOOD_OPTIONS, formatDiaryDate, todayDateString } from '@/utils/diaryFormat'
-import { diaryDefaultStatus, loadDiarySettings } from '@/utils/diarySettings'
-import type { Dayjs } from 'dayjs'
-import dayjs from 'dayjs'
 
 const router = useRouter()
 const route = useRoute()
@@ -18,23 +13,12 @@ const route = useRoute()
 const loading = ref(true)
 const dirty = ref(false)
 const ready = ref(false)
-let defaultNewStatus = 0
 
 const form = reactive({
   diaryDate: todayDateString(),
   title: '',
   content: '',
   mood: undefined as string | undefined,
-  status: 0,
-})
-
-const dateValue = computed({
-  get: () => dayjs(form.diaryDate),
-  set: (val: Dayjs | null) => {
-    if (val) {
-      form.diaryDate = val.format('YYYY-MM-DD')
-    }
-  },
 })
 
 const displayDate = computed(() => formatDiaryDate(form.diaryDate))
@@ -45,7 +29,7 @@ const { saveStatus, entryId, markDirty, saveNow } = useDiaryAutoSave(
     title: form.title,
     content: form.content,
     mood: form.mood,
-    status: form.status,
+    status: 0,
   }),
   { enabled: ready },
 )
@@ -53,7 +37,7 @@ const { saveStatus, entryId, markDirty, saveNow } = useDiaryAutoSave(
 const saveStatusText = computed(() => {
   switch (saveStatus.value) {
     case 'saving':
-      return '保存中…'
+      return '保存中...'
     case 'saved':
       return '已保存'
     case 'error':
@@ -74,13 +58,11 @@ async function loadByDate(date: string) {
         form.title = data.title ?? ''
         form.content = data.content ?? ''
         form.mood = data.mood
-        form.status = data.status ?? 0
         entryId.value = data.id ?? null
       } else {
         form.title = ''
         form.content = ''
         form.mood = undefined
-        form.status = defaultNewStatus
         entryId.value = null
       }
       dirty.value = false
@@ -93,209 +75,302 @@ async function loadByDate(date: string) {
   }
 }
 
-// React to Agent tool results that affect the current diary day
-if (typeof window !== 'undefined') {
-  window.addEventListener('agent-ui-action', (e: Event) => {
-    const detail = (e as CustomEvent).detail
-    if (detail?.type === 'refresh' && detail.module === 'diary_day') {
-      loadByDate(form.diaryDate)
-    }
-    if (detail?.type === 'navigate' && detail.path) {
-      // optional: let chat handle navigation; no-op here
-    }
-  })
-}
-
 function onFieldChange() {
   dirty.value = true
   markDirty()
 }
 
-async function handleComplete() {
-  const ok = await saveNow(1)
+async function handleSave() {
+  const ok = await saveNow(0)
   if (ok) {
-    form.status = 1
     dirty.value = false
-    message.success('日记已标记为完成')
-    if (entryId.value) {
-      router.push(`/diary/${entryId.value}`)
-    } else {
-      router.push('/diary')
-    }
-  } else {
-    message.error('保存失败')
+    message.success('已保存')
   }
 }
 
-function handleBack() {
-  router.push('/diary')
-}
-
-function handleAiClick() {
-  openDiaryAiPanel({ entryId: entryId.value ?? undefined, date: form.diaryDate })
+const moodEmojis: Record<string, string> = {
+  happy: '😊',
+  calm: '😌',
+  tired: '😴',
+  sad: '😔',
+  excited: '🤩',
 }
 
 watch(
-  () => form.diaryDate,
-  (newDate, oldDate) => {
-    if (oldDate && newDate !== oldDate) {
-      loadByDate(newDate)
+  () => route.query.date,
+  (date) => {
+    if (date && typeof date === 'string') {
+      form.diaryDate = date
+      loadByDate(date)
     }
   },
+  { immediate: true },
 )
 
-onBeforeRouteLeave((_to, _from, next) => {
-  if (dirty.value && saveStatus.value !== 'saved') {
-    const leave = window.confirm('有未保存的内容，确定离开吗？')
-    next(leave)
-    return
+onMounted(() => {
+  const date = route.query.date as string
+  if (date) {
+    form.diaryDate = date
+    loadByDate(date)
+  } else {
+    loadByDate(todayDateString())
   }
-  next()
-})
-
-onMounted(async () => {
-  const diaryUx = await loadDiarySettings()
-  defaultNewStatus = diaryDefaultStatus(diaryUx)
-  form.status = defaultNewStatus
-  const queryDate = route.query.date
-  if (typeof queryDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(queryDate)) {
-    form.diaryDate = queryDate
-  }
-  loadByDate(form.diaryDate)
 })
 </script>
 
 <template>
-  <div class="diary-write-page">
-    <div class="diary-write-container">
-      <div class="diary-write-header">
-        <IconAction :icon="ArrowLeft" label="返回" variant="ghost" motion="slide" @click="handleBack" />
-        <div class="diary-write-header__meta">
-          <span class="diary-write-header__status">{{ saveStatusText }}</span>
-          <IconAction :icon="Save" label="保存" variant="soft" motion="pop" @click="() => saveNow()" />
-          <IconAction :icon="Check" label="完成" variant="primary" motion="pop" @click="handleComplete" />
+  <div class="container">
+    <div v-if="loading" class="loading-state">
+      <div class="sticker" style="padding: 60px; text-align: center;">
+        <p>加载中...</p>
+      </div>
+    </div>
+
+    <div v-else class="write-layout">
+      <div class="stamp-wrap">
+        <div class="stamp" style="--accent: var(--st-sakura);">
+          <span class="d">{{ form.diaryDate.split('-')[2] }}</span>
+          <span class="m">{{ form.diaryDate.split('-')[1] }}</span>
         </div>
+        <p class="display-date">{{ displayDate }}</p>
       </div>
 
-      <a-spin :spinning="loading">
-        <div class="diary-write-form">
-          <div class="diary-write-form__row">
-            <a-date-picker
-              v-model:value="dateValue"
-              format="YYYY-MM-DD"
-              :allow-clear="false"
-            />
-            <span class="diary-write-form__date-label">{{ displayDate }}</span>
+      <div class="sticker write-form">
+        <div class="tape" style="--tc: var(--st-mint); --tilt: -4deg; --tw: 70px;" />
+        
+        <div class="form-header">
+          <button class="btn-back" @click="router.push('/diary')">
+            <ArrowLeft :size="18" />
+            返回
+          </button>
+          <div class="save-status">
+            <span class="status-dot" :class="saveStatus" />
+            {{ saveStatusText }}
           </div>
+        </div>
 
-          <a-input
-            v-model:value="form.title"
-            placeholder="标题（可选）"
-            size="large"
-            class="diary-write-form__title"
+        <div class="form-field">
+          <label>标题</label>
+          <input
+            v-model="form.title"
+            type="text"
+            class="form-input"
+            placeholder="今天的标题..."
             @input="onFieldChange"
-          />
-
-          <div class="diary-write-form__moods">
-            <span class="diary-write-form__moods-label">心情</span>
-            <a-radio-group v-model:value="form.mood" button-style="solid" @change="onFieldChange">
-              <a-radio-button v-for="m in MOOD_OPTIONS" :key="m.value" :value="m.value">
-                {{ m.emoji }} {{ m.label }}
-              </a-radio-button>
-            </a-radio-group>
-          </div>
-
-          <a-textarea
-            v-model:value="form.content"
-            placeholder="今天发生了什么…（支持 Markdown）"
-            :rows="18"
-            class="diary-write-form__content"
-            @input="onFieldChange"
-          />
-
-          <IconAction
-            class="diary-write-form__ai"
-            :icon="Sparkles"
-            label="AI 助手（即将上线）"
-            variant="soft"
-            motion="pop"
-            :disabled="!isDiaryAiEnabled"
-            @click="handleAiClick"
           />
         </div>
-      </a-spin>
+
+        <div class="form-field">
+          <label>心情</label>
+          <div class="mood-selector">
+            <button
+              v-for="mood in MOOD_OPTIONS"
+              :key="mood.value"
+              class="mood-pill"
+              :class="{ active: form.mood === mood.value }"
+              :data-tone="form.mood === mood.value ? 'sakura' : 'outline'"
+              @click="form.mood = mood.value; onFieldChange()"
+            >
+              {{ moodEmojis[mood.value] || '' }} {{ mood.label }}
+            </button>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>正文</label>
+          <textarea
+            v-model="form.content"
+            class="form-textarea"
+            placeholder="写点什么..."
+            rows="16"
+            @input="onFieldChange"
+          />
+        </div>
+
+        <div class="form-footer">
+          <button class="btn ghost" @click="handleSave">
+            <Save :size="16" />
+            保存草稿
+          </button>
+          <button class="btn" @click="handleSave">
+            <Sparkles :size="16" />
+            完成
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.diary-write-page {
-  min-height: calc(100vh - 160px);
-}
-
-.diary-write-container {
+.write-layout {
   max-width: 720px;
   margin: 0 auto;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 8px 0 48px;
 }
 
-.diary-write-header {
+.stamp-wrap {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.display-date {
+  margin: 12px 0 0;
+  font: 16px var(--fd);
+  color: var(--ink-soft);
+}
+
+.write-form {
+  padding: 32px;
+  position: relative;
+}
+
+.form-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 24px;
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font: 14px var(--fd);
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.btn-back:hover {
+  background: var(--paper-surface);
+  color: var(--ink);
+}
+
+.save-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 13px var(--fd);
+  color: var(--ink-soft);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink-soft);
+}
+
+.status-dot.saved {
+  background: var(--st-mint);
+}
+
+.status-dot.saving {
+  background: var(--st-cream);
+  animation: pulse 1s infinite;
+}
+
+.status-dot.error {
+  background: #E88B8B;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.form-field {
+  margin-bottom: 24px;
+}
+
+.form-field label {
+  display: block;
+  font: 14px var(--fd);
+  color: var(--ink-soft);
+  margin-bottom: 10px;
+  letter-spacing: 0.05em;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--hairline);
+  border-radius: 10px;
+  background: #FFFDF8;
+  font: 18px var(--fb);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(61, 139, 194, 0.15);
+}
+
+.mood-selector {
+  display: flex;
+  gap: 8px;
   flex-wrap: wrap;
-  gap: 12px;
 }
 
-.diary-write-header__meta {
+.mood-pill {
+  padding: 8px 16px;
+  border-radius: 999px;
+  font: 14px var(--fd);
+  background: transparent;
+  border: 1.5px dashed var(--hairline);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mood-pill:hover {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.mood-pill.active {
+  background: var(--st-sakura);
+  border-style: solid;
+  border-color: var(--hairline);
+  color: var(--ink);
+}
+
+.form-textarea {
+  width: 100%;
+  padding: 16px;
+  border: 2px dashed var(--hairline);
+  border-radius: 10px;
+  background: #FFFDF8;
+  font: 16px / 1.8 var(--fb);
+  color: var(--ink);
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s, border-style 0.2s;
+}
+
+.form-textarea:focus {
+  border-color: var(--accent);
+  border-style: solid;
+}
+
+.form-footer {
   display: flex;
-  align-items: center;
   gap: 12px;
+  justify-content: flex-end;
+  padding-top: 20px;
+  border-top: 1.5px dashed var(--hairline);
 }
 
-.diary-write-header__status {
-  font-size: 0.85rem;
-  color: var(--color-text-secondary);
-}
-
-.diary-write-form__row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.diary-write-form__date-label {
-  color: var(--color-text-secondary);
-}
-
-.diary-write-form__title {
-  margin-bottom: 16px;
-}
-
-.diary-write-form__moods {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.diary-write-form__moods-label {
-  color: var(--color-text-secondary);
-  font-size: 0.9rem;
-}
-
-.diary-write-form__content {
-  font-family: var(--font-serif);
-  margin-bottom: 16px;
-}
-
-.diary-write-form__ai {
-  opacity: 0.7;
+@media (max-width: 768px) {
+  .write-form {
+    padding: 20px;
+  }
 }
 </style>

@@ -1,0 +1,5 @@
+function p(){return`${"/api".replace(/\/$/,"")}/kb/chat/stream`}function l(i){const e=i.split(`
+`);let s="message",t="";for(const n of e)n.startsWith("event:")?s=n.slice(6).trim():n.startsWith("data:")&&(t+=(t?`
+`:"")+n.slice(5).trimStart());return!t&&s==="message"?null:{event:s,data:t}}async function m(i,e,s){const t=await fetch(p(),{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify(i),signal:s});if(!t.ok||!t.body){e.onError(`HTTP ${t.status}`);return}const n=t.body.getReader(),d=new TextDecoder("utf-8");let a="";try{for(;;){const{done:o,value:u}=await n.read();if(o)break;a+=d.decode(u,{stream:!0});const c=a.split(`
+
+`);a=c.pop()||"";for(const f of c){if(!f.trim())continue;const r=l(f);r&&(r.event==="message"?e.onMessage(r.data):r.event==="done"?e.onDone():r.event==="error"&&e.onError(r.data||"流式问答失败"))}}if(a.trim()){const o=l(a);o?.event==="message"?e.onMessage(o.data):o?.event==="done"?e.onDone():o?.event==="error"&&e.onError(o.data||"流式问答失败")}}finally{n.releaseLock()}}export{l as parseKnowledgeSseBlock,m as streamKnowledgeChat};

@@ -1,0 +1,1 @@
+import{_ as a,h as t,c,a as s}from"./index-BsebQnuW.js";const n={},o={class:"container"};function r(_,e){return t(),c("div",o,[...e[0]||(e[0]=[s("h1",null,"实验室",-1),s("p",{class:"hint"},"页面建设中",-1)])])}const d=a(n,[["render",r],["__scopeId","data-v-9bf25ffb"]]);export{d as default};

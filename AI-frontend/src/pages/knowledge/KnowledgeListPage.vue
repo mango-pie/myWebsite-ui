@@ -10,10 +10,7 @@ import {
 } from '@/api/knowledge'
 import { isAdminRole } from '@/config/permission'
 import { useLoginUserStore } from '@/stores/loginUser'
-import { LibraryBig, Plus, Search, RotateCcw, Settings, MessagesSquare, MoreHorizontal } from 'lucide-vue-next'
-import IconAction from '@/components/ui/IconAction.vue'
-import '@/assets/admin-theme.css'
-import '@/assets/knowledge-shell.css'
+import { Plus, Search, RotateCcw, MessagesSquare } from 'lucide-vue-next'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
@@ -65,12 +62,6 @@ const onReset = () => {
   query.name = undefined
   query.status = undefined
   query.pageNum = 1
-  fetchData()
-}
-
-const onTableChange = (pag: { current?: number; pageSize?: number }) => {
-  if (pag.current != null) query.pageNum = pag.current
-  if (pag.pageSize != null) query.pageSize = pag.pageSize
   fetchData()
 }
 
@@ -156,266 +147,344 @@ const handleDelete = (row: API.KnowledgeBaseVO) => {
   })
 }
 
+const openChat = (row: API.KnowledgeBaseVO) => {
+  router.push(`/knowledge/${row.id}/chat`)
+}
+
+const openDetail = (row: API.KnowledgeBaseVO) => {
+  router.push(`/knowledge/${row.id}`)
+}
+
+const tapeColors = ['var(--st-sakura)', 'var(--st-mint)', 'var(--st-sky)', 'var(--st-cream)']
+const tapeTilts = ['-4deg', '3deg', '-3deg', '4deg']
+
 onMounted(fetchData)
 </script>
 
 <template>
-  <div class="kb-list-page admin-theme-page kb-room-page">
-    <!-- 面包屑 -->
-    <a-breadcrumb class="admin-breadcrumb">
-      <a-breadcrumb-item>
-        <router-link to="/">首页</router-link>
-      </a-breadcrumb-item>
-      <a-breadcrumb-item>知识库</a-breadcrumb-item>
-    </a-breadcrumb>
-
-    <div class="admin-page-hero">
-      <div class="hero-left">
-        <div class="hero-title"><LibraryBig :size="22" /> 知识库</div>
-        <div class="hero-subtitle">共 {{ total }} 册书库 · 检索与问答的藏书室</div>
+  <div class="container">
+    <header class="page-header">
+      <div>
+        <h1>知识库</h1>
+        <p class="subtitle">管理你的知识资产，与 AI 对话探索</p>
       </div>
-      <div class="hero-extra">
-        <a-space>
-          <IconAction
-            v-if="canManageSettings"
-            :icon="Settings"
-            label="设置"
-            variant="soft"
-            @click="router.push('/admin/settings/knowledge')"
-          />
-          <IconAction :icon="Plus" label="新建书库" variant="primary" @click="openCreate" />
-        </a-space>
-      </div>
-    </div>
+      <button class="btn" @click="openCreate">
+        <Plus :size="16" />
+        新建知识库
+      </button>
+    </header>
 
-    <div class="admin-filter-bar">
-      <a-input
-        v-model:value="query.name"
-        allow-clear
-        placeholder="检索书库名称…"
-        style="width: 200px"
-        @pressEnter="onSearch"
-      />
-      <a-select
-        v-model:value="query.status"
-        allow-clear
-        placeholder="状态"
-        style="width: 120px"
-      >
-        <a-select-option :value="1">正常</a-select-option>
-        <a-select-option :value="0">禁用</a-select-option>
-      </a-select>
-      <IconAction :icon="Search" label="检索" variant="primary" size="sm" motion="slide" @click="onSearch" />
-      <IconAction :icon="RotateCcw" label="重置" variant="ghost" size="sm" motion="spin" @click="onReset" />
-    </div>
-
-    <a-spin :spinning="loading">
-      <div v-if="!dataSource.length && !loading" class="kb-shelf-empty">
-        <a-empty description="还没有书库">
-          <template #children>
-            <IconAction :icon="Plus" label="创建第一册" variant="primary" motion="pop" @click="openCreate" />
-          </template>
-        </a-empty>
-      </div>
-      <nav v-else class="kb-shelf" aria-label="知识库目录">
-        <button
-          v-for="(row, index) in dataSource"
-          :key="row.id"
-          type="button"
-          class="kb-shelf__row"
-          @click="router.push(`/knowledge/${row.id}`)"
-        >
-          <span class="kb-shelf__num">{{ String(index + 1 + ((query.pageNum || 1) - 1) * (query.pageSize || 10)).padStart(2, '0') }}</span>
-          <span class="kb-shelf__body">
-            <span class="kb-shelf__name">{{ row.name }}</span>
-            <span class="kb-shelf__desc">{{ row.description || '（无提要）' }}</span>
-          </span>
-          <span class="kb-shelf__leaders" aria-hidden="true" />
-          <span class="kb-shelf__marks">
-            <span class="wax-seal wax-seal--sticker">{{ row.documentCount ?? 0 }} 篇</span>
-            <span class="wax-seal" :class="row.visibility === 'public' ? 'wax-seal--read' : 'wax-seal--pending'">
-              {{ row.visibility === 'public' ? '公开' : '私有' }}
-            </span>
-            <span class="wax-seal" :class="row.status === 1 ? 'wax-seal--read' : 'wax-seal--unread'">
-              {{ row.status === 1 ? '在架' : '下架' }}
-            </span>
-          </span>
-          <span class="kb-shelf__actions" @click.stop>
-            <IconAction
-              :icon="MessagesSquare"
-              label="问答"
-              variant="ghost"
-              size="sm"
-              @click="router.push(`/knowledge/${row.id}/chat`)"
-            />
-            <a-dropdown :trigger="['click']" placement="bottomRight">
-              <button type="button" class="admin-action-trigger kb-more-btn" title="更多">
-                <MoreHorizontal :size="16" />
-              </button>
-              <template #overlay>
-                <a-menu
-                  @click="({ key }: { key: string }) => {
-                    if (key === 'edit') openEdit(row)
-                    else if (key === 'delete') handleDelete(row)
-                  }"
-                >
-                  <a-menu-item key="edit">编辑</a-menu-item>
-                  <a-menu-divider />
-                  <a-menu-item key="delete" danger>删除</a-menu-item>
-                </a-menu>
-              </template>
-            </a-dropdown>
-          </span>
-        </button>
-      </nav>
-      <div v-if="total > (query.pageSize || 10)" class="kb-shelf__pager">
-        <a-pagination
-          :current="query.pageNum"
-          :page-size="query.pageSize"
-          :total="total"
-          show-size-changer
-          :show-total="(t: number) => `共 ${t} 册`"
-          @change="(page: number, pageSize: number) => onTableChange({ current: page, pageSize })"
+    <div class="search-bar">
+      <div class="sticker search-wrapper">
+        <Search :size="18" />
+        <input
+          v-model="query.name"
+          type="text"
+          placeholder="搜索知识库名称..."
+          @keyup.enter="onSearch"
         />
       </div>
-    </a-spin>
+      <div class="search-actions">
+        <button class="btn ghost" @click="onSearch">搜索</button>
+        <button class="btn ghost" @click="onReset">
+          <RotateCcw :size="14" />
+          重置
+        </button>
+      </div>
+    </div>
 
-    <!-- 创建/编辑弹窗 -->
-    <a-modal
+    <div v-if="loading" class="loading-state">
+      <div class="sticker" style="padding: 40px; text-align: center;">
+        <p>加载中...</p>
+      </div>
+    </div>
+
+    <div v-else-if="!dataSource.length" class="empty-state">
+      <div class="sticker" style="padding: 60px 40px; text-align: center;">
+        <div class="empty-icon">📚</div>
+        <h3>还没有知识库</h3>
+        <p>创建你的第一个知识库，开始积累知识</p>
+        <button class="btn" @click="openCreate" style="margin-top: 16px;">
+          <Plus :size="16" />
+          创建知识库
+        </button>
+      </div>
+    </div>
+
+    <div v-else class="kb-grid">
+      <div
+        v-for="(kb, index) in dataSource"
+        :key="kb.id"
+        class="sticker kb-card"
+        :style="{ '--rot': (index % 2 === 0 ? -1 : 1) * 1.5 + 'deg' }"
+      >
+        <div
+          class="tape"
+          :style="{
+            '--tc': tapeColors[index % 4],
+            '--tilt': tapeTilts[index % 4],
+          }"
+        />
+        <div class="kb-header">
+          <h3 @click="openDetail(kb)">{{ kb.name }}</h3>
+          <span class="pill" :data-tone="kb.visibility === 'public' ? 'sky' : 'outline'">
+            {{ kb.visibility === 'public' ? '公开' : '私有' }}
+          </span>
+        </div>
+        <p class="kb-desc">{{ kb.description || '暂无描述' }}</p>
+        <div class="kb-stats">
+          <div class="stat">
+            <span class="stat-value">{{ kb.documentCount ?? 0 }}</span>
+            <span class="stat-label">文档</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">{{ kb.status === 1 ? '启用' : '禁用' }}</span>
+            <span class="stat-label">状态</span>
+          </div>
+        </div>
+        <div class="kb-actions">
+          <button class="btn ghost sm" @click="openChat(kb)">
+            <MessagesSquare :size="14" />
+            问答
+          </button>
+          <button v-if="canManageSettings" class="btn ghost sm" @click="openEdit(kb)">
+            编辑
+          </button>
+          <button v-if="canManageSettings" class="btn ghost sm danger" @click="handleDelete(kb)">
+            删除
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <Modal
       v-model:open="modalOpen"
       :title="modalMode === 'create' ? '新建知识库' : '编辑知识库'"
       :confirm-loading="submitting"
-      ok-text="保存"
       @ok="submitForm"
+      @cancel="modalOpen = false"
     >
-      <a-form layout="vertical">
-        <a-form-item label="名称" required>
-          <a-input v-model:value="form.name" :maxlength="128" show-count placeholder="知识库名称" />
-        </a-form-item>
-        <a-form-item label="描述">
-          <a-textarea v-model:value="form.description" :maxlength="512" show-count :rows="3" />
-        </a-form-item>
-        <a-form-item label="可见范围">
-          <a-radio-group v-model:value="form.visibility">
-            <a-radio value="private">私有</a-radio>
-            <a-radio value="public">公开</a-radio>
-          </a-radio-group>
-        </a-form-item>
-        <a-form-item v-if="modalMode === 'edit'" label="状态">
-          <a-radio-group v-model:value="form.status">
-            <a-radio :value="1">正常</a-radio>
-            <a-radio :value="0">禁用</a-radio>
-          </a-radio-group>
-        </a-form-item>
-      </a-form>
-    </a-modal>
+      <div class="form-field">
+        <label>名称</label>
+        <input v-model="form.name" type="text" placeholder="知识库名称" class="form-input" />
+      </div>
+      <div class="form-field">
+        <label>描述</label>
+        <textarea
+          v-model="form.description"
+          placeholder="知识库描述（可选）"
+          class="form-textarea"
+          rows="3"
+        />
+      </div>
+      <div class="form-field">
+        <label>可见性</label>
+        <select v-model="form.visibility" class="form-select">
+          <option value="private">私有</option>
+          <option value="public">公开</option>
+        </select>
+      </div>
+    </Modal>
   </div>
 </template>
 
 <style scoped>
-.kb-shelf {
+.page-header {
   display: flex;
-  flex-direction: column;
-  border-top: 1px solid var(--color-border);
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1.5px dashed var(--hairline);
 }
 
-.kb-shelf__row {
-  display: grid;
-  grid-template-columns: 2.4em minmax(0, auto) minmax(1em, 1fr) auto auto;
-  gap: 0.45em 0.55em;
+.page-header h1 {
+  margin: 0 0 8px;
+  font-size: 48px;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+
+.search-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 32px;
   align-items: center;
-  width: 100%;
-  padding: 1em 0.25em;
+}
+
+.search-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  max-width: 400px;
+}
+
+.search-wrapper input {
+  flex: 1;
   border: none;
-  border-bottom: 1px dashed rgba(169, 144, 112, 0.5);
+  outline: none;
   background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.28s ease, padding-left 0.28s ease;
+  font: 15px var(--fb);
+  color: var(--ink);
 }
 
-.kb-shelf__row:hover {
-  background: rgba(160, 120, 70, 0.1);
-  padding-left: 0.5em;
+.search-actions {
+  display: flex;
+  gap: 8px;
 }
 
-.kb-shelf__num {
-  font-family: var(--font-sans);
-  font-size: 0.75em;
-  color: var(--color-text-muted);
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
 }
 
-.kb-shelf__body {
+.empty-state h3 {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+.empty-state p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.kb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 28px;
+}
+
+.kb-card {
+  padding: 24px;
+  transition: all 0.3s ease;
+  transform: rotate(var(--rot, 0deg));
   display: flex;
   flex-direction: column;
-  gap: 0.2em;
-  min-width: 0;
 }
 
-.kb-shelf__name {
-  font-family: var(--font-serif);
-  font-size: 1.15em;
-  font-weight: 600;
-  color: var(--color-text-primary);
+.kb-card:hover {
+  transform: rotate(0deg) translateY(-4px);
 }
 
-.kb-shelf__row:hover .kb-shelf__name {
-  color: var(--color-primary);
-}
-
-.kb-shelf__desc {
-  font-family: var(--font-sans);
-  font-size: 0.8em;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 28em;
-}
-
-.kb-shelf__leaders {
-  height: 0;
-  border-bottom: 1px dotted rgba(138, 115, 85, 0.55);
-  align-self: center;
-}
-
-.kb-shelf__marks {
+.kb-header {
   display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.kb-header h3 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.kb-header h3:hover {
+  color: var(--accent);
+}
+
+.kb-desc {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  flex: 1;
+}
+
+.kb-stats {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 16px;
+  padding: 12px 0;
+  border-top: 1.5px dashed var(--hairline);
+  border-bottom: 1.5px dashed var(--hairline);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-value {
+  font: 18px var(--fd);
+  color: var(--ink);
+}
+
+.stat-label {
+  font: 11px var(--fd);
+  color: var(--ink-soft);
+  letter-spacing: 0.05em;
+}
+
+.kb-actions {
+  display: flex;
+  gap: 8px;
   flex-wrap: wrap;
-  gap: 0.35em;
 }
 
-.kb-shelf__actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25em;
+.form-field {
+  margin-bottom: 16px;
 }
 
-.kb-shelf__pager {
-  margin-top: 1.25em;
-  text-align: center;
+.form-field label {
+  display: block;
+  font: 14px var(--fd);
+  color: var(--ink-soft);
+  margin-bottom: 8px;
 }
 
-.kb-shelf-empty {
-  padding: 2em 0;
+.form-input,
+.form-textarea,
+.form-select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px dashed var(--hairline);
+  border-radius: 10px;
+  background: #FFFDF8;
+  font: 14px var(--fb);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.2s;
 }
 
-.kb-more-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+  border-color: var(--accent);
+  border-style: solid;
+}
+
+.btn.danger {
+  color: #E88B8B;
+}
+
+.btn.danger:hover {
+  background: #F5C6C6;
+  color: var(--ink);
 }
 
 @media (max-width: 768px) {
-  .kb-shelf__row {
-    grid-template-columns: 2em minmax(0, 1fr) auto;
+  .search-bar {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .kb-shelf__leaders,
-  .kb-shelf__marks {
-    display: none;
+  .search-wrapper {
+    max-width: none;
+  }
+
+  .kb-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

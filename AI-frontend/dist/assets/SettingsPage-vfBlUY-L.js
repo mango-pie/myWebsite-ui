@@ -1,0 +1,1 @@
+import{_ as s,h as t,c,a as e}from"./index-BsebQnuW.js";const n={};function r(o,a){return t(),c("div",null,[...a[0]||(a[0]=[e("div",{class:"page-header"},[e("h1",null,"站点设置")],-1),e("p",{class:"hint"},"页面建设中 · 设计稿见 v3",-1)])])}const l=s(n,[["render",r],["__scopeId","data-v-c26cd75e"]]);export{l as default};

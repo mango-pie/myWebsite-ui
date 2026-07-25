@@ -1,0 +1,19 @@
+:root {
+  --paper: #FDF9F0;
+  --paper-surface: #F5EDDB;
+  --ink: #45403A;
+  --ink-soft: #8A8271;
+  --hairline: #E4DAC4;
+  --accent: #3D8BC2;
+  --st-sakura: #F4A9C0;
+  --st-sky: #A9D6EE;
+  --st-mint: #A5D8B9;
+  --st-cream: #F7D98D;
+  --radius-card: 14px;
+  --shadow-day: 0 2px 0 rgba(69, 64, 58, 0.06), 0 14px 28px -14px rgba(120, 95, 50, 0.22);
+  --sticker-rot: 2deg;
+  --tape-alpha: 0.82;
+  --dot-size: 24px;
+  --fd: 'ZCOOL KuaiLe', 'LXGW WenKai', 'Noto Sans SC', sans-serif;
+  --fb: 'LXGW WenKai', 'Noto Sans SC', 'ZCOOL KuaiLe', sans-serif;
+}
