@@ -30,8 +30,8 @@ const {
 
 const { isLoggedIn, loginStatus, loginError, loginStatusText, qrCodeUrl, handleLogin, handleLogout } = useNeteaseLogin();
 
-const position = ref({ x: 20, y: 100 });
-const displayMode = ref<'float' | 'dock'>('dock');
+const position = ref({ x: 20, y: 88 });
+const displayMode = ref<'float' | 'dock'>('float');
 const isDragging = ref(false);
 const dragOffset = ref({ x: 0, y: 0 });
 const isExpanded = ref(false);
@@ -701,6 +701,11 @@ onMounted(() => {
   window.addEventListener('resize', handleWindowResize);
   
   initPlayer();
+  // 默认落在书页右上：像挂在扉页栏旁的乐谱夹页，不贴底
+  position.value = clampPosition({
+    x: Math.max(16, window.innerWidth - 360),
+    y: 72,
+  });
   normalizePanelInViewport();
 });
 
@@ -736,7 +741,7 @@ onUnmounted(() => {
 <template>
   <div
     ref="playerRef"
-    class="floating-player"
+    class="floating-player book-music"
     :class="{
       'is-expanded': isExpanded && displayMode === 'float',
       'is-dragging': isDragging,
@@ -929,7 +934,7 @@ onUnmounted(() => {
         :class="{ 'is-compact': isCompactMode, 'is-ultra': panelDensity === 'ultra' }"
       >
       <div class="player-header" @mousedown="handleDragStart" @touchstart="handleDragStart">
-        <span class="header-title">音乐播放器</span>
+        <span class="header-title">乐谱附页</span>
         <div class="header-actions">
           <button 
             class="action-btn login-btn" 
@@ -1479,6 +1484,42 @@ onUnmounted(() => {
   backdrop-filter: blur(18px);
 }
 
+/* 书页乐谱夹：悬浮默认形态 */
+.book-music:not(.is-docked) .player-mini {
+  border-radius: 2px;
+  border-color: var(--book-rule, #c9b99a);
+  background:
+    linear-gradient(165deg, #faf6eb 0%, #f5f0e1 55%, #ebe4d0 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 252, 245, 0.7) inset,
+    0 10px 28px rgba(58, 42, 28, 0.14),
+    -3px 0 0 var(--book-ribbon, #7a1f1f);
+  backdrop-filter: none;
+}
+
+.book-music:not(.is-docked)::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  right: 18%;
+  width: 14px;
+  height: 18px;
+  background: linear-gradient(180deg, #9a2a2a, var(--book-ribbon, #7a1f1f));
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
+  box-shadow: 0 2px 4px rgba(58, 42, 28, 0.25);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.book-music:not(.is-docked) .mini-cover {
+  border-radius: 2px;
+  border: 1px solid var(--book-rule, #c9b99a);
+}
+
+.book-music.is-expanded:not(.is-docked) {
+  border-radius: 2px;
+}
+
 .mini-cover {
   width: clamp(44px, 6vw, 52px);
   height: clamp(44px, 6vw, 52px);
@@ -1579,6 +1620,23 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   position: relative;
+}
+
+.book-music:not(.is-docked) .player-expanded {
+  border-radius: 2px;
+  border-color: var(--book-rule, #c9b99a);
+  background:
+    linear-gradient(165deg, #faf6eb 0%, #f5f0e1 50%, #ebe4d0 100%);
+  backdrop-filter: none;
+  box-shadow:
+    0 1px 0 rgba(255, 252, 245, 0.7) inset,
+    0 16px 40px rgba(58, 42, 28, 0.16),
+    -4px 0 0 var(--book-ribbon, #7a1f1f);
+}
+
+.book-music:not(.is-docked) .header-title {
+  font-family: var(--font-serif);
+  letter-spacing: 0.12em;
 }
 
 .player-header {

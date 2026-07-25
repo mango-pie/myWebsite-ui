@@ -21,7 +21,7 @@ const isWorkspace = computed(() => route.meta.shell === 'workspace')
 
 const antdTheme = computed(() => ({
   token: {
-    fontFamily: "'ZCOOL KuaiLe', 'PingFang SC', 'Microsoft YaHei', sans-serif",
+    fontFamily: "'Source Sans 3', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif",
     fontSize: 15,
     fontSizeLG: 17,
     fontSizeSM: 13,
@@ -31,13 +31,13 @@ const antdTheme = computed(() => ({
     fontSizeHeading3: 26,
     fontSizeHeading4: 22,
     fontSizeHeading5: 18,
-    colorPrimary: '#e879a9',
-    colorText: '#f5f0f8',
-    colorTextSecondary: '#c4b8d0',
-    colorBgBase: '#1a1625',
-    colorBgContainer: 'rgba(45, 36, 56, 0.78)',
-    colorBorder: 'rgba(255, 255, 255, 0.12)',
-    borderRadius: 12,
+    colorPrimary: '#7a1f1f',
+    colorText: '#2a2218',
+    colorTextSecondary: '#6b5e4a',
+    colorBgBase: '#f5f0e1',
+    colorBgContainer: '#faf6eb',
+    colorBorder: '#c9b99a',
+    borderRadius: 2,
     wireframe: false,
   },
 }))

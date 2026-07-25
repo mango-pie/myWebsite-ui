@@ -234,12 +234,12 @@ onMounted(async () => {
 }
 
 .diary-write-container {
-  max-width: 900px;
+  max-width: 720px;
   margin: 0 auto;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 24px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 8px 0 48px;
 }
 
 .diary-write-header {
@@ -291,7 +291,7 @@ onMounted(async () => {
 }
 
 .diary-write-form__content {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-serif);
   margin-bottom: 16px;
 }
 

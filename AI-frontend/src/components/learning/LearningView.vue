@@ -461,7 +461,7 @@ onBeforeUnmount(() => {
     <div class="admin-page-hero">
       <div class="hero-left">
         <div class="hero-title">
-          <router-link to="/admin/knowledge/ingest" class="ld-breadcrumb-link">AI 精读工作台</router-link>
+          <router-link to="/admin/knowledge/ingest" class="ld-breadcrumb-link">AI 精读</router-link>
           <span class="ld-breadcrumb-sep">/</span>
           <FolderTree :size="18" />
           领域知识树

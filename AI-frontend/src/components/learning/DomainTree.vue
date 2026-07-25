@@ -642,7 +642,7 @@ onBeforeUnmount(() => {
   bottom: 3px;
   width: 3px;
   border-radius: 0 3px 3px 0;
-  background: var(--ld-color-primary, #b8a4c9);
+  background: var(--ld-color-primary, #a04a2a);
 }
 
 /* L1 specific */

@@ -1,5 +1,5 @@
 /**
- * 工作台左侧 rail 导航配置
+ * 左侧功能导航配置
  */
 import type { Component } from 'vue'
 import {
@@ -187,7 +187,7 @@ export const WORKSPACE_NAV: WorkspaceNavItem[] = [
 
 export const WORKSPACE_HOME: WorkspaceNavItem = {
   key: 'hall',
-  label: '门厅',
+  label: '卷首',
   path: '/',
   icon: Home,
 }

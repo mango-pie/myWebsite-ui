@@ -256,25 +256,34 @@ withDefaults(
   }
 }
 
+.icon-action:active:not(:disabled) {
+  transform: scale(0.96) rotateY(-5deg);
+}
+
 .icon-action--primary {
-  background: var(--gradient-primary);
-  color: #fff;
-  box-shadow: var(--shadow-glow);
+  background: var(--color-primary);
+  color: #f5f0e1;
+  box-shadow: none;
 }
 
 .icon-action--primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-glow-lg);
+  transform: none;
+  background: var(--color-primary-dark);
+  box-shadow: none;
+}
+
+.icon-action--primary:active:not(:disabled) {
+  transform: scale(0.96) rotateY(-5deg);
 }
 
 .icon-action--soft {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-bg-secondary);
   border-color: var(--color-border);
   color: var(--color-text-primary);
 }
 
 .icon-action--soft:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-primary-08);
   border-color: var(--color-border-hover);
 }
 
@@ -285,17 +294,17 @@ withDefaults(
 }
 
 .icon-action--ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-primary-08);
   color: var(--color-text-primary);
 }
 
 .icon-action--danger {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.35);
-  color: #fca5a5;
+  background: rgba(160, 58, 42, 0.1);
+  border-color: rgba(160, 58, 42, 0.35);
+  color: var(--color-error);
 }
 
 .icon-action--danger:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.2);
+  background: rgba(160, 58, 42, 0.16);
 }
 </style>

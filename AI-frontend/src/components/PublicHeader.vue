@@ -15,7 +15,6 @@ const router = useRouter()
 const route = useRoute()
 const loginUserStore = useLoginUserStore()
 const capsStore = useCapabilitiesStore()
-const logoSrc = new URL('../assets/logo.svg', import.meta.url).href
 const mobileOpen = ref(false)
 
 const navItems = computed(() =>
@@ -24,7 +23,6 @@ const navItems = computed(() =>
     enabled: capsStore.enabled,
   }),
 )
-
 
 const go = (path: string) => {
   let target = path
@@ -63,10 +61,10 @@ const handleAvatarClick = async (key: string) => {
 <template>
   <header class="public-header">
     <div class="public-header__brand" @click="go('/')">
-      <img class="public-header__logo" :src="logoSrc" alt="Logo" />
+      <span class="public-header__mark" aria-hidden="true">紙</span>
       <div class="public-header__titles">
         <span class="public-header__name">{{ siteConfig.siteName }}</span>
-        <span class="public-header__sub">{{ siteConfig.siteSubtitle }}</span>
+        <span v-if="siteConfig.siteSubtitle" class="public-header__sub">{{ siteConfig.siteSubtitle }}</span>
       </div>
     </div>
 
@@ -79,7 +77,7 @@ const handleAvatarClick = async (key: string) => {
         :class="{ 'is-active': isNavActive(item, route.path) }"
         @click="go(item.path)"
       >
-        <component :is="item.icon" :size="16" :stroke-width="2" />
+        <component :is="item.icon" :size="16" :stroke-width="1.75" />
         <span>{{ item.label }}</span>
       </button>
     </nav>
@@ -151,6 +149,7 @@ const handleAvatarClick = async (key: string) => {
   width: 100%;
   height: 64px;
   padding: 0 24px;
+  font-family: var(--font-sans);
 }
 
 .public-header__brand {
@@ -161,11 +160,18 @@ const handleAvatarClick = async (key: string) => {
   cursor: pointer;
 }
 
-.public-header__logo {
-  width: 36px;
-  height: 36px;
-  object-fit: contain;
-  filter: drop-shadow(0 0 10px rgba(232, 121, 169, 0.4));
+.public-header__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border);
+  color: var(--color-primary);
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .public-header__titles {
@@ -175,12 +181,10 @@ const handleAvatarClick = async (key: string) => {
 }
 
 .public-header__name {
-  font-size: 18px;
-  font-weight: 600;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text-primary);
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -212,45 +216,22 @@ const handleAvatarClick = async (key: string) => {
   border-radius: var(--radius-md);
   background: transparent;
   color: var(--color-text-secondary);
-  font-family: inherit;
+  font-family: var(--font-sans);
   font-size: var(--font-size-md);
   cursor: pointer;
   transition:
-    background 0.2s ease,
-    color 0.2s ease;
+    background 0.25s ease,
+    color 0.25s ease;
 }
 
 .public-header__link:hover {
   color: var(--color-text-primary);
-  background: var(--color-primary-12);
+  background: var(--color-primary-08);
 }
 
 .public-header__link.is-active {
-  color: #fff;
-  background: var(--color-primary-20);
-}
-
-.public-header__link :deep(svg) {
-  transition: transform 0.2s ease;
-}
-
-.public-header__link:hover :deep(svg) {
-  transform: scale(1.1);
-}
-
-.public-header__link.is-active :deep(svg) {
-  transform: scale(1.12);
-  stroke-width: 2.6;
-  filter: drop-shadow(0 0 6px var(--color-primary-35));
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .public-header__link :deep(svg),
-  .public-header__link:hover :deep(svg),
-  .public-header__link.is-active :deep(svg) {
-    transition: none;
-    transform: none;
-  }
+  color: var(--color-primary);
+  background: var(--color-primary-12);
 }
 
 .public-header__actions {
@@ -265,11 +246,11 @@ const handleAvatarClick = async (key: string) => {
   align-items: center;
   gap: 8px;
   padding: 4px 10px 4px 4px;
-  border: none;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
   color: var(--color-text-primary);
-  font-family: inherit;
+  font-family: var(--font-sans);
   cursor: pointer;
 }
 
@@ -287,9 +268,9 @@ const handleAvatarClick = async (key: string) => {
   justify-content: center;
   width: 40px;
   height: 40px;
-  border: none;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-bg-card);
   color: var(--color-text-primary);
   cursor: pointer;
 }
@@ -301,10 +282,10 @@ const handleAvatarClick = async (key: string) => {
   left: 12px;
   right: 12px;
   padding: 8px;
-  border-radius: var(--radius-lg);
-  background: rgba(18, 24, 32, 0.96);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-lg);
   z-index: 50;
   flex-direction: column;
   gap: 4px;
@@ -320,7 +301,7 @@ const handleAvatarClick = async (key: string) => {
   border-radius: var(--radius-md);
   background: transparent;
   color: var(--color-text-secondary);
-  font-family: inherit;
+  font-family: var(--font-sans);
   font-size: 15px;
   cursor: pointer;
   text-align: left;
@@ -328,8 +309,8 @@ const handleAvatarClick = async (key: string) => {
 
 .public-header__drawer-link.is-active,
 .public-header__drawer-link:hover {
-  background: var(--color-primary-12);
-  color: var(--color-text-primary);
+  background: var(--color-primary-08);
+  color: var(--color-primary);
 }
 
 .menu-row {

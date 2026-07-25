@@ -108,13 +108,18 @@ onMounted(() => fetchEntry())
 
         <header class="diary-detail-header">
           <div class="diary-detail-header__meta">
-            <span>{{ formatDiaryDate(entry.diaryDate) }}</span>
+            <span class="diary-detail-header__date">{{ formatDiaryDate(entry.diaryDate) }}</span>
             <span v-if="entry.mood" class="diary-detail-header__mood">{{ getMoodEmoji(entry.mood) }}</span>
-            <a-tag v-if="entry.status === 1" color="green">完成</a-tag>
-            <a-tag v-else color="default">草稿</a-tag>
+            <span
+              class="wax-seal"
+              :class="entry.status === 1 ? 'wax-seal--read' : 'wax-seal--pending'"
+            >
+              {{ entry.status === 1 ? '已录' : '草稿' }}
+            </span>
             <span v-if="entry.wordCount" class="diary-detail-header__words">{{ entry.wordCount }} 字</span>
           </div>
           <h1 class="diary-detail-header__title">{{ diaryDisplayTitle(entry) }}</h1>
+          <p class="diary-detail-header__ornament" aria-hidden="true">❧</p>
         </header>
 
         <article class="post-body blog-prose" v-html="renderedContent" />
@@ -157,75 +162,104 @@ onMounted(() => fetchEntry())
 }
 
 .diary-detail-container {
-  max-width: 820px;
+  max-width: 40em;
   margin: 0 auto;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 32px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0.5em 0.5em 3em;
 }
 
 .diary-detail-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 1.5em;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 0.75em;
 }
 
 .diary-detail-toolbar__actions {
   display: flex;
-  gap: 8px;
+  gap: 0.5em;
 }
 
 .diary-detail-header {
-  margin-bottom: 32px;
-  padding-bottom: 24px;
+  margin-bottom: 2em;
+  padding-bottom: 1.25em;
   border-bottom: 1px solid var(--color-border);
+  text-align: center;
 }
 
 .diary-detail-header__meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  gap: 0.65em;
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
-  margin-bottom: 12px;
+  font-family: var(--font-sans);
+  font-size: 0.85em;
+  margin-bottom: 0.85em;
+}
+
+.diary-detail-header__date {
+  font-family: var(--font-serif);
+  font-style: italic;
+  letter-spacing: 0.04em;
 }
 
 .diary-detail-header__mood {
-  font-size: 1.2rem;
+  font-size: 1.1em;
+}
+
+.diary-detail-header__words {
+  color: var(--color-text-muted);
 }
 
 .diary-detail-header__title {
   margin: 0;
-  font-size: 1.75rem;
+  font-family: var(--font-serif);
+  font-size: clamp(1.75rem, 4vw, 2.35rem);
   line-height: 1.35;
+  letter-spacing: 0.04em;
+  color: var(--color-text-primary);
+}
+
+.diary-detail-header__ornament {
+  margin: 1em 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.9em;
+  letter-spacing: 0.2em;
 }
 
 .diary-detail-nav {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 40px;
-  padding-top: 24px;
-  border-top: 1px solid var(--color-border);
+  gap: 0.75em;
+  margin-top: 2.5em;
+  padding-top: 1.25em;
+  border-top: 1px dashed var(--color-border);
 }
 
 .diary-detail-nav__btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.03);
-  color: inherit;
+  gap: 0.5em;
+  padding: 0.75em 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
   cursor: pointer;
-  font: inherit;
+  font-family: var(--font-serif);
+  font-size: 0.92em;
   text-align: left;
+  transition: color 0.28s ease;
+}
+
+.diary-detail-nav__btn:hover:not(:disabled) {
+  color: var(--color-primary);
 }
 
 .diary-detail-nav__btn--next {
@@ -234,7 +268,7 @@ onMounted(() => fetchEntry())
 }
 
 .diary-detail-nav__btn:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 

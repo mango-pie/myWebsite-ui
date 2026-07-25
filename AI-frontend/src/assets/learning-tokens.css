@@ -1,12 +1,9 @@
 /**
- * 领域知识树 V3 — Design Tokens
+ * 领域知识树 — Design Tokens（纸间）
  * 作用域：.learning-domain
- *
- * 核心原则：派生自 base.css :root 变量，仅覆盖/扩展学习页特有语义。
- * 颜色、间距、圆角等基础值引用全局 token，确保视觉一致性。
+ * 派生自 base.css :root，主色对齐 sienna，字体对齐 Source Sans/Serif。
  */
 .learning-domain {
-  /* ========== 1. 语义色（引用 base.css :root） ========== */
   --ld-color-bg-page:       var(--color-bg-primary);
   --ld-color-bg-elevated:   var(--color-bg-card);
   --ld-color-bg-subtle:     var(--color-bg-surface);
@@ -19,44 +16,40 @@
   --ld-color-text-secondary: var(--color-text-secondary);
   --ld-color-text-tertiary:  var(--color-text-muted);
 
-  /* 主色：沿用 admin room accent（粉紫 #b8a4c9），与全站 admin 页面一致 */
-  --ld-color-primary:        #b8a4c9;
-  --ld-color-primary-hover:  #cbb8da;
-  --ld-color-primary-active: #a08db5;
-  --ld-color-primary-subtle: rgba(184, 164, 201, 0.16);
-  --ld-color-primary-muted:  rgba(184, 164, 201, 0.28);
+  --ld-color-primary:        var(--color-primary);
+  --ld-color-primary-hover:  var(--color-primary-light);
+  --ld-color-primary-active: var(--color-primary-dark);
+  --ld-color-primary-subtle: var(--color-primary-12);
+  --ld-color-primary-muted:  var(--color-primary-20);
 
-  --ld-color-link:       #cbb8da;
-  --ld-color-link-hover: #d8c9e4;
+  --ld-color-link:       var(--color-primary);
+  --ld-color-link-hover: var(--color-primary-dark);
 
-  /* AI 专属色：蓝紫（对齐全站 --color-secondary） */
   --ld-color-ai:        var(--color-secondary);
   --ld-color-ai-subtle: var(--color-secondary-20);
 
-  /* 门闩状态色 */
   --ld-color-gate-chat:      var(--color-text-secondary);
   --ld-color-gate-chat-bg:   var(--color-surface-hover);
-  --ld-color-gate-branch:    #cbb8da;
-  --ld-color-gate-branch-bg: rgba(184, 164, 201, 0.18);
+  --ld-color-gate-branch:    var(--color-primary);
+  --ld-color-gate-branch-bg: var(--color-primary-12);
   --ld-color-gate-leaf:      var(--color-success);
-  --ld-color-gate-leaf-bg:   rgba(16, 185, 129, 0.15);
+  --ld-color-gate-leaf-bg:   rgba(61, 107, 79, 0.12);
 
   --ld-color-danger:  var(--color-error);
-  --ld-color-danger-bg: rgba(239, 68, 68, 0.15);
+  --ld-color-danger-bg: rgba(160, 58, 42, 0.12);
   --ld-color-warning: var(--color-warning);
   --ld-color-success: var(--color-success);
 
-  /* 透明度辅助（继承 admin room 色板） */
-  --ld-color-primary-08:  rgba(184, 164, 201, 0.08);
-  --ld-color-primary-12:  rgba(184, 164, 201, 0.12);
-  --ld-color-primary-20:  rgba(184, 164, 201, 0.2);
-  --ld-color-primary-35:  rgba(184, 164, 201, 0.35);
-  --ld-color-ai-20:       rgba(124, 156, 224, 0.2);
-  --ld-color-success-15:  rgba(16, 185, 129, 0.15);
+  --ld-color-primary-08:  var(--color-primary-08);
+  --ld-color-primary-12:  var(--color-primary-12);
+  --ld-color-primary-20:  var(--color-primary-20);
+  --ld-color-primary-35:  var(--color-primary-35);
+  --ld-color-ai-20:       var(--color-secondary-20);
+  --ld-color-success-15:  rgba(61, 107, 79, 0.15);
   --ld-color-surface-hover: var(--color-surface-hover);
 
-  /* ========== 2. 排版（Major Third 1.25，与 base.css 字体一致） ========== */
-  --ld-font-family:      'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --ld-font-family:      var(--font-sans);
+  --ld-font-family-serif: var(--font-serif);
   --ld-font-family-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
 
   --ld-font-size-xs:   0.75rem;
@@ -78,7 +71,6 @@
   --ld-letter-spacing-normal: 0;
   --ld-letter-spacing-caps:   0.05em;
 
-  /* ========== 3. 间距（8px 网格） ========== */
   --ld-space-1:  4px;
   --ld-space-2:  8px;
   --ld-space-3:  12px;
@@ -93,39 +85,33 @@
   --ld-layout-gap:           20px;
   --ld-layout-header-height: 64px;
 
-  /* ========== 4. 圆角（引用 base.css） ========== */
-  --ld-radius-xs: var(--radius-sm);   /* 8px */
-  --ld-radius-sm: var(--radius-sm);   /* 8px */
-  --ld-radius-md: var(--radius-md);   /* 12px */
-  --ld-radius-lg: var(--radius-lg);   /* 16px */
-  --ld-radius-xl: var(--radius-xl);   /* 24px */
+  --ld-radius-xs: var(--radius-sm);
+  --ld-radius-sm: var(--radius-sm);
+  --ld-radius-md: var(--radius-md);
+  --ld-radius-lg: var(--radius-md);
+  --ld-radius-xl: var(--radius-md);
 
-  /* ========== 5. 阴影（引用 base.css） ========== */
   --ld-shadow-card:        var(--shadow-md);
   --ld-shadow-interactive: var(--shadow-lg);
   --ld-shadow-overlay:     var(--shadow-xl);
 
-  /* ========== 6. 动效 ========== */
-  --ld-duration-fast:    0.15s;
-  --ld-duration-normal:  0.25s;
-  --ld-duration-slow:    0.35s;
+  --ld-duration-fast:    0.2s;
+  --ld-duration-normal:  0.35s;
+  --ld-duration-slow:    0.5s;
   --ld-duration-shimmer: 1.8s;
 
-  --ld-ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
-  --ld-ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+  --ld-ease-out:    ease;
+  --ld-ease-in-out: ease;
 
-  /* ========== 7. 滚动条 ========== */
   --ld-scrollbar-size:        6px;
   --ld-scrollbar-track:       transparent;
   --ld-scrollbar-thumb:       var(--color-border-hover);
-  --ld-scrollbar-thumb-hover: #cbb8da;
-  --ld-scrollbar-radius:      3px;
+  --ld-scrollbar-thumb-hover: var(--color-primary);
+  --ld-scrollbar-radius:      2px;
 
-  /* ========== 8. 骨架屏 ========== */
-  --ld-skeleton-highlight: rgba(255, 255, 255, 0.12);
+  --ld-skeleton-highlight: rgba(26, 26, 24, 0.06);
   --ld-skeleton-base:      var(--color-surface-hover);
 
-  /* ========== 9. Z-index ========== */
   --ld-z-base:        0;
   --ld-z-sticky:      10;
   --ld-z-dropdown:    100;
@@ -133,7 +119,6 @@
   --ld-z-attach-sheet: 250;
   --ld-z-modal:       300;
 
-  /* ========== 10. 焦点 ========== */
   --ld-focus-underline-width: 2px;
-  --ld-focus-underline-color: #cbb8da;
+  --ld-focus-underline-color: var(--color-primary);
 }

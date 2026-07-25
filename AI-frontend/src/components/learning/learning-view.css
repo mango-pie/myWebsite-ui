@@ -140,7 +140,7 @@
 
 .learning-domain .domain-tree-viz__root-circle {
   fill: rgba(184, 164, 201, 0.55);
-  stroke: #cbb8da;
+  stroke: var(--ld-color-primary, #a04a2a);
   stroke-width: 2;
 }
 
@@ -169,7 +169,7 @@
 .learning-domain .domain-tree-viz__node.is-empty .domain-tree-viz__circle {
   fill: transparent;
   stroke-dasharray: 4 3;
-  stroke: #cbb8da;
+  stroke: var(--ld-color-primary, #a04a2a);
 }
 
 .learning-domain .domain-tree-viz__node.is-active .domain-tree-viz__circle {
@@ -193,7 +193,7 @@
 }
 
 .learning-domain .domain-tree-viz__hint {
-  fill: #cbb8da;
+  fill: var(--ld-color-primary, #a04a2a);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;

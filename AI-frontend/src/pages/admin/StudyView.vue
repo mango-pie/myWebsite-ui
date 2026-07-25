@@ -27,7 +27,7 @@ onMounted(() => {
 <template>
   <div id="studyView" class="study-page admin-theme-page">
     <header class="study-page__header">
-      <h1 class="study-page__title">学习工作台</h1>
+      <h1 class="study-page__title">学习</h1>
       <p class="study-page__subtitle">任务 · 专注 · 习惯，像 TickTick 一样管理你的学习节奏</p>
     </header>
 
@@ -35,7 +35,7 @@ onMounted(() => {
       v-if="ctx.forbidden.value"
       status="403"
       title="无权访问"
-      sub-title="学习工作台仅 administrator 角色可用"
+      sub-title="学习仅 administrator 角色可用"
     />
 
     <a-spin v-else :spinning="ctx.loading.value">

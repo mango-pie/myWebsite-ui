@@ -13,35 +13,35 @@ import type {
 export const siteAvatarSrc = new URL('../assets/head.jpg', import.meta.url).href
 
 export const siteConfig = {
-  siteName: '某某の小站',
-  siteSubtitle: '在代码、笔记与灵感实验间穿梭',
-  ownerName: '开发者',
-  bio: '在代码与日常之间慢慢摸索的普通人。喜欢记录技术笔记，偶尔用 AI 做点有趣的小实验。',
+  siteName: '纸间',
+  siteSubtitle: '',
+  ownerName: '纸间',
+  bio: '一本摊开的私人手册：随笔、日记与知识，在米白书页间慢慢落墨。',
   avatar: siteAvatarSrc,
 
   rooms: {
-    blog: { title: '随笔', hint: '杂志式阅读与记录' },
-    diary: { title: '日记', hint: '写给自己的手账' },
+    blog: { title: '随笔', hint: '读与写' },
+    diary: { title: '日记', hint: '留给自己的页' },
     knowledge: { title: '知识库', hint: '文档与问答' },
-    lab: { title: '实验室', hint: '一句话生成小应用' },
-    chat: { title: '对话', hint: '继续未完的交谈' },
+    lab: { title: '实验室', hint: '试一试小应用' },
+    chat: { title: '对话', hint: '未写完的交谈' },
   },
 
   blogTitle: '随笔',
-  blogSubtitle: '记录想法与实验笔记',
+  blogSubtitle: '纸上的想法',
 
   diaryTitle: '日记',
-  diarySubtitle: '写给自己的每日记录',
+  diarySubtitle: '每日手记',
 
-  heroLabTitle: 'AI 实验室',
+  heroLabTitle: '实验室',
   heroLabDesc: '用一句话描述想法，生成可运行的小应用',
   heroLabPlaceholder: '例如：做一个简洁的个人待办清单，支持添加和勾选完成……',
   quickPrompts: ['个人主页', '待办清单', '读书笔记卡片', '暗黑风格仪表盘'],
 
   labPage: {
-    subtitle: '描述你的想法，一键生成可运行的小应用',
-    entryTitle: '进入 AI 实验室',
-    entryDesc: '用一句话生成可运行的小应用，探索 AI 创作的可能',
+    subtitle: '描述想法，生成可运行的小应用',
+    entryTitle: '进入实验室',
+    entryDesc: '用一句话生成可运行的小应用',
     entryAction: '进入实验室',
   },
 
@@ -61,7 +61,7 @@ export const siteConfig = {
   },
 
   about: {
-    title: '关于我',
+    title: '关于',
     skills: ['Vue 3', 'TypeScript', 'Spring Boot', 'MySQL', 'AI 应用'],
     interests: ['技术笔记', '分子模拟', '轻音乐'],
     contact: {
@@ -72,7 +72,7 @@ export const siteConfig = {
   },
 
   footer: {
-    tagline: '记录思考，分享实验',
+    tagline: '合上书页，墨痕仍在',
     links: [
       { label: '关于', path: '/about' },
       { label: '随笔', path: '/blog' },
@@ -89,9 +89,9 @@ export const siteConfig = {
     ],
   },
 
-  /** 全站背景图轮换：图片放在 src/assets/backgrounds/ */
+  /** 全站背景图轮换：纸间浅色主题默认关闭，避免压过纸感 */
   backgroundSlideshow: {
-    enabled: true,
+    enabled: false,
     intervalMs: 5_000,
     fadeMs: 1200,
   },

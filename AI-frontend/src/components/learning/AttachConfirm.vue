@@ -238,7 +238,7 @@ function onConfirm() {
 }
 
 .attach-sheet__title-icon {
-  color: var(--ld-color-primary, #b8a4c9);
+  color: var(--ld-color-primary, #a04a2a);
 }
 
 .attach-sheet__close {
@@ -328,7 +328,7 @@ function onConfirm() {
 
 .attach-sheet__segment.is-active {
   background: var(--ld-color-primary-subtle, rgba(184, 164, 201, 0.16));
-  color: var(--ld-color-primary, #b8a4c9);
+  color: var(--ld-color-primary, #a04a2a);
   box-shadow: inset 0 0 0 1px var(--ld-color-primary-muted, rgba(184, 164, 201, 0.28));
 }
 

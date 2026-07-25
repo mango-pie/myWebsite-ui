@@ -1,20 +1,15 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { renderBlogMarkdown } from '@/utils/blogMarkdown'
-import {
-  CalendarOutlined,
-  TagOutlined,
-  MessageOutlined,
-} from '@ant-design/icons-vue'
-import { ArrowLeft, Pencil, Heart, Share2, Eye, Copy } from 'lucide-vue-next'
+import { ArrowLeft, Pencil, Heart, Share2, Copy } from 'lucide-vue-next'
 import { message, Spin } from 'ant-design-vue'
 import { getBlogPostVo, incrementLikeCount, incrementViewCount } from '@/api/blogPostController'
-import { getTagCloud } from '@/api/blogTagController'
 import { getPublishedBlogPostPage } from '@/api/blogPostController'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { isAdminRole } from '@/config/permission'
 import { rememberLastBlogPost } from '@/composables/useBlogLastPost'
+import { siteConfig } from '@/config/site'
 import {
   loadBlogSettings,
   markBlogLikeDisabled,
@@ -29,10 +24,10 @@ const loginUserStore = useLoginUserStore()
 // 响应式数据
 const post = ref<API.BlogPostVO | null>(null)
 const relatedPosts = ref<API.BlogPostVO[]>([])
-const tagCloud = ref<API.BlogTagVO[]>([])
 const loading = ref(true)
 const isLiked = ref(false)
 const showShareModal = ref(false)
+const shareUrl = computed(() => (typeof window !== 'undefined' ? window.location.href : ''))
 const blogUx = ref<BlogUxSettings>({
   pageSizeDefault: 10,
   summaryMaxLength: 200,
@@ -48,10 +43,9 @@ watch(
   (newId) => {
     if (newId) {
       fetchPost()
-      fetchTagCloud()
       fetchRelatedPosts()
     }
-  }
+  },
 )
 
 // 渲染文章内容
@@ -110,27 +104,13 @@ const fetchPost = async () => {
   }
 }
 
-// 获取标签云
-const fetchTagCloud = async () => {
-  try {
-    const response = await getTagCloud()
-    console.log('标签云响应:', response)
-    if (response.data?.data) {
-      tagCloud.value = response.data.data
-    }
-  } catch (error) {
-    console.error('获取标签云失败:', error)
-  }
-}
-
 // 获取相关文章
 const fetchRelatedPosts = async () => {
   try {
     const currentId = Number(route.params.id)
     const response = await getPublishedBlogPostPage({ pageNum: 1, pageSize: 5 })
-    console.log('相关文章响应:', response)
     if (response.data?.data?.records) {
-      relatedPosts.value = response.data.data.records.filter(item => item.id !== currentId)
+      relatedPosts.value = response.data.data.records.filter((item) => item.id !== currentId)
     }
   } catch (error) {
     console.error('获取相关文章失败:', error)
@@ -215,161 +195,98 @@ const handleEdit = () => {
 onMounted(async () => {
   blogUx.value = await loadBlogSettings()
   fetchPost()
-  fetchTagCloud()
   fetchRelatedPosts()
 })
 </script>
 
 <template>
-  <div id="blogPostPage">
+  <div id="blogPostPage" class="chapter-page">
     <Spin :spinning="loading">
-      <div v-if="!loading && !post" class="empty-state">
-        <h2>文章不存在或已被删除</h2>
-        <a-button type="primary" @click="goBack">返回首页</a-button>
+      <div v-if="!loading && !post" class="chapter-empty">
+        <h2>此篇不存，或已撕去</h2>
+        <button type="button" class="chapter-link-btn" @click="goBack">返回</button>
       </div>
 
-      <div class="post-header" v-if="post">
-        <div class="post-header__cover">
-          <img :src="post.coverUrl || 'https://picsum.photos/seed/default/1200/600'" :alt="post.title" />
-          <div class="post-header__overlay">
-            <button class="post-header__back" @click="goBack">
-              <ArrowLeft :size="16" class="btn-icon btn-icon--back" /> 返回
-            </button>
-            <button v-if="canEdit" class="post-header__back post-header__edit" @click="handleEdit">
-              <Pencil :size="16" class="btn-icon btn-icon--edit" /> 编辑
-            </button>
-          </div>
+      <article v-if="post" class="chapter">
+        <div class="chapter__toolbar">
+          <button type="button" class="chapter-link-btn" @click="goBack">
+            <ArrowLeft :size="15" /> 返回目录
+          </button>
+          <button v-if="canEdit" type="button" class="chapter-link-btn" @click="handleEdit">
+            <Pencil :size="15" /> 修订
+          </button>
         </div>
-      </div>
 
-      <div class="post-container" v-if="post">
-        <article class="post-content">
-          <header class="post-meta">
-            <span 
-              class="post-meta__category"
-              @click="handleCategoryClick(post.categoryId)"
-            >
+        <header class="chapter__head">
+          <p class="chapter__kicker">
+            <button type="button" class="chapter__cat" @click="handleCategoryClick(post.categoryId)">
               {{ post.categoryName || '未分类' }}
-            </span>
-            <span class="post-meta__date">
-              <CalendarOutlined /> {{ formatDate(post.createdTime) }}
-            </span>
-          </header>
-
-          <h1 class="post-title">{{ post.title }}</h1>
-
-          <div class="post-author">
-            <img :src="post.userAvatar || 'https://picsum.photos/seed/avatar/100/100'" :alt="post.userName" class="post-author__avatar" />
-            <div class="post-author__info">
-              <span class="post-author__name">{{ post.userName || '匿名作者' }}</span>
-              <span class="post-author__bio">{{ post.summary }}</span>
-            </div>
-            <div class="post-stats">
-              <span v-if="blogUx.viewCountEnabled" class="post-stat">
-                <Eye :size="15" class="meta-icon-eye" /> {{ post.viewCount || 0 }}
-              </span>
-              <span v-if="blogUx.allowLike" class="post-stat">
-                <Heart :size="15" class="meta-icon-beat" /> {{ post.likeCount || 0 }}
-              </span>
-            </div>
+            </button>
+            <span>·</span>
+            <span>{{ formatDate(post.createdTime) }}</span>
+          </p>
+          <h1 class="chapter__title">{{ post.title }}</h1>
+          <p v-if="post.summary" class="chapter__deck">{{ post.summary }}</p>
+          <p class="chapter__ornament" aria-hidden="true">❧</p>
+          <div class="chapter__byline">
+            <span>{{ post.userName || siteConfig.ownerName }}</span>
+            <span v-if="blogUx.viewCountEnabled" class="wax-seal wax-seal--sticker">阅 {{ post.viewCount || 0 }}</span>
+            <span v-if="blogUx.allowLike" class="wax-seal">赞 {{ post.likeCount || 0 }}</span>
           </div>
-
-          <div class="post-tags">
-            <span 
-              v-for="tag in post.tags" 
-              :key="tag.id" 
-              class="post-tag"
+          <div v-if="post.tags?.length" class="chapter__tags">
+            <button
+              v-for="tag in post.tags"
+              :key="tag.id"
+              type="button"
+              class="chapter__tag"
               @click="handleTagClick(tag)"
             >
-              <TagOutlined /> {{ tag.name }}
-            </span>
-          </div>
-
-          <div
-            class="post-body blog-prose"
-            v-html="renderedContent"
-          ></div>
-
-          <div class="post-actions">
-            <button
-              v-if="blogUx.allowLike"
-              class="action-btn"
-              :class="{ 'action-btn--liked': isLiked }"
-              @click="handleLike"
-            >
-              <Heart :size="16" class="action-btn__heart" :fill="isLiked ? 'currentColor' : 'none'" /> {{ post.likeCount || 0 }}
-            </button>
-            <button 
-              class="action-btn"
-              @click="showShareModal = true"
-            >
-              <Share2 :size="16" class="action-btn__share" /> 分享
+              #{{ tag.name }}
             </button>
           </div>
-        </article>
+        </header>
 
-        <aside class="post-sidebar">
-          <div class="sidebar-section">
-            <h3 class="sidebar-section__title">相关文章</h3>
-            <ul class="related-posts">
-              <li v-for="relatedPost in relatedPosts" :key="relatedPost.id" class="related-post" @click="handleRelatedPostClick(relatedPost.id)">
-                <img :src="relatedPost.coverUrl || 'https://picsum.photos/seed/related/100/60'" alt="" />
-                <div>
-                  <a>{{ relatedPost.title }}</a>
-                  <span>{{ formatDate(relatedPost.createdTime) }}</span>
-                </div>
-              </li>
-            </ul>
-          </div>
+        <div class="chapter__body blog-prose" v-html="renderedContent" />
 
-          <div class="sidebar-section">
-            <h3 class="sidebar-section__title">标签云</h3>
-            <div class="tag-cloud">
-              <span 
-                v-for="tag in tagCloud" 
-                :key="tag.id"
-                class="tag-cloud__item"
-                @click="handleTagClick(tag)"
-              >
-                {{ tag.name }}
-              </span>
-            </div>
-          </div>
-        </aside>
-      </div>
-
-      <div class="comments-section" v-if="post">
-        <div class="comments-container">
-          <h2 class="comments-title">
-            <MessageOutlined /> 评论
-          </h2>
-
-          <div class="comment-input">
-            <img src="https://picsum.photos/seed/guest/50/50" alt="头像" class="comment-input__avatar" />
-            <textarea
-              placeholder="写下你的评论..."
-              class="comment-input__textarea"
-              disabled
-            ></textarea>
-            <button class="comment-input__submit" disabled>发表评论</button>
-          </div>
-
-          <div class="comments-list">
-            <p class="no-comments">暂无评论，快来抢沙发吧！</p>
-          </div>
+        <div class="chapter__actions">
+          <button
+            v-if="blogUx.allowLike"
+            type="button"
+            class="chapter-action"
+            :class="{ 'is-active': isLiked }"
+            @click="handleLike"
+          >
+            <Heart :size="15" :fill="isLiked ? 'currentColor' : 'none'" />
+            {{ isLiked ? '已赞' : '赞赏' }}
+          </button>
+          <button type="button" class="chapter-action" @click="showShareModal = true">
+            <Share2 :size="15" /> 传抄链接
+          </button>
         </div>
-      </div>
 
-      <a-modal
-        v-model:open="showShareModal"
-        title="分享文章"
-        :footer="null"
-      >
+        <aside v-if="relatedPosts.length" class="chapter__seealso">
+          <h2 class="chapter__seealso-title">另见</h2>
+          <button
+            v-for="relatedPost in relatedPosts"
+            :key="relatedPost.id"
+            type="button"
+            class="chapter__seealso-row"
+            @click="handleRelatedPostClick(relatedPost.id)"
+          >
+            <span>{{ relatedPost.title }}</span>
+            <span>{{ formatDate(relatedPost.createdTime) }}</span>
+          </button>
+        </aside>
+
+        <p class="chapter__footnote">评论栏暂未启封。若有想法，可先自行誊录。</p>
+      </article>
+
+      <a-modal v-model:open="showShareModal" title="传抄此篇" :footer="null">
         <div class="share-modal">
-          <p>复制链接分享给朋友：</p>
-          <input type="text" :value="window.location.href" readonly class="share-modal__input" />
-          <button class="share-modal__btn" @click="handleShare">
-            <Copy :size="15" class="btn-icon" /> 复制链接
+          <p>复制链接：</p>
+          <input type="text" :value="shareUrl" readonly class="share-modal__input" />
+          <button type="button" class="share-modal__btn" @click="handleShare">
+            <Copy :size="15" /> 复制
           </button>
         </div>
       </a-modal>
@@ -377,497 +294,256 @@ onMounted(async () => {
   </div>
 </template>
 
+
 <style scoped>
-#blogPostPage {
-  min-height: 100vh;
-  background: transparent;
+.chapter-page {
+  min-height: calc(100vh - 10rem);
+  padding-bottom: 2em;
 }
 
-/* 图标微动效 */
-.btn-icon,
-.post-stat svg,
-.action-btn svg {
-  vertical-align: -0.16em;
-}
-.post-header__back .btn-icon {
-  transition: transform var(--transition-fast);
-}
-.post-header__back:hover .btn-icon--back {
-  transform: translateX(-3px);
-}
-.post-header__edit:hover .btn-icon--edit {
-  transform: rotate(-12deg) scale(1.1);
-}
-.action-btn__heart,
-.action-btn__share {
-  transition: transform var(--transition-fast);
-}
-.action-btn:hover .action-btn__heart {
-  animation: postHeartBeat 0.6s ease;
-}
-.action-btn--liked .action-btn__heart {
-  color: #ff4d6d;
-}
-.action-btn:hover .action-btn__share {
-  transform: rotate(-12deg) scale(1.12);
-}
-.share-modal__btn .btn-icon {
-  transition: transform var(--transition-fast);
-}
-.share-modal__btn:hover .btn-icon {
-  transform: scale(1.15);
-}
-@keyframes postHeartBeat {
-  0%, 100% { transform: scale(1); }
-  30% { transform: scale(1.3); }
-  50% { transform: scale(1.05); }
-  70% { transform: scale(1.22); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .post-header__back:hover .btn-icon,
-  .action-btn:hover .action-btn__heart,
-  .action-btn:hover .action-btn__share,
-  .share-modal__btn:hover .btn-icon {
-    animation: none;
-    transform: none;
-  }
-}
-
-.empty-state {
-  text-align: center;
-  padding: 80px 20px;
-  background: #fff;
-  border-radius: 12px;
-  margin: 40px auto;
-  max-width: 600px;
-}
-
-.empty-state h2 {
-  color: #666;
-  margin-bottom: 24px;
-}
-
-.post-header {
-  position: relative;
-}
-
-.post-header__cover {
-  height: 400px;
-  overflow: hidden;
-  position: relative;
-}
-
-.post-header__cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.post-header__overlay {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  right: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.post-header__back {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.9);
-  border: none;
-  padding: 10px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background 0.2s;
-}
-
-.post-header__back:hover {
-  background: #fff;
-}
-
-.post-container {
-  max-width: 1200px;
+.chapter {
+  max-width: 40em;
   margin: 0 auto;
-  padding: 40px 20px;
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 32px;
+  padding: 0.5em 0.75em 3em;
 }
 
-.post-content {
-  background: var(--prose-bg);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  padding: 40px;
-  box-shadow: var(--shadow-md);
-  backdrop-filter: blur(16px);
-}
-
-.post-meta {
+.chapter__toolbar {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+  justify-content: space-between;
+  gap: 0.75em;
+  margin-bottom: 1.5em;
 }
 
-.post-meta__category {
-  background: var(--color-primary-20);
-  color: #fff;
-  padding: 6px 14px;
-  border-radius: 4px;
-  font-size: 13px;
-  font-weight: 500;
+.chapter-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.85em;
   cursor: pointer;
+  padding: 0.25em 0;
+  transition: color 0.25s ease;
 }
 
-.post-meta__category:hover {
-  background: var(--color-primary-35);
+.chapter-link-btn:hover {
+  color: var(--color-primary);
 }
 
-.post-meta__date {
-  color: var(--color-text-muted);
-  font-size: 14px;
+.chapter__head {
+  text-align: center;
+  margin-bottom: 2em;
+  padding-bottom: 1.5em;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.chapter__kicker {
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 4px;
+  gap: 0.5em;
+  margin: 0 0 0.85em;
+  font-family: var(--font-sans);
+  font-size: 0.8em;
+  color: var(--color-text-muted);
 }
 
-.post-title {
-  font-size: 32px;
+.chapter__cat {
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.chapter__title {
+  margin: 0 0 0.65em;
+  font-family: var(--font-serif);
+  font-size: clamp(1.85rem, 4.5vw, 2.6rem);
   font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0 0 24px;
   line-height: 1.3;
+  letter-spacing: 0.04em;
+  color: var(--color-text-primary);
 }
 
-.post-author {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  margin-bottom: 24px;
+.chapter__deck {
+  margin: 0 auto 1em;
+  max-width: 32em;
+  font-size: 1em;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
 }
 
-.post-author__avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.post-author__info {
-  flex: 1;
-}
-
-.post-author__name {
-  display: block;
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.post-author__bio {
-  font-size: 13px;
+.chapter__ornament {
+  margin: 0.5em 0 1em;
   color: var(--color-text-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  letter-spacing: 0.25em;
 }
 
-.post-stats {
-  display: flex;
-  gap: 16px;
-}
-
-.post-stat {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--color-text-muted);
-  font-size: 13px;
-}
-
-.post-tags {
+.chapter__byline {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-
-.post-tag {
-  display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
+  gap: 0.55em;
+  font-family: var(--font-serif);
+  font-size: 0.95em;
   color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
 }
 
-.post-tag:hover {
-  background: var(--color-primary-12);
-  color: var(--color-text-primary);
-}
-
-.post-body {
-  width: 100%;
-}
-
-.post-actions {
+.chapter__tags {
   display: flex;
-  gap: 16px;
-  margin-top: 32px;
-  padding-top: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65em;
+  margin-top: 1em;
+}
+
+.chapter__tag {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.8em;
+  cursor: pointer;
+}
+
+.chapter__tag:hover {
+  color: var(--color-primary);
+}
+
+.chapter__body {
+  margin: 0 auto;
+}
+
+.chapter__actions {
+  display: flex;
+  gap: 0.75em;
+  justify-content: center;
+  margin: 2.25em 0 1.5em;
+  padding-top: 1.25em;
+  border-top: 1px dashed var(--color-border);
+}
+
+.chapter-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  height: 2.3em;
+  padding: 0 0.95em;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.85em;
+  cursor: pointer;
+  transition:
+    color 0.25s ease,
+    border-color 0.25s ease,
+    background 0.25s ease;
+}
+
+.chapter-action:hover,
+.chapter-action.is-active {
+  color: var(--color-primary);
+  border-color: rgba(122, 31, 31, 0.35);
+  background: var(--color-primary-08);
+}
+
+.chapter__seealso {
+  margin-top: 2em;
+  padding-top: 1.25em;
   border-top: 1px solid var(--color-border);
 }
 
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.action-btn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary-light);
-}
-
-.action-btn--liked {
-  border-color: #ff4d4f;
-  color: #ff4d4f;
-}
-
-.post-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.sidebar-section {
-  background: var(--color-bg-card);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  padding: 20px;
-}
-
-.sidebar-section__title {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0 0 16px;
-  padding-bottom: 12px;
+.chapter__seealso-title {
+  margin: 0 0 0.85em;
+  font-family: var(--font-serif);
+  font-size: 1.05em;
+  letter-spacing: 0.2em;
+  text-align: center;
   color: var(--color-text-primary);
-  border-bottom: 2px solid var(--color-primary);
 }
 
-.related-posts {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.related-post {
+.chapter__seealso-row {
   display: flex;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--color-border);
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.related-post:last-child {
-  border-bottom: none;
-}
-
-.related-post:hover {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.related-post img {
-  width: 100px;
-  height: 60px;
-  object-fit: cover;
-  border-radius: 4px;
-}
-
-.related-post div {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
   justify-content: space-between;
-}
-
-.related-post a {
-  font-size: 13px;
-  color: var(--color-text-primary);
-  text-decoration: none;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.related-post span {
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-
-.tag-cloud {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.tag-cloud__item {
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 4px;
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.tag-cloud__item:hover {
-  background: var(--color-primary-12);
-  color: var(--color-text-primary);
-}
-
-.comments-section {
-  background: transparent;
-  margin-top: 32px;
-}
-
-.comments-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 40px 20px;
-}
-
-.comments-title {
-  color: var(--color-text-primary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0 0 24px;
-}
-
-.comment-input {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 32px;
-}
-
-.comment-input__avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.comment-input__textarea {
-  flex: 1;
-  padding: 12px 16px;
-  border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--color-text-primary);
-  border-radius: 8px;
-  font-size: 14px;
-  resize: none;
-  min-height: 80px;
-}
-
-.comment-input__submit {
-  align-self: flex-end;
-  padding: 10px 24px;
-  background: var(--gradient-primary);
-  color: #fff;
+  gap: 1em;
+  width: 100%;
+  padding: 0.7em 0.2em;
   border: none;
-  border-radius: 8px;
+  border-bottom: 1px dashed rgba(169, 144, 112, 0.45);
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-serif);
+  font-size: 0.95em;
+  text-align: left;
   cursor: pointer;
-  font-size: 14px;
-  transition: background 0.2s;
 }
 
-.comment-input__submit:hover {
-  background: #764ba2;
+.chapter__seealso-row:hover {
+  color: var(--color-primary);
+  background: rgba(160, 120, 70, 0.08);
 }
 
-.no-comments {
-  text-align: center;
+.chapter__seealso-row span:last-child {
+  flex-shrink: 0;
+  font-family: var(--font-sans);
+  font-size: 0.8em;
+  font-style: italic;
   color: var(--color-text-muted);
-  padding: 40px 0;
 }
 
-.share-modal {
+.chapter__footnote {
+  margin: 1.75em 0 0;
   text-align: center;
+  font-family: var(--font-sans);
+  font-size: 0.75em;
+  color: var(--color-text-muted);
+}
+
+.chapter-empty {
+  text-align: center;
+  padding: 4em 1em;
+  color: var(--color-text-secondary);
+}
+
+.chapter-empty h2 {
+  font-family: var(--font-serif);
+  margin-bottom: 1em;
+}
+
+.share-modal p {
+  margin-bottom: 0.75em;
+  color: var(--color-text-secondary);
 }
 
 .share-modal__input {
   width: 100%;
-  padding: 12px;
-  margin: 16px 0;
+  margin-bottom: 0.75em;
+  padding: 0.55em 0.7em;
   border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  background: var(--color-bg-card);
   color: var(--color-text-primary);
-  border-radius: 8px;
-  font-size: 14px;
+  font-family: var(--font-sans);
 }
 
 .share-modal__btn {
-  padding: 10px 32px;
-  background: var(--gradient-primary);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.45em 0.9em;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  background: var(--color-primary);
+  color: #f5f0e1;
+  font-family: var(--font-sans);
   cursor: pointer;
-  font-size: 14px;
-}
-
-.share-modal__btn:hover {
-  filter: brightness(1.05);
-}
-
-@media (max-width: 960px) {
-  .post-container {
-    grid-template-columns: 1fr;
-  }
-
-  .post-title {
-    font-size: 24px;
-  }
-
-  .post-content {
-    padding: 24px;
-  }
-
-  .post-author {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .post-header__cover {
-    height: 250px;
-  }
 }
 </style>

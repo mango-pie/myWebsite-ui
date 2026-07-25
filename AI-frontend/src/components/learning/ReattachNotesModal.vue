@@ -379,7 +379,7 @@ function onClose() {
 
 .reattach-steps__item.is-active .reattach-steps__dot {
   background: var(--ld-color-primary-subtle, rgba(184, 164, 201, 0.16));
-  color: var(--ld-color-primary, #b8a4c9);
+  color: var(--ld-color-primary, #a04a2a);
   border-color: var(--ld-color-primary-muted, rgba(184, 164, 201, 0.28));
 }
 
@@ -466,7 +466,7 @@ function onClose() {
 }
 
 .reattach-summary-row__branch {
-  color: var(--ld-color-primary, #b8a4c9);
+  color: var(--ld-color-primary, #a04a2a);
   font-size: var(--ld-font-size-xs, 0.75rem);
   font-weight: var(--ld-font-weight-semibold, 600);
 }
@@ -484,7 +484,7 @@ function onClose() {
 .reattach-progress-bar__fill {
   height: 100%;
   border-radius: 3px;
-  background: var(--ld-color-primary, #b8a4c9);
+  background: var(--ld-color-primary, #a04a2a);
   transition: width 0.3s ease;
 }
 

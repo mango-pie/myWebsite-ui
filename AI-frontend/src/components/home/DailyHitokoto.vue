@@ -113,6 +113,42 @@ onMounted(() => {
   background: transparent;
 }
 
+.daily-hitokoto--plain .daily-hitokoto__header {
+  margin-bottom: 0.55em;
+}
+
+.daily-hitokoto--plain .daily-hitokoto__label {
+  color: var(--color-primary);
+  font-family: var(--font-sans);
+  font-size: 0.72em;
+  letter-spacing: 0.16em;
+}
+
+.daily-hitokoto--plain .daily-hitokoto__type {
+  border-radius: 1px;
+  background: #efe4c4;
+  border: 1px dashed #b89a6a;
+  color: var(--color-text-primary);
+  transform: rotate(1deg);
+}
+
+.daily-hitokoto--plain .daily-hitokoto__refresh {
+  border-radius: 2px;
+  background: transparent;
+}
+
+.daily-hitokoto--plain .daily-hitokoto__quote {
+  font-family: var(--font-serif);
+  font-size: 0.95em;
+  line-height: 1.85;
+  color: var(--color-text-primary);
+}
+
+.daily-hitokoto--plain .daily-hitokoto__from {
+  font-family: var(--font-sans);
+  font-size: 0.75em;
+}
+
 .daily-hitokoto__header {
   display: flex;
   align-items: center;

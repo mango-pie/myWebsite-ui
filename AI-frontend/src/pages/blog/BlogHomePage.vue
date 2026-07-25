@@ -8,10 +8,10 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
-  CalendarOutlined,
-  TagOutlined,
-} from '@ant-design/icons-vue'
-import { PenLine, Search, X, Eye, Heart } from 'lucide-vue-next'
+  PenLine,
+  Search,
+  X,
+} from 'lucide-vue-next'
 import IconAction from '@/components/ui/IconAction.vue'
 import { queryBlogPostPage, incrementLikeCount } from '@/api/blogPostController'
 import { getAllCategories } from '@/api/blogCategoryController'
@@ -44,8 +44,8 @@ const blogUx = ref<BlogUxSettings>({
 })
 
 const layoutOptions = [
-  { label: '卡片', value: 'card' as BlogLayoutMode },
-  { label: '时间线', value: 'timeline' as BlogLayoutMode },
+  { label: '目录', value: 'card' as BlogLayoutMode },
+  { label: '年表', value: 'timeline' as BlogLayoutMode },
 ]
 
 const searchQuery = ref('')
@@ -279,6 +279,7 @@ watch(sortBy, () => {
       <div class="blog-header__content">
         <div class="blog-header__top">
           <div>
+            <p class="blog-header__kicker">随笔卷</p>
             <h1 class="blog-header__title">{{ siteConfig.blogTitle }}</h1>
             <p class="blog-header__desc">{{ siteConfig.blogSubtitle }}</p>
           </div>
@@ -289,23 +290,27 @@ watch(sortBy, () => {
               :options="layoutOptions"
               @change="(val: BlogLayoutMode) => setLayoutMode(val)"
             />
-            <IconAction :icon="PenLine" label="发布文章" variant="primary" size="lg" motion="pop" @click="handleCreatePost" />
+            <IconAction
+              :icon="PenLine"
+              label="落笔"
+              variant="primary"
+              size="md"
+              motion="pop"
+              @click="handleCreatePost"
+            />
           </div>
         </div>
 
         <div class="blog-header__search">
-          <div class="search-group">
-            <a-input
-              v-model:value="searchQuery"
-              placeholder="搜索文章标题..."
-              class="search-input"
-              @pressEnter="handleSearch"
+          <label class="blog-find">
+            <Search :size="14" :stroke-width="2" aria-hidden="true" />
+            <input
+              v-model="searchQuery"
+              type="search"
+              placeholder="在书页中检索标题…"
+              @keydown.enter.prevent="handleSearch"
             />
-            <a-button type="primary" class="search-btn" @click="handleSearch">
-              <template #icon><Search :size="15" /></template>
-              搜索
-            </a-button>
-          </div>
+          </label>
         </div>
       </div>
     </header>
@@ -382,55 +387,43 @@ watch(sortBy, () => {
 
         <template v-else>
           <div v-if="!loading && allPosts.length === 0" class="post-list--empty">
-            暂无文章，换个关键词或筛选条件试试
+            这一卷暂无篇章。换个关键词，或先落下一笔。
           </div>
-          <div v-else class="post-list">
-            <article
-              v-for="post in allPosts"
+          <div v-else class="post-list folio-toc">
+            <button
+              v-for="(post, index) in allPosts"
               :key="post.id"
-              class="post-card"
+              type="button"
+              class="folio-toc__row post-card"
+              :style="{ '--i': index }"
               @click="handlePostClick(post.id)"
             >
-              <div class="post-card__cover" :class="{ 'post-card__cover--empty': !post.coverUrl }">
-                <img v-if="post.coverUrl" :src="post.coverUrl" :alt="post.title" />
-              </div>
-              <div class="post-card__content">
-                <div class="post-card__meta">
-                  <span class="post-card__category" @click.stop="handleCategoryClick(post.categoryId)">
-                    {{ post.categoryName }}
-                  </span>
-                  <span class="post-card__date">
-                    <CalendarOutlined /> {{ formatDate(post.createdTime) }}
-                  </span>
-                </div>
-                <h2 class="post-card__title">{{ post.title }}</h2>
-                <p class="post-card__summary">{{ post.summary }}</p>
-                <div class="post-card__footer">
-                  <div class="post-card__tags">
-                    <span
-                      v-for="tag in post.tags"
-                      :key="tag.id"
-                      class="post-card__tag"
-                      @click.stop="handleTagClick(tag.id)"
-                    >
-                      <TagOutlined /> {{ tag.name }}
-                    </span>
-                  </div>
-                  <div class="post-card__stats">
-                    <span v-if="blogUx.viewCountEnabled" class="post-card__stat">
-                      <Eye :size="14" class="meta-icon-eye" /> {{ post.viewCount }}
-                    </span>
-                    <span
-                      v-if="blogUx.allowLike"
-                      class="post-card__stat post-card__stat--like"
-                      @click.stop="handleLike(post)"
-                    >
-                      <Heart :size="14" class="meta-icon-beat" /> {{ post.likeCount }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </article>
+              <span class="folio-toc__num">{{ String(index + 1 + (pagination.current - 1) * (pagination.pageSize || 10)).padStart(2, '0') }}</span>
+              <span class="folio-toc__body">
+                <span class="folio-toc__name">{{ post.title }}</span>
+                <span class="folio-toc__desc">
+                  <span
+                    v-if="post.categoryName"
+                    class="post-card__category"
+                    @click.stop="handleCategoryClick(post.categoryId)"
+                  >{{ post.categoryName }}</span>
+                  {{ post.summary || '（无摘要）' }}
+                </span>
+              </span>
+              <span class="folio-toc__leaders" aria-hidden="true" />
+              <span class="folio-toc__folio">{{ formatDate(post.createdTime) }}</span>
+              <span class="folio-toc__meta">
+                <span
+                  v-if="blogUx.viewCountEnabled"
+                  class="wax-seal wax-seal--sticker"
+                >阅 {{ post.viewCount || 0 }}</span>
+                <span
+                  v-if="blogUx.allowLike"
+                  class="wax-seal"
+                  @click.stop="handleLike(post)"
+                >赞 {{ post.likeCount || 0 }}</span>
+              </span>
+            </button>
           </div>
         </template>
 
@@ -463,31 +456,164 @@ watch(sortBy, () => {
 </template>
 
 <style scoped>
-.post-card__stat svg,
-.post-card__date svg,
-.search-btn :deep(svg),
-.clear-filter-btn :deep(svg) {
-  vertical-align: -0.14em;
+.blog-header__kicker {
+  margin: 0 0 0.4em;
+  font-family: var(--font-sans);
+  font-size: 0.72em;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
 }
-.post-card__stat--like {
+
+.blog-find {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  width: 100%;
+  height: 2.5em;
+  padding: 0 0.85em;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  background: rgba(250, 246, 235, 0.75);
+  color: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.88em;
+}
+
+.blog-find input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.folio-toc__row.post-card {
+  display: grid;
+  grid-template-columns: 2.4em minmax(0, auto) minmax(1.2em, 1fr) auto;
+  grid-template-areas:
+    'num body leaders folio'
+    '.   meta meta meta';
+  gap: 0.2em 0.55em;
+  align-items: baseline;
+  width: 100%;
+  padding: 1em 0.25em;
+  border: none;
+  border-bottom: 1px dashed rgba(169, 144, 112, 0.5);
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
   cursor: pointer;
+  font: inherit;
+  color: inherit;
+  animation: folioRise 0.55s ease both;
+  animation-delay: calc(0.04s + var(--i, 0) * 0.05s);
+  transition:
+    background 0.28s ease,
+    padding-left 0.28s ease;
 }
-.search-btn :deep(svg) {
-  transition: transform var(--transition-fast);
+
+.folio-toc__row.post-card:hover {
+  background: rgba(160, 120, 70, 0.1);
+  padding-left: 0.5em;
+  box-shadow: none;
+  transform: none;
 }
-.search-btn:hover :deep(svg) {
-  transform: translateX(2px);
+
+.folio-toc__num {
+  grid-area: num;
+  font-family: var(--font-sans);
+  font-size: 0.75em;
+  color: var(--color-text-muted);
 }
-.clear-filter-btn :deep(svg) {
-  transition: transform var(--transition-fast);
+
+.folio-toc__body {
+  grid-area: body;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  min-width: 0;
 }
-.clear-filter-btn:hover :deep(svg) {
-  transform: rotate(90deg);
+
+.folio-toc__name {
+  font-family: var(--font-serif);
+  font-size: clamp(1.15rem, 2.5vw, 1.4rem);
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
-@media (prefers-reduced-motion: reduce) {
-  .search-btn:hover :deep(svg),
-  .clear-filter-btn:hover :deep(svg) {
+
+.folio-toc__row:hover .folio-toc__name {
+  color: var(--color-primary);
+}
+
+.folio-toc__desc {
+  font-family: var(--font-sans);
+  font-size: 0.8em;
+  color: var(--color-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.folio-toc__desc .post-card__category {
+  margin-right: 0.5em;
+}
+
+.folio-toc__leaders {
+  grid-area: leaders;
+  height: 0;
+  border-bottom: 1px dotted rgba(138, 115, 85, 0.55);
+  align-self: center;
+}
+
+.folio-toc__folio {
+  grid-area: folio;
+  font-family: var(--font-serif);
+  font-size: 0.85em;
+  font-style: italic;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.folio-toc__meta {
+  grid-area: meta;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45em;
+  margin-top: 0.25em;
+}
+
+@keyframes folioRise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
     transform: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .folio-toc__row.post-card {
+    grid-template-columns: 2em minmax(0, 1fr);
+    grid-template-areas:
+      'num body'
+      '. folio'
+      '. meta';
+  }
+
+  .folio-toc__leaders {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .folio-toc__row.post-card {
+    animation: none;
   }
 }
 </style>

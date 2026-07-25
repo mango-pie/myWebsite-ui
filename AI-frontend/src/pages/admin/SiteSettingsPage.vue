@@ -109,7 +109,7 @@ const MODULE_GROUPS: Record<string, SettingGroup[]> = {
   study: [
     { key: 'focus', title: '专注', prefixes: ['focus.'] },
     { key: 'habit', title: '习惯', prefixes: ['habit.'] },
-    { key: 'stats_workspace', title: '统计与工作台', prefixes: ['stats.', 'workspace.'] },
+    { key: 'stats_workspace', title: '统计与界面', prefixes: ['stats.', 'workspace.'] },
   ],
   diary: [
     { key: 'privacy_export', title: '隐私与导出', prefixes: ['privacy.', 'export.'] },

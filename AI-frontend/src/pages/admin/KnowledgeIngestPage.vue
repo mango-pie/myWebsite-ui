@@ -624,14 +624,14 @@ const retryMergeWithoutFailed = () => {
   <div class="kb-ingest-page admin-theme-page">
     <a-breadcrumb class="admin-breadcrumb">
       <a-breadcrumb-item>
-        <router-link to="/admin/knowledge/notes">AI 精读工作台</router-link>
+        <router-link to="/admin/knowledge/notes">AI 精读</router-link>
       </a-breadcrumb-item>
       <a-breadcrumb-item>内容采集</a-breadcrumb-item>
     </a-breadcrumb>
 
     <div class="admin-page-hero">
       <div class="hero-left">
-        <div class="hero-title"><Sparkles :size="22" /> AI 精读工作台</div>
+        <div class="hero-title"><Sparkles :size="22" /> AI 精读</div>
         <div class="hero-subtitle">
           学什么 → DeepSeek 找页 → 勾选合蒸成 <strong>1 篇</strong> → 预览后发博客 / 入库
         </div>

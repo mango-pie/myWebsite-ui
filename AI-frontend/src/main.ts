@@ -10,8 +10,10 @@ import Antd from 'ant-design-vue'
 import 'ant-design-vue/dist/reset.css'
 import '@fontsource/zcool-kuaile'
 import '@/assets/base.css'
+import '@/assets/book-shell.css'
 import '@/assets/blog-prose.css'
 import '@/assets/blog-shell.css'
+import '@/assets/admin-theme.css'
 import '@/access'
 
 const app = createApp(App)

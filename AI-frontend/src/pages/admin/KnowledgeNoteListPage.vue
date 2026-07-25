@@ -244,7 +244,7 @@ watch(
     <!-- 面包屑 -->
     <a-breadcrumb class="admin-breadcrumb">
       <a-breadcrumb-item>管理</a-breadcrumb-item>
-      <a-breadcrumb-item>AI 精读工作台</a-breadcrumb-item>
+      <a-breadcrumb-item>AI 精读</a-breadcrumb-item>
       <a-breadcrumb-item>精读列表</a-breadcrumb-item>
     </a-breadcrumb>
 

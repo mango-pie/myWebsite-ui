@@ -10,7 +10,7 @@ import {
 } from '@/api/knowledge'
 import { isAdminRole } from '@/config/permission'
 import { useLoginUserStore } from '@/stores/loginUser'
-import { LibraryBig, Plus, Search, RotateCcw, Settings, FolderOpen, MessagesSquare, MoreHorizontal } from 'lucide-vue-next'
+import { LibraryBig, Plus, Search, RotateCcw, Settings, MessagesSquare, MoreHorizontal } from 'lucide-vue-next'
 import IconAction from '@/components/ui/IconAction.vue'
 import '@/assets/admin-theme.css'
 import '@/assets/knowledge-shell.css'
@@ -40,16 +40,6 @@ const form = reactive({
   visibility: 'private',
   status: 1,
 })
-
-const columns = [
-  { title: '名称', dataIndex: 'name', ellipsis: true },
-  { title: '描述', dataIndex: 'description', ellipsis: true },
-  { title: '文档数', dataIndex: 'documentCount', width: 90 },
-  { title: '可见范围', dataIndex: 'visibility', width: 100 },
-  { title: '状态', dataIndex: 'status', width: 90 },
-  { title: '更新时间', dataIndex: 'updateTime', width: 180 },
-  { title: '操作', key: 'action', width: 200, fixed: 'right' as const },
-]
 
 const fetchData = async () => {
   loading.value = true
@@ -179,32 +169,30 @@ onMounted(fetchData)
       <a-breadcrumb-item>知识库</a-breadcrumb-item>
     </a-breadcrumb>
 
-    <!-- 页面头部 -->
     <div class="admin-page-hero">
       <div class="hero-left">
         <div class="hero-title"><LibraryBig :size="22" /> 知识库</div>
-        <div class="hero-subtitle">共 {{ total }} 个知识库 · 构建你的 AI 知识体系</div>
+        <div class="hero-subtitle">共 {{ total }} 册书库 · 检索与问答的藏书室</div>
       </div>
       <div class="hero-extra">
         <a-space>
           <IconAction
             v-if="canManageSettings"
             :icon="Settings"
-            label="知识库设置"
+            label="设置"
             variant="soft"
             @click="router.push('/admin/settings/knowledge')"
           />
-          <IconAction :icon="Plus" label="新建知识库" variant="primary" size="lg" @click="openCreate" />
+          <IconAction :icon="Plus" label="新建书库" variant="primary" @click="openCreate" />
         </a-space>
       </div>
     </div>
 
-    <!-- 筛选栏 -->
     <div class="admin-filter-bar">
       <a-input
         v-model:value="query.name"
         allow-clear
-        placeholder="搜索知识库名称…"
+        placeholder="检索书库名称…"
         style="width: 200px"
         @pressEnter="onSearch"
       />
@@ -217,96 +205,80 @@ onMounted(fetchData)
         <a-select-option :value="1">正常</a-select-option>
         <a-select-option :value="0">禁用</a-select-option>
       </a-select>
-      <IconAction :icon="Search" label="搜索" variant="primary" size="sm" motion="slide" @click="onSearch" />
+      <IconAction :icon="Search" label="检索" variant="primary" size="sm" motion="slide" @click="onSearch" />
       <IconAction :icon="RotateCcw" label="重置" variant="ghost" size="sm" motion="spin" @click="onReset" />
     </div>
 
-    <!-- 数据表格 -->
-    <a-card :bordered="false">
-      <a-table
-        row-key="id"
-        :columns="columns"
-        :data-source="dataSource"
-        :loading="loading"
-        :pagination="{
-          current: query.pageNum,
-          pageSize: query.pageSize,
-          total,
-          showSizeChanger: true,
-          showTotal: (t: number) => `共 ${t} 条`,
-        }"
-        :scroll="{ x: 960 }"
-        @change="onTableChange"
-      >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.dataIndex === 'name'">
-            <a class="kb-name-link" @click="router.push(`/knowledge/${record.id}`)">
-              <FolderOpen :size="15" class="kb-name-icon" />
-              {{ record.name }}
-            </a>
+    <a-spin :spinning="loading">
+      <div v-if="!dataSource.length && !loading" class="kb-shelf-empty">
+        <a-empty description="还没有书库">
+          <template #children>
+            <IconAction :icon="Plus" label="创建第一册" variant="primary" motion="pop" @click="openCreate" />
           </template>
-          <template v-else-if="column.dataIndex === 'visibility'">
-            <a-tag :color="record.visibility === 'public' ? 'blue' : 'default'">
-              {{ record.visibility === 'public' ? '公开' : '私有' }}
-            </a-tag>
-          </template>
-          <template v-else-if="column.dataIndex === 'status'">
-            <a-badge
-              :status="record.status === 1 ? 'success' : 'default'"
-              :text="record.status === 1 ? '正常' : '禁用'"
+        </a-empty>
+      </div>
+      <nav v-else class="kb-shelf" aria-label="知识库目录">
+        <button
+          v-for="(row, index) in dataSource"
+          :key="row.id"
+          type="button"
+          class="kb-shelf__row"
+          @click="router.push(`/knowledge/${row.id}`)"
+        >
+          <span class="kb-shelf__num">{{ String(index + 1 + ((query.pageNum || 1) - 1) * (query.pageSize || 10)).padStart(2, '0') }}</span>
+          <span class="kb-shelf__body">
+            <span class="kb-shelf__name">{{ row.name }}</span>
+            <span class="kb-shelf__desc">{{ row.description || '（无提要）' }}</span>
+          </span>
+          <span class="kb-shelf__leaders" aria-hidden="true" />
+          <span class="kb-shelf__marks">
+            <span class="wax-seal wax-seal--sticker">{{ row.documentCount ?? 0 }} 篇</span>
+            <span class="wax-seal" :class="row.visibility === 'public' ? 'wax-seal--read' : 'wax-seal--pending'">
+              {{ row.visibility === 'public' ? '公开' : '私有' }}
+            </span>
+            <span class="wax-seal" :class="row.status === 1 ? 'wax-seal--read' : 'wax-seal--unread'">
+              {{ row.status === 1 ? '在架' : '下架' }}
+            </span>
+          </span>
+          <span class="kb-shelf__actions" @click.stop>
+            <IconAction
+              :icon="MessagesSquare"
+              label="问答"
+              variant="ghost"
+              size="sm"
+              @click="router.push(`/knowledge/${row.id}/chat`)"
             />
-          </template>
-          <template v-else-if="column.dataIndex === 'description'">
-            {{ record.description || '-' }}
-          </template>
-          <template v-else-if="column.dataIndex === 'documentCount'">
-            <span style="font-weight: 500">{{ record.documentCount ?? 0 }}</span>
-          </template>
-          <template v-else-if="column.key === 'action'">
-            <a-space :size="4">
-              <IconAction
-                :icon="FolderOpen"
-                label="进入"
-                variant="ghost"
-                size="sm"
-                @click="router.push(`/knowledge/${record.id}`)"
-              />
-              <IconAction
-                :icon="MessagesSquare"
-                label="问答"
-                variant="ghost"
-                size="sm"
-                @click="router.push(`/knowledge/${record.id}/chat`)"
-              />
-              <a-dropdown :trigger="['click']" placement="bottomRight">
-                <button class="admin-action-trigger kb-more-btn" title="更多操作">
-                  <MoreHorizontal :size="16" />
-                </button>
-                <template #overlay>
-                  <a-menu @click="({ key }: { key: string }) => {
-                    if (key === 'edit') openEdit(record)
-                    else if (key === 'delete') handleDelete(record)
-                  }">
-                    <a-menu-item key="edit">编辑</a-menu-item>
-                    <a-menu-divider />
-                    <a-menu-item key="delete" danger>
-                      <span style="color: var(--color-error)">删除</span>
-                    </a-menu-item>
-                  </a-menu>
-                </template>
-              </a-dropdown>
-            </a-space>
-          </template>
-        </template>
-        <template #emptyText>
-          <a-empty description="还没有知识库">
-            <template #children>
-              <IconAction :icon="Plus" label="创建第一个知识库" variant="primary" motion="pop" @click="openCreate" />
-            </template>
-          </a-empty>
-        </template>
-      </a-table>
-    </a-card>
+            <a-dropdown :trigger="['click']" placement="bottomRight">
+              <button type="button" class="admin-action-trigger kb-more-btn" title="更多">
+                <MoreHorizontal :size="16" />
+              </button>
+              <template #overlay>
+                <a-menu
+                  @click="({ key }: { key: string }) => {
+                    if (key === 'edit') openEdit(row)
+                    else if (key === 'delete') handleDelete(row)
+                  }"
+                >
+                  <a-menu-item key="edit">编辑</a-menu-item>
+                  <a-menu-divider />
+                  <a-menu-item key="delete" danger>删除</a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
+          </span>
+        </button>
+      </nav>
+      <div v-if="total > (query.pageSize || 10)" class="kb-shelf__pager">
+        <a-pagination
+          :current="query.pageNum"
+          :page-size="query.pageSize"
+          :total="total"
+          show-size-changer
+          :show-total="(t: number) => `共 ${t} 册`"
+          @change="(page: number, pageSize: number) => onTableChange({ current: page, pageSize })"
+        />
+      </div>
+    </a-spin>
 
     <!-- 创建/编辑弹窗 -->
     <a-modal
@@ -341,40 +313,109 @@ onMounted(fetchData)
 </template>
 
 <style scoped>
-/* admin-theme.css handles all theming */
-.kb-name-link {
+.kb-shelf {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--color-border);
+}
+
+.kb-shelf__row {
+  display: grid;
+  grid-template-columns: 2.4em minmax(0, auto) minmax(1em, 1fr) auto auto;
+  gap: 0.45em 0.55em;
+  align-items: center;
+  width: 100%;
+  padding: 1em 0.25em;
+  border: none;
+  border-bottom: 1px dashed rgba(169, 144, 112, 0.5);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.28s ease, padding-left 0.28s ease;
+}
+
+.kb-shelf__row:hover {
+  background: rgba(160, 120, 70, 0.1);
+  padding-left: 0.5em;
+}
+
+.kb-shelf__num {
+  font-family: var(--font-sans);
+  font-size: 0.75em;
+  color: var(--color-text-muted);
+}
+
+.kb-shelf__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  min-width: 0;
+}
+
+.kb-shelf__name {
+  font-family: var(--font-serif);
+  font-size: 1.15em;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.kb-shelf__row:hover .kb-shelf__name {
+  color: var(--color-primary);
+}
+
+.kb-shelf__desc {
+  font-family: var(--font-sans);
+  font-size: 0.8em;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 28em;
+}
+
+.kb-shelf__leaders {
+  height: 0;
+  border-bottom: 1px dotted rgba(138, 115, 85, 0.55);
+  align-self: center;
+}
+
+.kb-shelf__marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35em;
+}
+
+.kb-shelf__actions {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  cursor: pointer;
+  gap: 0.25em;
 }
-.kb-name-icon {
-  color: var(--color-primary);
-  transition: transform var(--transition-fast);
+
+.kb-shelf__pager {
+  margin-top: 1.25em;
+  text-align: center;
 }
-.kb-name-link:hover .kb-name-icon {
-  transform: scale(1.15);
+
+.kb-shelf-empty {
+  padding: 2em 0;
 }
+
 .kb-more-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
-.kb-more-btn :deep(svg),
-.kb-more-btn svg {
-  transition: transform var(--transition-fast);
-}
-.kb-more-btn:hover svg {
-  transform: scale(1.2);
-}
-@media (prefers-reduced-motion: reduce) {
-  .kb-name-icon,
-  .kb-more-btn svg {
-    transition: none;
+
+@media (max-width: 768px) {
+  .kb-shelf__row {
+    grid-template-columns: 2em minmax(0, 1fr) auto;
   }
-  .kb-name-link:hover .kb-name-icon,
-  .kb-more-btn:hover svg {
-    transform: none;
+
+  .kb-shelf__leaders,
+  .kb-shelf__marks {
+    display: none;
   }
 }
 </style>

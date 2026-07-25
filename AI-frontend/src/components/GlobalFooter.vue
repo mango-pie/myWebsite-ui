@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
 import { useRouter } from 'vue-router'
-import { BookOpen, FlaskConical, Info, Link as LinkIcon, Sparkles } from 'lucide-vue-next'
+import { BookOpen, FlaskConical, Info, Link as LinkIcon } from 'lucide-vue-next'
 import { siteConfig } from '@/config/site'
 
 const router = useRouter()
@@ -12,8 +12,7 @@ const iconFor = (link: { label?: string; path?: string }): Component => {
   if (label.includes('关于') || link.path === '/about') return Info
   if (label.includes('随笔') || link.path === '/blog') return BookOpen
   if (label.includes('实验') || link.path === '/lab') return FlaskConical
-  if (label.includes('友链') || label.includes('链接')) return LinkIcon
-  return Sparkles
+  return LinkIcon
 }
 
 const navigate = (link: { path?: string; href?: string }) => {
@@ -54,85 +53,72 @@ const navigate = (link: { path?: string; href?: string }) => {
 
 <style scoped>
 .global-footer {
-  padding: 40px 20px;
+  padding: 2em 1.25em 1.5em;
+  font-family: var(--font-sans);
 }
 
 .global-footer__content {
-  max-width: 1200px;
+  max-width: 44em;
   margin: 0 auto;
   text-align: center;
 }
 
 .global-footer__brand {
-  margin-bottom: 20px;
+  margin-bottom: 1.1em;
 }
 
 .global-footer__brand-text {
   display: block;
-  font-size: 20px;
-  font-weight: 600;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 8px;
+  font-family: var(--font-serif);
+  font-size: 1.2em;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 0.4em;
+  letter-spacing: 0.12em;
 }
 
 .global-footer__brand-sub {
-  font-size: 14px;
+  font-size: 0.82em;
   color: var(--color-text-muted);
+  font-style: italic;
 }
 
 .global-footer__links {
   display: flex;
   justify-content: center;
-  gap: 32px;
-  margin-bottom: 24px;
+  gap: 1.75em;
+  margin-bottom: 1.25em;
   flex-wrap: wrap;
 }
 
 .global-footer__link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 14px;
+  gap: 0.35em;
+  font-size: 0.88em;
   color: var(--color-text-secondary);
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: color 0.3s ease;
   position: relative;
 }
 
 .global-footer__link-icon {
   flex-shrink: 0;
-  transition: transform 0.3s ease;
-}
-
-.global-footer__link:hover .global-footer__link-icon {
-  transform: translateY(-2px) scale(1.1);
-  color: var(--color-primary-light);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .global-footer__link-icon,
-  .global-footer__link:hover .global-footer__link-icon {
-    transition: none;
-    transform: none;
-  }
 }
 
 .global-footer__link::after {
   content: '';
   position: absolute;
-  bottom: -4px;
+  bottom: -0.25em;
   left: 0;
   width: 0;
-  height: 2px;
-  background: var(--gradient-primary);
-  transition: width 0.3s ease;
+  height: 1px;
+  background: var(--color-primary);
+  transition: width 0.35s ease;
 }
 
 .global-footer__link:hover {
-  color: var(--color-text-primary);
+  color: var(--color-primary);
 }
 
 .global-footer__link:hover::after {
@@ -140,8 +126,9 @@ const navigate = (link: { path?: string; href?: string }) => {
 }
 
 .global-footer__copyright {
-  font-size: 13px;
+  font-size: 0.78em;
   color: var(--color-text-muted);
+  letter-spacing: 0.02em;
 }
 
 .global-footer__icp {
@@ -150,15 +137,15 @@ const navigate = (link: { path?: string; href?: string }) => {
 
 @media (max-width: 768px) {
   .global-footer {
-    padding: 24px 12px;
+    padding: 1.5em 0.85em 1.25em;
   }
 
   .global-footer__links {
-    gap: 16px;
+    gap: 1em;
   }
 
   .global-footer__brand-text {
-    font-size: 16px;
+    font-size: 1.05em;
   }
 }
 </style>

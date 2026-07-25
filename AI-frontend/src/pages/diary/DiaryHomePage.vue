@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { NotebookPen, PenLine, ChevronRight, Calendar } from 'lucide-vue-next'
+import { NotebookPen, PenLine } from 'lucide-vue-next'
 import { queryDiaryPage } from '@/integrations/diaryController'
 import { siteConfig } from '@/config/site'
 import { formatDiaryDate, todayDateString } from '@/utils/diaryFormat'
@@ -15,7 +15,12 @@ const entries = ref<API.DiaryEntryVO[]>([])
 const fetchList = async () => {
   loading.value = true
   try {
-    const res = await queryDiaryPage({ pageNum: 1, pageSize: 20, sortField: 'diary_date', sortOrder: 'descend' })
+    const res = await queryDiaryPage({
+      pageNum: 1,
+      pageSize: 20,
+      sortField: 'diary_date',
+      sortOrder: 'descend',
+    })
     if (res.data.code === 0 && res.data.data) {
       entries.value = res.data.data.records || []
     } else {
@@ -46,204 +51,223 @@ onMounted(fetchList)
 </script>
 
 <template>
-  <div class="diary-home">
-    <header class="diary-home__hero">
-      <div class="diary-home__titles">
-        <div class="diary-home__icon">
-          <NotebookPen :size="28" :stroke-width="1.75" />
-        </div>
-        <div>
-          <h1>{{ siteConfig.diaryTitle }}</h1>
-          <p>{{ siteConfig.diarySubtitle }}</p>
-        </div>
+  <div class="folio-chapter">
+    <header class="folio-chapter__head">
+      <div>
+        <p class="folio-chapter__kicker">手记卷</p>
+        <h1 class="folio-chapter__title">{{ siteConfig.diaryTitle }}</h1>
+        <p class="folio-chapter__sub">{{ siteConfig.diarySubtitle }}</p>
       </div>
-      <IconAction :icon="PenLine" label="写今日" variant="primary" size="lg" motion="pop" @click="writeToday" />
+      <IconAction :icon="PenLine" label="写今日" variant="primary" size="md" @click="writeToday" />
     </header>
 
     <a-spin :spinning="loading">
-      <div v-if="!entries.length && !loading" class="diary-home__empty">
-        <NotebookPen :size="40" :stroke-width="1.5" />
-        <p>还没有日记，写下今天的第一笔</p>
-        <IconAction :icon="PenLine" label="开始写" variant="primary" motion="pop" @click="writeToday" />
+      <div v-if="!entries.length && !loading" class="folio-chapter__empty">
+        <NotebookPen :size="32" :stroke-width="1.5" />
+        <p>这一卷还是空白。写下今天的第一笔。</p>
+        <IconAction :icon="PenLine" label="开始写" variant="primary" @click="writeToday" />
       </div>
 
-      <ul v-else class="diary-home__list">
-        <li
-          v-for="entry in entries"
+      <nav v-else class="folio-toc" aria-label="日记目录">
+        <button
+          v-for="(entry, index) in entries"
           :key="entry.id ?? entry.diaryDate"
-          class="diary-entry"
+          type="button"
+          class="folio-toc__row"
+          :style="{ '--i': index }"
           @click="openEntry(entry)"
         >
-          <div class="diary-entry__date">
-            <Calendar :size="14" class="diary-entry__date-icon" />
-            <span>{{ formatDiaryDate(entry.diaryDate) }}</span>
-          </div>
-          <div class="diary-entry__body">
-            <div class="diary-entry__title">{{ entry.title || '无标题' }}</div>
-            <div class="diary-entry__preview">{{ entry.content?.slice(0, 80) || '（空白）' }}</div>
-          </div>
-          <ChevronRight :size="18" class="diary-entry__chevron" />
-        </li>
-      </ul>
+          <span class="folio-toc__num">{{ String(index + 1).padStart(2, '0') }}</span>
+          <span class="folio-toc__body">
+            <span class="folio-toc__name">{{ entry.title || '无标题' }}</span>
+            <span class="folio-toc__desc">{{ entry.content?.slice(0, 72) || '（空白）' }}</span>
+          </span>
+          <span class="folio-toc__leaders" aria-hidden="true" />
+          <span class="folio-toc__folio">{{ formatDiaryDate(entry.diaryDate) }}</span>
+        </button>
+      </nav>
     </a-spin>
+
+    <p class="folio-chapter__note">页码以日期为序。翻到想回看的那一天即可。</p>
   </div>
 </template>
 
 <style scoped>
-.diary-home {
-  max-width: 720px;
+.folio-chapter {
+  max-width: 42em;
   margin: 0 auto;
-  width: 100%;
+  padding: 0.5em 0.5em 3em;
 }
 
-.diary-home__hero {
+.folio-chapter__head {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 28px;
-  padding: 20px 22px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--room-radius, 8px);
-  background: rgba(201, 160, 220, 0.06);
+  gap: 1em;
+  margin-bottom: 1.75em;
+  padding-bottom: 1.25em;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.diary-home__titles {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
+.folio-chapter__kicker {
+  margin: 0 0 0.45em;
+  font-family: var(--font-sans);
+  font-size: 0.72em;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
 }
 
-.diary-home__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  color: #c9a0dc;
-  background: rgba(201, 160, 220, 0.16);
-  flex-shrink: 0;
-}
-
-.diary-home__titles h1 {
-  margin: 0 0 4px;
-  font-size: 24px;
-  font-weight: 600;
+.folio-chapter__title {
+  margin: 0 0 0.35em;
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 5vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
   color: var(--color-text-primary);
 }
 
-.diary-home__titles p {
+.folio-chapter__sub {
   margin: 0;
-  font-size: 14px;
+  font-size: 0.95em;
   color: var(--color-text-secondary);
 }
 
-.diary-home__empty {
+.folio-chapter__empty {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 64px 20px;
+  align-items: flex-start;
+  gap: 0.85em;
+  padding: 2.5em 0.25em;
   color: var(--color-text-muted);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--room-radius, 8px);
+  border-top: 1px dashed var(--color-border);
+  font-family: var(--font-serif);
 }
 
-.diary-home__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.folio-toc {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  border-top: 1px solid var(--color-border);
 }
 
-.diary-entry {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--room-radius, 8px);
-  background: rgba(255, 255, 255, 0.03);
+.folio-toc__row {
+  display: grid;
+  grid-template-columns: 2.4em minmax(0, auto) minmax(1.5em, 1fr) auto;
+  gap: 0.45em 0.65em;
+  align-items: baseline;
+  width: 100%;
+  padding: 1em 0.25em;
+  border: none;
+  border-bottom: 1px dashed rgba(169, 144, 112, 0.5);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
+  animation: folioRise 0.55s ease both;
+  animation-delay: calc(0.05s + var(--i, 0) * 0.05s);
   transition:
-    background 0.2s ease,
-    border-color 0.2s ease;
+    background 0.28s ease,
+    padding-left 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-.diary-entry:hover {
-  background: rgba(201, 160, 220, 0.08);
-  border-color: rgba(201, 160, 220, 0.35);
+.folio-toc__row:hover {
+  background: rgba(160, 120, 70, 0.1);
+  padding-left: 0.5em;
 }
 
-.diary-entry__date {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  width: 116px;
-  font-size: 13px;
+.folio-toc__num {
+  font-family: var(--font-sans);
+  font-size: 0.75em;
   color: var(--color-text-muted);
 }
 
-.diary-entry__date-icon {
-  flex-shrink: 0;
-  color: #c9a0dc;
-}
-
-.diary-entry__body {
-  flex: 1;
+.folio-toc__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
   min-width: 0;
 }
 
-.diary-entry__title {
-  font-size: 16px;
-  font-weight: 500;
+.folio-toc__name {
+  font-family: var(--font-serif);
+  font-size: clamp(1.1rem, 2.4vw, 1.35rem);
+  font-weight: 600;
   color: var(--color-text-primary);
-  margin-bottom: 4px;
+  transition: color 0.28s ease;
 }
 
-.diary-entry__preview {
-  font-size: 13px;
+.folio-toc__row:hover .folio-toc__name {
+  color: var(--color-primary);
+}
+
+.folio-toc__desc {
+  font-family: var(--font-sans);
+  font-size: 0.8em;
   color: var(--color-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 28em;
 }
 
-.diary-entry__chevron {
+.folio-toc__leaders {
+  height: 0;
+  border-bottom: 1px dotted rgba(138, 115, 85, 0.55);
+  align-self: center;
+}
+
+.folio-toc__folio {
+  font-family: var(--font-serif);
+  font-size: 0.88em;
+  font-style: italic;
   color: var(--color-text-muted);
-  flex-shrink: 0;
-  transition: transform 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
 }
 
-.diary-entry:hover .diary-entry__chevron {
-  transform: translateX(4px);
-  color: #c9a0dc;
+.folio-chapter__note {
+  margin: 1.75em 0 0;
+  padding-top: 0.85em;
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-sans);
+  font-size: 0.75em;
+  color: var(--color-text-muted);
+  text-align: center;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .diary-entry__chevron {
-    transition: none;
+@keyframes folioRise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
-
-  .diary-entry:hover .diary-entry__chevron {
+  to {
+    opacity: 1;
     transform: none;
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .folio-toc__row {
+    animation: none;
+  }
+}
+
 @media (max-width: 640px) {
-  .diary-home__hero {
+  .folio-chapter__head {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .diary-entry__date {
-    width: 72px;
-    font-size: 12px;
+  .folio-toc__row {
+    grid-template-columns: 2em minmax(0, 1fr);
+  }
+
+  .folio-toc__leaders {
+    display: none;
+  }
+
+  .folio-toc__folio {
+    grid-column: 2;
   }
 }
 </style>
