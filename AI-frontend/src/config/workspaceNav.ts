@@ -18,6 +18,7 @@ import {
   PenTool,
   Info,
   ListChecks,
+  ListTree,
 } from 'lucide-vue-next'
 import type { CapabilityGate, RequiredRole } from '@/config/permission'
 import { canShowMenuItem, type MenuItemConfig } from '@/config/permission'
@@ -120,6 +121,15 @@ export const WORKSPACE_NAV: WorkspaceNavItem[] = [
         icon: BookOpen,
         requiredRole: 'admin',
         requireModule: 'knowledge',
+      },
+      {
+        key: 'knowledgeLearning',
+        label: '领域知识树',
+        path: '/admin/knowledge/learning',
+        icon: ListTree,
+        requiredRole: 'admin',
+        requireModule: 'knowledge',
+        matchPrefix: '/admin/knowledge/learning',
       },
     ],
   },

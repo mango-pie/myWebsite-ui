@@ -13,7 +13,7 @@ withDefaults(
     type?: 'button' | 'submit'
     ariaLabel?: string
     /** 图标悬停语义动效；默认沿用统一放大 */
-    motion?: 'none' | 'send' | 'spin' | 'shake' | 'slide' | 'pop'
+    motion?: 'none' | 'send' | 'spin' | 'shake' | 'slide' | 'pop' | 'pulse' | 'wiggle'
   }>(),
   {
     variant: 'soft',
@@ -159,6 +159,14 @@ withDefaults(
   animation: iaPop 0.45s ease;
 }
 
+.icon-action--motion-pulse:hover:not(:disabled) .icon-action__icon:not(.is-spin) {
+  animation: iaPulse 0.7s ease;
+}
+
+.icon-action--motion-wiggle:hover:not(:disabled) .icon-action__icon:not(.is-spin) {
+  animation: iaWiggle 0.55s ease;
+}
+
 @keyframes iaSend {
   0% {
     transform: translate(0, 0);
@@ -214,6 +222,29 @@ withDefaults(
   }
   100% {
     transform: scale(1.08);
+  }
+}
+
+@keyframes iaPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.18);
+  }
+}
+
+@keyframes iaWiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-12deg) translateX(-1px);
+  }
+  75% {
+    transform: rotate(10deg) translateX(1px);
   }
 }
 

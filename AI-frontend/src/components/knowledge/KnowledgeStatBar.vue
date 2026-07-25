@@ -15,7 +15,7 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
-  (e: 'filter', kind: 'published' | 'indexed'): void
+  (e: 'filter', kind: 'published' | 'indexed' | 'total'): void
   (e: 'jobs'): void
 }>()
 
@@ -27,18 +27,25 @@ const runningDisplay = useCountUp(computed(() => props.running))
 
 <template>
   <div class="kb-stat-bar kb-stagger">
-    <div class="kb-stat" :class="{ 'is-loading': loading }">
+    <button
+      type="button"
+      class="kb-stat kb-stat--clickable"
+      :class="{ 'is-loading': loading }"
+      title="查看全部精读"
+      @click="emit('filter', 'total')"
+    >
       <span class="kb-stat__icon"><FileText :size="20" :stroke-width="2" /></span>
       <div class="kb-stat__body">
         <div class="kb-stat__num">{{ totalDisplay }}</div>
         <div class="kb-stat__label">总精读</div>
       </div>
-    </div>
+    </button>
 
     <button
       type="button"
       class="kb-stat kb-stat--clickable"
       :class="{ 'is-loading': loading }"
+      title="筛选已发布到博客的笔记"
       @click="emit('filter', 'published')"
     >
       <span class="kb-stat__icon kb-stat__icon--success"><Newspaper :size="20" :stroke-width="2" /></span>
@@ -52,6 +59,7 @@ const runningDisplay = useCountUp(computed(() => props.running))
       type="button"
       class="kb-stat kb-stat--clickable"
       :class="{ 'is-loading': loading }"
+      title="筛选已入库知识库的笔记"
       @click="emit('filter', 'indexed')"
     >
       <span class="kb-stat__icon kb-stat__icon--info"><LibraryBig :size="20" :stroke-width="2" /></span>
@@ -65,6 +73,7 @@ const runningDisplay = useCountUp(computed(() => props.running))
       type="button"
       class="kb-stat kb-stat--clickable"
       :class="{ 'is-running': running > 0 }"
+      title="本浏览器提交的合蒸任务（非全站任务列表）"
       @click="emit('jobs')"
     >
       <span class="kb-stat__icon kb-stat__icon--running">

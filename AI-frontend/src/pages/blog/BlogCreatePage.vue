@@ -8,7 +8,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { ArrowLeft, Trash2, UploadCloud, Send, PenLine, RotateCcw } from 'lucide-vue-next'
+import { ArrowLeft, Trash2, UploadCloud, Send, RotateCcw, FilePenLine } from 'lucide-vue-next'
 import IconAction from '@/components/ui/IconAction.vue'
 import {
   addBlogPost,
@@ -44,6 +44,10 @@ const blogUx = ref<BlogUxSettings>({
   defaultStatusKey: 'DRAFT',
 })
 
+/** 0=草稿 1=已发布 2=已下线 */
+const STATUS_DRAFT = 0
+const STATUS_PUBLISHED = 1
+
 // ==================== 表单数据 ====================
 
 const form = reactive({
@@ -62,7 +66,15 @@ const form = reactive({
   // 新标签输入
   newTag: '',
   // 封面图片URL
-  coverUrl: ''
+  coverUrl: '',
+  // 发布状态
+  status: STATUS_DRAFT as number,
+})
+
+const isDraft = computed(() => form.status !== STATUS_PUBLISHED)
+const pageTitle = computed(() => {
+  if (!isEdit.value) return '写文章'
+  return isDraft.value ? '编辑草稿' : '编辑文章'
 })
 
 // ==================== 可选数据 ====================
@@ -183,39 +195,44 @@ const validateForm = () => {
 
 /**
  * 提交表单
+ * @param nextStatus 目标状态：0 草稿 / 1 发布
  */
-const handleSubmit = async () => {
+const handleSubmit = async (nextStatus: number) => {
   if (!validateForm()) return
 
   submitting.value = true
   try {
     let res
+    const payload = {
+      title: form.title,
+      summary: form.summary,
+      content: form.content,
+      categoryId: form.categoryId ?? undefined,
+      tagIds: form.tagIds,
+      coverUrl: form.coverUrl,
+      status: nextStatus,
+    }
     if (isEdit.value && form.id) {
-      // 编辑模式
       res = await updateBlogPost({
         id: form.id,
-        title: form.title,
-        summary: form.summary,
-        content: form.content,
-        categoryId: form.categoryId ?? undefined,
-        tagIds: form.tagIds,
-        coverUrl: form.coverUrl
+        ...payload,
       })
     } else {
-      // 新建模式
-      res = await addBlogPost({
-        title: form.title,
-        summary: form.summary,
-        content: form.content,
-        categoryId: form.categoryId ?? undefined,
-        tagIds: form.tagIds,
-        coverUrl: form.coverUrl,
-        status: blogUx.value.defaultStatus,
-      })
+      res = await addBlogPost(payload)
     }
 
     if (res.data.code === 0) {
-      message.success(isEdit.value ? '文章更新成功' : '文章发布成功')
+      form.status = nextStatus
+      const asDraft = nextStatus === STATUS_DRAFT
+      message.success(
+        asDraft
+          ? isEdit.value
+            ? '草稿已保存'
+            : '草稿已创建'
+          : isEdit.value
+            ? '文章已发布'
+            : '文章发布成功',
+      )
       const returnPath = resolveBlogReturnPath(
         route.query.from,
         isEdit.value && form.id ? `/blog/${form.id}` : null,
@@ -256,6 +273,7 @@ const handleReset = () => {
     form.tagIds = []
     form.newTag = ''
     form.coverUrl = ''
+    form.status = blogUx.value.defaultStatus
   }
 }
 
@@ -294,6 +312,7 @@ const fetchPostDetail = async () => {
       form.categoryId = post.categoryId || null
       form.tagIds = (post.tags || []).map(tag => tag.id!).filter(Boolean) as number[]
       form.coverUrl = post.coverUrl || ''
+      form.status = post.status ?? STATUS_DRAFT
     } else {
       message.error('获取文章详情失败：' + res.data.message)
       router.push('/blog')
@@ -346,6 +365,7 @@ onMounted(async () => {
   }
 
   blogUx.value = await loadBlogSettings()
+  form.status = blogUx.value.defaultStatus
   fetchCategories()
   fetchTags()
 
@@ -362,8 +382,13 @@ onMounted(async () => {
         <!-- 头部导航 -->
         <div class="page-header">
           <IconAction :icon="ArrowLeft" label="返回" variant="ghost" motion="slide" @click="handleBack" />
-          <h1 class="page-title">{{ isEdit ? '编辑文章' : '发布文章' }}</h1>
-          <div></div>
+          <div class="page-header__center">
+            <h1 class="page-title">{{ pageTitle }}</h1>
+            <a-tag v-if="isEdit" :color="isDraft ? 'default' : 'success'">
+              {{ isDraft ? '草稿' : '已发布' }}
+            </a-tag>
+          </div>
+          <div class="page-header__spacer" aria-hidden="true" />
         </div>
 
         <a-card class="create-card">
@@ -462,15 +487,24 @@ onMounted(async () => {
             <a-form-item class="form-actions">
               <a-space :size="16">
                 <IconAction
-                  :icon="isEdit ? PenLine : Send"
-                  :label="isEdit ? '更新文章' : '发布文章'"
-                  variant="primary"
+                  :icon="FilePenLine"
+                  label="保存草稿"
+                  variant="soft"
                   size="lg"
                   motion="pop"
                   :loading="submitting"
-                  @click="handleSubmit"
+                  @click="handleSubmit(STATUS_DRAFT)"
                 />
-                <IconAction :icon="RotateCcw" label="重置" variant="soft" size="lg" motion="spin" @click="handleReset" />
+                <IconAction
+                  :icon="Send"
+                  :label="isDraft || !isEdit ? '发布文章' : '更新并发布'"
+                  variant="primary"
+                  size="lg"
+                  motion="send"
+                  :loading="submitting"
+                  @click="handleSubmit(STATUS_PUBLISHED)"
+                />
+                <IconAction :icon="RotateCcw" label="重置" variant="ghost" size="lg" motion="spin" @click="handleReset" />
               </a-space>
             </a-form-item>
           </a-form>
@@ -498,6 +532,16 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+}
+
+.page-header__center {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.page-header__spacer {
+  width: 88px;
 }
 
 .page-title {

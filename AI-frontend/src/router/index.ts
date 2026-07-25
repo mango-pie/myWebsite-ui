@@ -35,6 +35,7 @@ import KnowledgeIngestPage from '@/pages/admin/KnowledgeIngestPage.vue'
 import KnowledgeJobsPage from '@/pages/admin/KnowledgeJobsPage.vue'
 import KnowledgeNoteListPage from '@/pages/admin/KnowledgeNoteListPage.vue'
 import KnowledgeNoteDetailPage from '@/pages/admin/KnowledgeNoteDetailPage.vue'
+import LearningView from '@/components/learning/LearningView.vue'
 import SiteSettingsPage from '@/pages/admin/SiteSettingsPage.vue'
 import SiteSettingsAuditPage from '@/pages/admin/SiteSettingsAuditPage.vue'
 import SiteSettingsHealthPage from '@/pages/admin/SiteSettingsHealthPage.vue'
@@ -88,6 +89,7 @@ const router = createRouter({
     { path: '/admin/knowledge/jobs', name: '精读任务', component: KnowledgeJobsPage, meta: { ...workspaceMeta, room: 'admin', requireModule: 'knowledge' } },
     { path: '/admin/knowledge/notes', name: '精读列表', component: KnowledgeNoteListPage, meta: { ...workspaceMeta, room: 'admin', requireModule: 'knowledge' } },
     { path: '/admin/knowledge/notes/:noteId', name: '精读详情', component: KnowledgeNoteDetailPage, meta: { ...workspaceMeta, room: 'admin', requireModule: 'knowledge' } },
+    { path: '/admin/knowledge/learning', name: '领域知识树', component: LearningView, meta: { ...workspaceMeta, room: 'admin', requireModule: 'knowledge' } },
     { path: '/admin/chatHistoryManage', name: '对话管理', component: ChatHistoryManagerPage, meta: { ...workspaceMeta, room: 'admin', requireModule: 'chat' } },
     { path: '/admin/settings', redirect: '/admin/settings/site' },
     { path: '/admin/settings/audit', name: '变更审计', component: SiteSettingsAuditPage, meta: { ...workspaceMeta, room: 'admin' } },

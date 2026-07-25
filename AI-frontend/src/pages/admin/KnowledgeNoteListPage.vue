@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, onBeforeUnmount, reactive, ref, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import {
@@ -24,7 +24,10 @@ import { LayoutGrid, List as ListIcon, Plus, Settings, StickyNote } from 'lucide
 import IconAction from '@/components/ui/IconAction.vue'
 import KnowledgeStatBar from '@/components/knowledge/KnowledgeStatBar.vue'
 import KnowledgeNoteCard from '@/components/knowledge/KnowledgeNoteCard.vue'
-import { useKnowledgeNoteStats } from '@/composables/useKnowledgeNoteStats'
+import {
+  extractPageTotal,
+  useKnowledgeNoteStats,
+} from '@/composables/useKnowledgeNoteStats'
 
 const router = useRouter()
 const route = useRoute()
@@ -32,7 +35,26 @@ const loading = ref(false)
 const dataSource = ref<API.KnowledgeNoteVO[]>([])
 const total = ref(0)
 
-const stats = useKnowledgeNoteStats()
+const {
+  total: statsTotal,
+  published: statsPublished,
+  indexed: statsIndexed,
+  running: statsRunning,
+  loading: statsLoading,
+  refresh: refreshStats,
+  refreshRunning,
+  syncTotalFromPage,
+} = useKnowledgeNoteStats()
+
+const hasActiveFilters = computed(
+  () =>
+    !!(
+      query.keyword ||
+      query.sourceType ||
+      query.publishStatus ||
+      query.indexStatus
+    ),
+)
 
 const VIEW_KEY = 'kb-note-view'
 const viewMode = ref<'card' | 'list'>(
@@ -49,11 +71,18 @@ const setViewMode = (mode: 'card' | 'list') => {
   }
 }
 
-const onStatFilter = (kind: 'published' | 'indexed') => {
-  if (kind === 'published') {
+const onStatFilter = (kind: 'published' | 'indexed' | 'total') => {
+  if (kind === 'total') {
+    query.keyword = undefined
+    query.sourceType = undefined
+    query.publishStatus = undefined
+    query.indexStatus = undefined
+  } else if (kind === 'published') {
     query.publishStatus = 'PUBLISHED'
+    query.indexStatus = undefined
   } else {
     query.indexStatus = 'INDEXED'
+    query.publishStatus = undefined
   }
   query.pageNum = 1
   fetchData()
@@ -91,7 +120,12 @@ const fetchData = async () => {
     const res = await listKnowledgeNotes({ ...query })
     if (res.data.code === 0 && res.data.data) {
       dataSource.value = res.data.data.records ?? []
-      total.value = Number(res.data.data.totalRow ?? 0)
+      const pageTotal = extractPageTotal(res.data.data)
+      total.value = pageTotal
+      // 无筛选时 KPI「总精读」与列表分页总数同源，避免两套数字
+      if (!hasActiveFilters.value) {
+        syncTotalFromPage(pageTotal)
+      }
     } else {
       message.error(res.data.message || '加载失败')
     }
@@ -137,7 +171,7 @@ const runRedistill = async (row: API.KnowledgeNoteVO) => {
   const res = await redistillKnowledgeNote(row.id)
   if (res.data.code === 0 && res.data.data?.note?.id != null) {
     message.success('重新蒸馏完成')
-    stats.refresh()
+    void refreshStats()
     openDetail(res.data.data.note.id)
   } else {
     message.error(res.data.message || '重新蒸馏失败')
@@ -160,7 +194,8 @@ const handleRedistill = async (row: API.KnowledgeNoteVO) => {
 const handleDelete = (row: API.KnowledgeNoteVO) => {
   Modal.confirm({
     title: '删除精读',
-    content: `确认删除「${row.title || row.id}」？`,
+    content:
+      `确认删除「${row.title || row.id}」？将同时从领域树摘叶；若已发布为博客，关联博客也会一并删除。精读笔记本身不可恢复。`,
     okType: 'danger',
     onOk: async () => {
       if (row.id == null) return
@@ -168,7 +203,7 @@ const handleDelete = (row: API.KnowledgeNoteVO) => {
       if (res.data.code === 0) {
         message.success('已删除')
         fetchData()
-        stats.refresh()
+        void refreshStats()
       } else {
         message.error(res.data.message || '删除失败')
       }
@@ -176,10 +211,22 @@ const handleDelete = (row: API.KnowledgeNoteVO) => {
   })
 }
 
+let runningTimer: ReturnType<typeof setInterval> | null = null
+
 onMounted(() => {
   applyRouteSourceFilter()
-  fetchData()
-  stats.refresh()
+  void fetchData()
+  void refreshStats()
+  runningTimer = setInterval(() => {
+    void refreshRunning(true)
+  }, 5000)
+})
+
+onBeforeUnmount(() => {
+  if (runningTimer) {
+    clearInterval(runningTimer)
+    runningTimer = null
+  }
 })
 
 watch(
@@ -187,7 +234,7 @@ watch(
   () => {
     applyRouteSourceFilter()
     query.pageNum = 1
-    fetchData()
+    void fetchData()
   },
 )
 </script>
@@ -205,7 +252,11 @@ watch(
     <div class="admin-page-hero">
       <div class="hero-left">
         <div class="hero-title"><StickyNote :size="22" /> 精读列表</div>
-        <div class="hero-subtitle">共 {{ total }} 条精读笔记 · 管理你的 AI 精读成果</div>
+        <div class="hero-subtitle">
+          <template v-if="hasActiveFilters">当前筛选 {{ total }} 条</template>
+          <template v-else>共 {{ total }} 条精读笔记</template>
+          · 管理你的 AI 精读成果
+        </div>
       </div>
       <div class="hero-extra">
         <a-space>
@@ -230,11 +281,11 @@ watch(
 
     <!-- KPI 概览 -->
     <KnowledgeStatBar
-      :total="stats.total.value"
-      :published="stats.published.value"
-      :indexed="stats.indexed.value"
-      :running="stats.running.value"
-      :loading="stats.loading.value"
+      :total="statsTotal"
+      :published="statsPublished"
+      :indexed="statsIndexed"
+      :running="statsRunning"
+      :loading="statsLoading"
       @filter="onStatFilter"
       @jobs="router.push('/admin/knowledge/jobs')"
     />

@@ -2254,4 +2254,11 @@ declare namespace API {
     data?: PageOpsAccessLogVO
     message?: string
   }
+
+  /** 泛型响应包装（供新增模块使用，与自动生成的具名类型等价） */
+  type BaseResponse<T = unknown> = {
+    code?: number
+    data?: T
+    message?: string
+  }
 }

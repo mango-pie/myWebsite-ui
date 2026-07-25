@@ -42,7 +42,7 @@ function formatTime(str: string | undefined): string {
 }
 
 const statusMap: Record<number, { text: string; color: string }> = {
-  0: { text: '待审核', color: 'warning' },
+  0: { text: '草稿', color: 'default' },
   1: { text: '已发布', color: 'success' },
   2: { text: '已下线', color: 'error' },
 }
@@ -108,6 +108,7 @@ const onTableChange = (pag: { current?: number; pageSize?: number }) => {
 const doDelete = (id: number) => {
   Modal.confirm({
     title: '确认删除该文章吗？',
+    content: '若由精读发布，精读侧会断开关联，笔记与领域树挂载保留。',
     okText: '确认',
     okType: 'danger',
     onOk: async () => {
@@ -214,7 +215,7 @@ onMounted(() => {
         allow-clear
         style="width: 120px"
       >
-        <a-select-option :value="0">待审核</a-select-option>
+        <a-select-option :value="0">草稿</a-select-option>
         <a-select-option :value="1">已发布</a-select-option>
         <a-select-option :value="2">已下线</a-select-option>
       </a-select>

@@ -32,7 +32,13 @@ const POLL_MS = 3000
 const router = useRouter()
 const jobs = ref<ReadingJobRecord[]>([])
 const refreshing = ref(false)
-const stats = useKnowledgeNoteStats()
+const {
+  total: statsTotal,
+  published: statsPublished,
+  indexed: statsIndexed,
+  loading: statsLoading,
+  refresh: refreshStats,
+} = useKnowledgeNoteStats()
 let timer: ReturnType<typeof setInterval> | null = null
 
 const reload = () => {
@@ -130,7 +136,7 @@ const clearAll = () => {
 onMounted(() => {
   reload()
   void pollActive()
-  void stats.refresh()
+  void refreshStats()
   timer = setInterval(() => {
     void pollActive()
   }, POLL_MS)
@@ -186,11 +192,11 @@ onBeforeUnmount(() => {
 
     <!-- KPI 概览 -->
     <KnowledgeStatBar
-      :total="stats.total.value"
-      :published="stats.published.value"
-      :indexed="stats.indexed.value"
+      :total="statsTotal"
+      :published="statsPublished"
+      :indexed="statsIndexed"
       :running="activeCount"
-      :loading="stats.loading.value"
+      :loading="statsLoading"
       @filter="() => router.push('/admin/knowledge/notes')"
       @jobs="manualRefresh"
     />
@@ -198,8 +204,20 @@ onBeforeUnmount(() => {
     <a-card :bordered="false">
       <div v-if="!jobs.length" class="kb-jobs-empty">
         <Inbox :size="44" :stroke-width="1.5" />
-        <p>还没有任务记录</p>
-        <span class="hint">在「内容采集 → AI 搜索」提交合蒸后，任务会自动出现在这里</span>
+        <p>还没有本机任务记录</p>
+        <span class="hint">
+          「进行中」只统计当前浏览器提交过的合蒸任务，不是全站队列。
+          <br />
+          请到「内容采集 → AI 搜索」勾选候选并合并精炼后，任务会出现在这里。
+        </span>
+        <IconAction
+          :icon="Sparkles"
+          label="去内容采集"
+          variant="primary"
+          motion="pop"
+          style="margin-top: 8px"
+          @click="router.push('/admin/knowledge/ingest')"
+        />
       </div>
 
       <ul v-else class="kb-jobs-list kb-stagger">
