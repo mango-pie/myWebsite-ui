@@ -5,6 +5,9 @@
  * 2. 若需在导航菜单展示，在 MENU_ITEMS 中增加一项（key、label、path、requiredRole）
  * 路由与 access 会根据 ROUTE_PERMISSIONS 校验；布局会根据 MENU_ITEMS + requiredRole 过滤菜单
  */
+import { isModuleHidden, type CapabilityGate } from '@/utils/moduleGate'
+
+export type { CapabilityGate }
 
 /** 路由所需权限：不设 = 所有人；'user' = 仅登录；'admin' = 仅管理员 */
 export type RequiredRole = 'user' | 'admin' | 'administrator'
@@ -48,18 +51,6 @@ export interface MenuItemConfig {
   /** 依赖的后端模块 key；模块关闭时隐藏该项（缺省 = 平台常驻） */
   requireModule?: string
   children?: MenuItemConfig[]
-}
-
-/** 能力判断入参（避免 config 直接依赖 store，防循环引用） */
-export interface CapabilityGate {
-  loaded: boolean
-  enabled: (name: string) => boolean
-}
-
-/** 模块是否应隐藏：仅在能力已加载且明确关闭时隐藏（未加载时不隐藏，避免首屏误伤） */
-function moduleHidden(requireModule: string | undefined, caps?: CapabilityGate): boolean {
-  if (!requireModule || !caps) return false
-  return caps.loaded && !caps.enabled(requireModule)
 }
 
 export const MENU_ITEMS: MenuItemConfig[] = [
@@ -137,7 +128,7 @@ export function canShowMenuItem(
   caps?: CapabilityGate,
 ): boolean {
   // 模块开关：明确关闭时隐藏
-  if (moduleHidden(item.requireModule, caps)) return false
+  if (isModuleHidden(item.requireModule, caps)) return false
 
   // 检查当前项是否满足权限
   const currentItemVisible = (() => {
