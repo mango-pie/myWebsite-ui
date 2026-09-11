@@ -1,9 +1,25 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { RouterView, RouterLink, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { useCapabilitiesStore } from '@/stores/capabilities'
+import { filterGatedEntries } from '@/utils/moduleGate'
 
 const userStore = useUserStore()
+const caps = useCapabilitiesStore()
 const route = useRoute()
+
+const navItems = [
+  { path: '/diary', label: '日记', requireModule: 'diary' },
+  { path: '/chat', label: '对话', requireModule: 'chat' },
+  { path: '/knowledge', label: '知识库', requireModule: 'knowledge' },
+  { path: '/lab', label: '实验室', requireModule: 'app-lab' },
+]
+
+const visibleNav = computed(() => {
+  const gate = { loaded: caps.loaded, enabled: caps.enabled }
+  return filterGatedEntries(navItems, gate)
+})
 
 function isActive(path: string) {
   return route.path.startsWith(path)
@@ -27,10 +43,14 @@ function isActive(path: string) {
         纸间 · 工作区
       </RouterLink>
       <nav>
-        <RouterLink to="/diary" :class="{ active: isActive('/diary') }">日记</RouterLink>
-        <RouterLink to="/chat" :class="{ active: isActive('/chat') }">对话</RouterLink>
-        <RouterLink to="/knowledge" :class="{ active: isActive('/knowledge') }">知识库</RouterLink>
-        <RouterLink to="/lab" :class="{ active: isActive('/lab') }">实验室</RouterLink>
+        <RouterLink
+          v-for="item in visibleNav"
+          :key="item.path"
+          :to="item.path"
+          :class="{ active: isActive(item.path) }"
+        >
+          {{ item.label }}
+        </RouterLink>
       </nav>
       <nav class="user-nav">
         <RouterLink to="/user/profile" :class="{ active: isActive('/user/profile') }">

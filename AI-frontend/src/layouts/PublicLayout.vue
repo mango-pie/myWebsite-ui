@@ -1,22 +1,29 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { RouterView, RouterLink, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { useModuleStore } from '@/stores/modules'
+import { useCapabilitiesStore } from '@/stores/capabilities'
+import GlobalFooter from '@/components/GlobalFooter.vue'
+import { filterGatedEntries } from '@/utils/moduleGate'
 
 const userStore = useUserStore()
-const moduleStore = useModuleStore()
+const caps = useCapabilitiesStore()
 const route = useRoute()
 
 onMounted(async () => {
-  await Promise.all([userStore.fetchUser(), moduleStore.fetchModules()])
+  await Promise.all([userStore.fetchUser(), caps.load()])
 })
 
 const navItems = [
-  { path: '/', label: '首页', name: 'home' },
-  { path: '/blog', label: '随笔', name: 'blog', module: 'blog' },
-  { path: '/about', label: '关于', name: 'about' },
+  { path: '/', label: '首页' },
+  { path: '/blog', label: '随笔', requireModule: 'blog' },
+  { path: '/about', label: '关于' },
 ]
+
+const visibleNav = computed(() => {
+  const gate = { loaded: caps.loaded, enabled: caps.enabled }
+  return filterGatedEntries(navItems, gate)
+})
 
 function isActive(path: string) {
   if (path === '/') return route.path === '/'
@@ -41,15 +48,14 @@ function isActive(path: string) {
         纸间
       </RouterLink>
       <nav>
-        <template v-for="item in navItems" :key="item.path">
-          <RouterLink
-            v-if="!item.module || moduleStore.isEnabled(item.module)"
-            :to="item.path"
-            :class="{ active: isActive(item.path) }"
-          >
-            {{ item.label }}
-          </RouterLink>
-        </template>
+        <RouterLink
+          v-for="item in visibleNav"
+          :key="item.path"
+          :to="item.path"
+          :class="{ active: isActive(item.path) }"
+        >
+          {{ item.label }}
+        </RouterLink>
         <RouterLink
           v-if="userStore.isLoggedIn"
           to="/user/profile"
@@ -71,23 +77,7 @@ function isActive(path: string) {
       </RouterView>
     </main>
 
-    <footer class="foot">
-      <svg
-        class="wave"
-        width="120"
-        height="16"
-        viewBox="0 0 120 16"
-      >
-        <path
-          d="M0 8 Q15 0, 30 8 T60 8 T90 8 T120 8"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-        />
-      </svg>
-      纸间 · {{ new Date().getFullYear() }} · Powered by Vue 3 + Vite
-    </footer>
+    <GlobalFooter />
   </div>
 </template>
 
@@ -150,20 +140,6 @@ function isActive(path: string) {
 
 .public-main {
   flex: 1;
-}
-
-.foot {
-  border-top: 1.5px dashed var(--hairline);
-  padding: 48px 32px;
-  text-align: center;
-  color: var(--ink-soft);
-  font-size: 13px;
-}
-
-.foot .wave {
-  display: block;
-  margin: 0 auto 16px;
-  color: var(--hairline);
 }
 
 .page-enter-active,

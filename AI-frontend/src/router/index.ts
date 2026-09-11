@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { useModuleStore } from '@/stores/modules'
+import { useCapabilitiesStore } from '@/stores/capabilities'
+import { isModuleUnavailablePath, moduleForPath } from '@/utils/moduleGate'
 import PublicLayout from '@/layouts/PublicLayout.vue'
 import WorkspaceLayout from '@/layouts/WorkspaceLayout.vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
@@ -20,13 +21,19 @@ const routes: RouteRecordRaw[] = [
         path: 'blog',
         name: 'blog',
         component: () => import('@/pages/blog/BlogListPage.vue'),
-        meta: { title: '随笔', module: 'blog' },
+        meta: { title: '随笔', requireModule: 'blog' },
       },
       {
         path: 'blog/:id',
         name: 'blog-post',
         component: () => import('@/pages/blog/BlogPostPage.vue'),
-        meta: { title: '文章详情', module: 'blog' },
+        meta: { title: '文章详情', requireModule: 'blog' },
+      },
+      {
+        path: 'module-unavailable',
+        name: 'module-unavailable',
+        component: () => import('@/pages/ModuleUnavailablePage.vue'),
+        meta: { title: '功能未开放' },
       },
       {
         path: 'about',
@@ -63,37 +70,37 @@ const routes: RouteRecordRaw[] = [
         path: 'diary',
         name: 'diary',
         component: () => import('@/pages/diary/DiaryListPage.vue'),
-        meta: { title: '日记', module: 'diary' },
+        meta: { title: '日记', requireModule: 'diary' },
       },
       {
         path: 'diary/write',
         name: 'diary-write',
         component: () => import('@/pages/diary/DiaryWritePage.vue'),
-        meta: { title: '写日记', module: 'diary' },
+        meta: { title: '写日记', requireModule: 'diary' },
       },
       {
         path: 'chat',
         name: 'chat',
         component: () => import('@/pages/chat/ChatPage.vue'),
-        meta: { title: '对话', module: 'chat' },
+        meta: { title: '对话', requireModule: 'chat' },
       },
       {
         path: 'knowledge',
         name: 'knowledge',
         component: () => import('@/pages/knowledge/KnowledgeListPage.vue'),
-        meta: { title: '知识库', module: 'knowledge' },
+        meta: { title: '知识库', requireModule: 'knowledge' },
       },
       {
         path: 'knowledge/:kbId/chat',
         name: 'knowledge-chat',
         component: () => import('@/pages/knowledge/KnowledgeChatPage.vue'),
-        meta: { title: '知识问答', module: 'knowledge' },
+        meta: { title: '知识问答', requireModule: 'knowledge' },
       },
       {
         path: 'lab',
         name: 'lab',
         component: () => import('@/pages/lab/LabPage.vue'),
-        meta: { title: '实验室', module: 'app-lab' },
+        meta: { title: '实验室', requireModule: 'app-lab' },
       },
     ],
   },
@@ -112,7 +119,7 @@ const routes: RouteRecordRaw[] = [
         path: 'blogManage',
         name: 'admin-blog',
         component: () => import('@/pages/admin/BlogManagePage.vue'),
-        meta: { title: '博客管理', module: 'blog' },
+        meta: { title: '博客管理', requireModule: 'blog' },
       },
       {
         path: 'settings',
@@ -124,7 +131,7 @@ const routes: RouteRecordRaw[] = [
         path: 'ops/stats',
         name: 'ops-stats',
         component: () => import('@/pages/admin/OpsStatsPage.vue'),
-        meta: { title: '运维统计', module: 'ops' },
+        meta: { title: '运维统计', requireModule: 'ops' },
       },
     ],
   },
@@ -146,20 +153,29 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const userStore = useUserStore()
-  const moduleStore = useModuleStore()
+  const caps = useCapabilitiesStore()
 
-  if (!moduleStore.loaded) {
-    await moduleStore.fetchModules()
+  if (!caps.loaded) {
+    await caps.load()
   }
 
   const meta = to.meta as Record<string, unknown>
   const requiresAuth = meta.requiresAuth === true
   const requiresAdmin = meta.requiresAdmin === true
   const guestOnly = meta.guest === true
-  const moduleKey = meta.module as string | undefined
+  const requireModule =
+    (meta.requireModule as string | undefined) ??
+    (meta.module as string | undefined) ??
+    (isModuleUnavailablePath(to.path) ? undefined : moduleForPath(to.path))
 
-  if (moduleKey && !moduleStore.isEnabled(moduleKey)) {
-    return { name: 'home' }
+  // 模块已关优先于登录态：禁止「点进才 unavailable / 未登录抢跳」
+  if (requireModule && !caps.enabled(requireModule)) {
+    if (to.name === 'module-unavailable') return true
+    return {
+      name: 'module-unavailable',
+      query: { from: to.fullPath, module: requireModule },
+      replace: true,
+    }
   }
 
   if (requiresAuth && !userStore.isLoggedIn) {

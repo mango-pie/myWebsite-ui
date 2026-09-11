@@ -1,12 +1,16 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { RouterView, RouterLink, useRoute } from 'vue-router'
+import { useCapabilitiesStore } from '@/stores/capabilities'
+import { filterGatedEntries } from '@/utils/moduleGate'
 
 const route = useRoute()
+const caps = useCapabilitiesStore()
 
 const navGroups = [
   {
     title: '内 容',
-    items: [{ path: '/admin/blogManage', label: '博客管理', icon: 'feather' }],
+    items: [{ path: '/admin/blogManage', label: '博客管理', icon: 'feather', requireModule: 'blog' }],
   },
   {
     title: '用 户',
@@ -16,10 +20,20 @@ const navGroups = [
     title: '系 统',
     items: [
       { path: '/admin/settings', label: '站点设置', icon: 'settings' },
-      { path: '/admin/ops/stats', label: '运维统计', icon: 'bar-chart-3' },
+      { path: '/admin/ops/stats', label: '运维统计', icon: 'bar-chart-3', requireModule: 'ops' },
     ],
   },
 ]
+
+const visibleGroups = computed(() => {
+  const gate = { loaded: caps.loaded, enabled: caps.enabled }
+  return navGroups
+    .map((group) => ({
+      ...group,
+      items: filterGatedEntries(group.items, gate),
+    }))
+    .filter((group) => group.items.length > 0)
+})
 
 function isActive(path: string) {
   return route.path.startsWith(path)
@@ -42,7 +56,7 @@ function isActive(path: string) {
         </span>
         管理后台
       </RouterLink>
-      <div v-for="group in navGroups" :key="group.title" class="nav-group">
+      <div v-for="group in visibleGroups" :key="group.title" class="nav-group">
         <div class="nav-group-title">{{ group.title }}</div>
         <RouterLink
           v-for="item in group.items"
