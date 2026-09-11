@@ -115,9 +115,9 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '博客管理', module: 'blog' },
       },
       {
-        path: 'settings',
+        path: 'settings/:module?',
         name: 'admin-settings',
-        component: () => import('@/pages/admin/SettingsPage.vue'),
+        component: () => import('@/pages/admin/SiteSettingsPage.vue'),
         meta: { title: '站点设置' },
       },
       {

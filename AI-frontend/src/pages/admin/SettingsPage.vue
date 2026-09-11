@@ -1,16 +1,7 @@
 <script setup lang="ts">
+import SiteSettingsPage from './SiteSettingsPage.vue'
 </script>
 
 <template>
-  <div>
-    <div class="page-header">
-      <h1>站点设置</h1>
-    </div>
-    <p class="hint">页面建设中 · 设计稿见 v3</p>
-  </div>
+  <SiteSettingsPage />
 </template>
-
-<style scoped>
-.page-header { margin-bottom: 24px; }
-.hint { color: var(--ink-soft); font: 13px var(--fd); }
-</style>

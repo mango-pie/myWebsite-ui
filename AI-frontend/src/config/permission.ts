@@ -86,7 +86,7 @@ export const MENU_ITEMS: MenuItemConfig[] = [
       { key: 'userManage', label: '用户管理', path: '/admin/userManage', requiredRole: 'admin' },
       { key: 'appManage', label: '应用管理', path: '/admin/appManage', requiredRole: 'admin', requireModule: 'app-lab' },
       { key: 'blogManage', label: '博客管理', path: '/admin/blogManage', requiredRole: 'admin', requireModule: 'blog' },
-      { key: 'siteSettings', label: '站点设置', path: '/admin/settings/site', requiredRole: 'admin' },
+      { key: 'siteSettings', label: '站点设置', path: '/admin/settings', requiredRole: 'admin' },
     ],
   },
   { key: 'opsCenter', label: '运维中心', path: '/admin/ops/usage', requiredRole: 'admin', requireModule: 'ops' },
