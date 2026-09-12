@@ -3,6 +3,7 @@ import { useCapabilitiesStore } from '@/stores/capabilities'
 import { message } from 'ant-design-vue'
 import router from '@/router'
 import { getRequiredRole, isAdminRole } from '@/config/permission'
+import { getRequiredModuleByPath } from '@/config/modules'
 import { getLastChatConversationId, shouldResumeChatHome } from '@/utils/chatSession'
 
 // 是否为首次获取登录用户
@@ -10,27 +11,39 @@ let firstFetchLoginUser = true
 
 /**
  * 全局权限校验（依据 src/config/permission.ts 的 ROUTE_PERMISSIONS 与路径前缀）
+ * 以及模块门控（GET /app/modules + 路由 meta.requireModule）
  */
 router.beforeEach(async (to, _from) => {
   const loginUserStore = useLoginUserStore()
-  const capsStore = useCapabilitiesStore()
+  const capabilitiesStore = useCapabilitiesStore()
   let loginUser = loginUserStore.loginUser
   if (firstFetchLoginUser) {
-    // 首次导航：并行拉取登录用户与模块能力
-    await Promise.all([loginUserStore.fetchLoginUser(), capsStore.load()])
+    await Promise.all([loginUserStore.fetchLoginUser(), capabilitiesStore.ensureLoaded()])
     loginUser = loginUserStore.loginUser
     firstFetchLoginUser = false
+  } else {
+    await capabilitiesStore.ensureLoaded()
   }
 
-  // 模块开关：能力已加载且该路由依赖的模块被关闭时拦截（用首页兜底）
-  const needModule = to.meta?.requireModule as string | undefined
-  if (needModule && capsStore.loaded && !capsStore.enabled(needModule)) {
-    message.warning('该功能未启用')
-    return { path: '/' }
+  const requiredModule =
+    (typeof to.meta.requireModule === 'string' && to.meta.requireModule) ||
+    getRequiredModuleByPath(to.path)
+  if (requiredModule && !capabilitiesStore.enabled(requiredModule)) {
+    if (to.path === '/module-unavailable') {
+      return true
+    }
+    return {
+      path: '/module-unavailable',
+      query: { module: requiredModule },
+      replace: true,
+    }
   }
 
   // 回到「对话」时恢复上次具体对话页，而非停留在 /chat 列表
-  if (shouldResumeChatHome(to.path, to.query as Record<string, unknown>)) {
+  if (
+    capabilitiesStore.enabled('chat') &&
+    shouldResumeChatHome(to.path, to.query as Record<string, unknown>)
+  ) {
     const last = getLastChatConversationId()
     if (last) {
       return { path: `/chat/${last}`, replace: true }

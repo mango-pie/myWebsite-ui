@@ -1,7 +1,7 @@
 import { onUnmounted, ref, shallowRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { siteConfig } from '@/config/site'
-import { useAudioPlayer } from '@/design'
+import { usePulsePlayer } from '@/composables/usePulsePlayer'
 import {
   PET_ARRIVAL_THRESHOLD,
   PET_STORAGE_KEY,
@@ -57,7 +57,7 @@ export function usePetEngine(options: UsePetEngineOptions) {
   const route = useRoute()
   const { petSize, getMode, onRouteLine } = options
   const cfg = siteConfig.effects.petDango
-  const { state: playerState } = useAudioPlayer()
+  const p = usePulsePlayer()
 
   const position = ref<PetPoint>(getDefaultPosition(petSize))
   const wanderTarget = ref<PetPoint | null>(null)
@@ -93,7 +93,7 @@ export function usePetEngine(options: UsePetEngineOptions) {
       state: state.value,
       overlay: overlayState.value,
       walkPace: walkPace.value,
-      musicPlaying: playerState.value.isPlaying,
+      musicPlaying: p.isPlaying.value,
       facing: facing.value,
       lookAt: lookAt.value,
     }
@@ -356,7 +356,7 @@ export function usePetEngine(options: UsePetEngineOptions) {
   )
 
   watch(
-    () => playerState.value.isPlaying,
+    () => p.isPlaying.value,
     () => {
       if (state.value === 'idle' || state.value === 'sleep') {
         syncViewModel()

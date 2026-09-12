@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="morning">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>某某の小站 · 随笔设计预览 v1</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/zcool-kuaile@5/index.css">
+<style>
+/* ============================================================
+   Design Tokens — 继承 Home v3
+   ============================================================ */
+:root{
+  --ink:#4c5570;
+  --ink-soft:#7a83a0;
+  --ink-faint:#a5acc4;
+  --paper:#fffdf8;
+  --card:#ffffff;
+
+  --c-sakura:#f490ad;  --c-sakura-soft:#ffd9e4;
+  --c-violet:#9b8ce8;  --c-violet-soft:#e4dffd;
+  --c-lilac:#c79ae0;   --c-lilac-soft:#f2e2fa;
+  --c-blue:#6aaee8;    --c-blue-soft:#d8ebfb;
+  --c-mint:#5fc4a5;    --c-mint-soft:#d6f2e8;
+  --c-sun:#ffcf6e;
+
+  --shadow-1:0 2px 6px rgba(96,116,168,.10), 0 10px 28px rgba(96,116,168,.12);
+  --shadow-2:0 4px 10px rgba(96,116,168,.14), 0 20px 48px rgba(96,116,168,.18);
+  --shadow-pop:0 6px 0 rgba(76,85,112,.10), 0 18px 40px rgba(96,116,168,.20);
+
+  --r-lg:28px; --r-md:20px; --r-sm:14px;
+  --ease-spring:cubic-bezier(.34,1.56,.5,1);
+  --ease-out:cubic-bezier(.22,.8,.32,1);
+}
+
+:root[data-theme="morning"]{
+  --sky-1:#bfe6f7; --sky-2:#dcf2fb; --sky-3:#fff3df;
+  --page-1:#eaf6fc; --page-2:#fdeef2; --page-3:#f3effc;
+}
+:root[data-theme="noon"]{
+  --sky-1:#3d9be9; --sky-2:#7cc4f5; --sky-3:#dcf2ff;
+  --page-1:#e4f2ff; --page-2:#fdf6e0; --page-3:#e6f9ef;
+}
+:root[data-theme="dusk"]{
+  --sky-1:#6b4f9e; --sky-2:#e0699b; --sky-3:#ffb45e;
+  --page-1:#fbe4cf; --page-2:#f8dbe6; --page-3:#e9ddf5;
+}
+:root[data-theme="night"]{
+  --sky-1:#1d2350; --sky-2:#3d3f7a; --sky-3:#7a5ba8;
+  --page-1:#dde2f4; --page-2:#e6dcf0; --page-3:#d6e6f2;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Source Han Sans SC",sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(1200px 700px at 12% -10%, var(--page-2), transparent 60%),
+    radial-gradient(1000px 800px at 105% 110%, var(--page-3), transparent 55%),
+    linear-gradient(160deg, var(--page-1), var(--page-2) 55%, var(--page-3));
+  transition:background 1.4s var(--ease-out);
+  display:flex;justify-content:center;align-items:flex-start;
+  -webkit-font-smoothing:antialiased;
+}
+.font-display{font-family:"ZCOOL KuaiLe","PingFang SC",sans-serif}
+button,input,textarea,select{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+.text-wrap-pretty{text-wrap:pretty}
+
+::-webkit-scrollbar{width:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(150,160,200,.4);border-radius:6px;border:2px solid transparent;background-clip:content-box}
+
+/* 1920 画布 */
+#stageWrap{position:relative;flex:none}
+#stage{
+  position:absolute;top:0;left:0;width:1920px;height:1400px;
+  transform-origin:top left;
+  border-radius:36px;overflow:hidden;
+  background:
+    radial-gradient(900px 520px at 8% -3%, rgba(255,255,255,.85), transparent 60%),
+    radial-gradient(760px 600px at 96% 2%, rgba(255,255,255,.5), transparent 55%),
+    radial-gradient(1000px 700px at 50% 55%, rgba(255,255,255,.4), transparent 60%),
+    radial-gradient(900px 600px at 10% 98%, rgba(255,255,255,.5), transparent 60%),
+    linear-gradient(168deg, var(--page-1) 0%, var(--page-2) 30%, var(--page-3) 52%, var(--page-1) 78%, var(--page-2) 100%);
+  box-shadow:0 40px 120px rgba(70,80,130,.28);
+  transition:background 1.4s var(--ease-out), height .35s var(--ease-out);
+}
+#stage::before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:radial-gradient(rgba(120,135,180,.14) 1.2px, transparent 1.3px);
+  background-size:26px 26px;
+  mask-image:linear-gradient(180deg, rgba(0,0,0,.9), rgba(0,0,0,.25) 30%, rgba(0,0,0,.5) 60%, rgba(0,0,0,.8));
+}
+#stage::after{
+  content:"";position:absolute;inset:-20%;pointer-events:none;z-index:0;
+  background:linear-gradient(115deg, transparent 42%, rgba(255,255,255,.22) 50%, transparent 58%);
+}
+
+.deco{position:absolute;pointer-events:none;user-select:none;z-index:1;opacity:.75}
+@keyframes floaty{0%,100%{margin-top:0}50%{margin-top:-12px}}
+
+/* 顶栏 */
+#topbar{
+  position:relative;z-index:5;height:92px;padding:0 56px;
+  display:flex;align-items:center;gap:40px;
+}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-mark{
+  width:52px;height:52px;border-radius:18px;position:relative;
+  background:linear-gradient(140deg,var(--c-sakura),var(--c-violet));
+  box-shadow:var(--shadow-1), inset 0 2px 4px rgba(255,255,255,.5);
+  display:grid;place-items:center;transform:rotate(-6deg);
+}
+.brand-mark svg{width:28px;height:28px}
+.brand-name{font-size:26px;letter-spacing:1px}
+.brand-sub{font-size:12px;color:var(--ink-faint);letter-spacing:3px;margin-top:2px}
+
+#mainnav{
+  display:flex;gap:6px;margin:0 auto;position:relative;
+  background:rgba(255,255,255,.72);backdrop-filter:blur(10px);
+  padding:7px;border-radius:999px;box-shadow:var(--shadow-1);
+  border:1.5px solid rgba(255,255,255,.9);
+}
+#mainnav button{
+  padding:10px 22px;border-radius:999px;font-size:16px;color:var(--ink-soft);
+  letter-spacing:2px;position:relative;z-index:1;transition:color .3s, transform .3s var(--ease-spring);
+}
+#mainnav button:hover{color:var(--ink);transform:translateY(-2px)}
+#mainnav button.active{color:#fff}
+#navPill{
+  position:absolute;top:7px;left:0;height:calc(100% - 14px);border-radius:999px;z-index:0;
+  background:linear-gradient(135deg,var(--c-sakura),#f7b0c4);
+  box-shadow:0 6px 16px rgba(244,144,173,.45);
+  transition:left .45s var(--ease-spring), width .45s var(--ease-spring), opacity .3s;
+  opacity:0;
+}
+.top-right{display:flex;align-items:center;gap:16px}
+.clock-chip{
+  background:rgba(255,255,255,.72);backdrop-filter:blur(10px);
+  border:1.5px solid rgba(255,255,255,.9);border-radius:18px;
+  padding:8px 18px;box-shadow:var(--shadow-1);text-align:right;line-height:1.25;
+}
+.clock-time{font-size:20px;font-weight:700;letter-spacing:2px;font-variant-numeric:tabular-nums}
+.clock-time .sec{font-size:13px;color:var(--ink-faint);font-weight:600}
+.clock-time .colon{animation:blink 2s steps(1) infinite}
+@keyframes blink{50%{opacity:.25}}
+.clock-date{font-size:11px;color:var(--ink-faint);letter-spacing:1px}
+.avatar{
+  width:52px;height:52px;border-radius:50%;flex:none;
+  background:linear-gradient(140deg,var(--c-blue-soft),var(--c-violet-soft));
+  border:3px solid #fff;box-shadow:var(--shadow-1);
+  display:grid;place-items:center;font-size:20px;color:var(--c-violet);
+  font-family:"ZCOOL KuaiLe",sans-serif;
+}
+
+/* 页面壳 */
+.page{
+  position:relative;z-index:4;display:none;
+  padding:8px 56px 56px;min-height:988px;
+}
+.page.on{display:block}
+.page-label{
+  position:absolute;top:0;right:56px;z-index:6;
+  font-size:11px;letter-spacing:3px;color:var(--ink-faint);
+  background:rgba(255,255,255,.7);backdrop-filter:blur(8px);
+  border:1.5px dashed rgba(155,140,232,.35);border-radius:999px;
+  padding:6px 14px;
+}
+
+/* 通用骨架件 */
+.skel{
+  background:rgba(255,255,255,.55);
+  border:1.5px dashed rgba(150,160,200,.35);
+  border-radius:var(--r-md);
+  position:relative;
+}
+.skel::after{
+  content:attr(data-label);
+  position:absolute;inset:0;display:grid;place-items:center;
+  font-size:12px;letter-spacing:2px;color:var(--ink-faint);
+}
+.ph-bar{
+  height:14px;border-radius:8px;
+  background:rgba(150,160,200,.18);
+  margin-bottom:10px;
+}
+.ph-bar.w60{width:60%}.ph-bar.w40{width:40%}.ph-bar.w80{width:80%}.ph-bar.w30{width:30%}
+.ph-bar.lg{height:28px}.ph-bar.xl{height:42px}
+
+.glass{
+  background:rgba(255,255,255,.78);backdrop-filter:blur(10px);
+  border:1.5px solid rgba(255,255,255,.95);
+  border-radius:var(--r-lg);box-shadow:var(--shadow-1);
+}
+
+/* —— 列表页 —— */
+.list-head{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:24px;margin-bottom:28px;padding-top:12px;
+}
+.list-title-block .eyebrow{
+  font-size:12px;letter-spacing:4px;color:var(--ink-faint);margin-bottom:8px;
+}
+.list-title-block h1{
+  font-size:52px;letter-spacing:4px;line-height:1.1;
+}
+.list-title-block .sub{
+  margin-top:10px;font-size:16px;color:var(--ink-soft);letter-spacing:2px;
+}
+.list-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.chip-btn{
+  height:44px;padding:0 18px;border-radius:14px;
+  background:rgba(255,255,255,.85);border:1.5px solid #fff;
+  box-shadow:var(--shadow-1);font-size:14px;letter-spacing:1px;color:var(--ink-soft);
+  display:inline-flex;align-items:center;gap:8px;
+}
+.chip-btn.primary{
+  background:linear-gradient(135deg,var(--c-sakura),#f7b0c4);
+  color:#fff;border-color:transparent;
+}
+.seg-mini{
+  display:flex;background:rgba(255,255,255,.7);border-radius:999px;padding:4px;gap:2px;
+  border:1.5px solid #fff;box-shadow:var(--shadow-1);
+}
+.seg-mini button{
+  padding:8px 16px;border-radius:999px;font-size:13px;color:var(--ink-soft);letter-spacing:1px;
+}
+.seg-mini button.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(90,100,160,.16)}
+
+.list-toolbar{
+  display:flex;gap:14px;align-items:center;margin-bottom:24px;flex-wrap:wrap;
+}
+.search-box{
+  flex:1;min-width:280px;height:48px;border-radius:16px;
+  background:rgba(255,255,255,.88);border:2px solid #e8e4f5;
+  display:flex;align-items:center;padding:0 16px;gap:10px;
+  color:var(--ink-faint);font-size:14px;letter-spacing:1px;
+}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap}
+.filter-pill{
+  height:36px;padding:0 14px;border-radius:999px;
+  background:rgba(255,255,255,.7);border:1.5px solid #ece7f8;
+  font-size:13px;color:var(--ink-soft);letter-spacing:1px;
+  display:inline-flex;align-items:center;
+}
+.filter-pill.on{background:var(--c-sakura-soft);border-color:var(--c-sakura);color:var(--c-sakura)}
+
+.card-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:22px;
+}
+.post-card{
+  background:rgba(255,255,255,.86);border:1.5px solid #fff;
+  border-radius:var(--r-lg);box-shadow:var(--shadow-1);overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.post-card .cover{
+  aspect-ratio:16/9;background:
+    radial-gradient(180px 100px at 20% 30%, var(--c-sakura-soft), transparent 70%),
+    radial-gradient(160px 90px at 80% 70%, var(--c-violet-soft), transparent 70%),
+    rgba(255,255,255,.4);
+  border-bottom:1.5px dashed rgba(150,160,200,.25);
+  display:grid;place-items:center;font-size:12px;letter-spacing:2px;color:var(--ink-faint);
+}
+.post-card .body{padding:18px 20px 20px}
+.post-card .meta{display:flex;gap:10px;font-size:12px;color:var(--ink-faint);letter-spacing:1px;margin-bottom:10px}
+.post-card .title{font-size:20px;letter-spacing:1px;margin-bottom:10px}
+.post-card .stats{display:flex;gap:14px;margin-top:14px;font-size:12px;color:var(--ink-faint)}
+
+.timeline-layout{display:none;grid-template-columns:280px 1fr;gap:28px}
+#stage[data-layout="timeline"] .card-grid{display:none}
+#stage[data-layout="timeline"] .timeline-layout{display:grid}
+
+.side-panel{padding:22px;display:flex;flex-direction:column;gap:18px}
+.side-block h3{font-size:15px;letter-spacing:2px;margin-bottom:12px}
+.timeline-rail{
+  position:relative;padding-left:28px;
+}
+.timeline-rail::before{
+  content:"";position:absolute;left:8px;top:8px;bottom:8px;width:2px;
+  background:linear-gradient(180deg,var(--c-sakura-soft),var(--c-violet-soft));
+}
+.tl-item{
+  position:relative;margin-bottom:20px;padding:18px 20px;
+  background:rgba(255,255,255,.86);border:1.5px solid #fff;
+  border-radius:var(--r-md);box-shadow:var(--shadow-1);
+}
+.tl-item::before{
+  content:"";position:absolute;left:-24px;top:24px;width:12px;height:12px;border-radius:50%;
+  background:var(--c-sakura);border:3px solid #fff;box-shadow:var(--shadow-1);
+}
+
+.pagination{
+  display:flex;justify-content:center;gap:8px;margin-top:32px;
+}
+.page-dot{
+  width:40px;height:40px;border-radius:12px;
+  background:rgba(255,255,255,.75);border:1.5px solid #fff;
+  display:grid;place-items:center;font-size:14px;color:var(--ink-soft);
+}
+.page-dot.on{background:var(--c-sakura);color:#fff}
+
+/* —— 详情 —— */
+.detail-grid{display:grid;grid-template-columns:1fr 300px;gap:28px}
+.detail-cover{
+  height:320px;border-radius:var(--r-lg);margin-bottom:24px;
+  background:
+    radial-gradient(400px 200px at 30% 40%, var(--c-lilac-soft), transparent 65%),
+    radial-gradient(360px 180px at 80% 60%, var(--c-blue-soft), transparent 65%),
+    rgba(255,255,255,.35);
+  border:1.5px solid #fff;box-shadow:var(--shadow-1);
+  display:grid;place-items:center;font-size:13px;letter-spacing:2px;color:var(--ink-faint);
+}
+.detail-main{padding:28px 32px 36px}
+.detail-meta{display:flex;gap:14px;font-size:13px;color:var(--ink-faint);letter-spacing:1px;margin-bottom:14px}
+.detail-main h1{font-size:40px;letter-spacing:2px;line-height:1.25;margin-bottom:14px}
+.detail-actions{display:flex;gap:10px;margin:20px 0}
+.prose-skel{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.prose-skel .ph-bar{height:12px;margin:0}
+.comment-stub{
+  margin-top:28px;padding:20px;border-radius:var(--r-md);
+  border:1.5px dashed rgba(150,160,200,.4);
+  text-align:center;font-size:13px;color:var(--ink-faint);letter-spacing:2px;
+}
+
+/* —— 发布 —— */
+.create-grid{display:grid;grid-template-columns:1fr 340px;gap:24px}
+.form-panel{padding:28px 32px}
+.form-row{margin-bottom:18px}
+.form-label{font-size:13px;letter-spacing:2px;color:var(--ink-soft);margin-bottom:8px}
+.form-field{
+  width:100%;min-height:48px;border-radius:14px;border:2px solid #e8e4f5;
+  background:#fff;padding:12px 16px;font-size:15px;color:var(--ink-faint);
+}
+.form-field.tall{min-height:220px}
+.cover-upload{
+  aspect-ratio:16/9;border-radius:var(--r-md);
+  border:2px dashed rgba(150,160,200,.4);
+  background:rgba(255,255,255,.5);
+  display:grid;place-items:center;font-size:13px;color:var(--ink-faint);letter-spacing:2px;
+}
+.form-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.btn{
+  height:46px;padding:0 22px;border-radius:14px;font-size:15px;letter-spacing:2px;
+  background:rgba(255,255,255,.9);border:1.5px solid #fff;box-shadow:var(--shadow-1);
+  color:var(--ink-soft);
+}
+.btn.primary{
+  background:linear-gradient(135deg,var(--c-violet),var(--c-sakura));
+  color:#fff;border-color:transparent;
+}
+.btn.ghost{background:transparent;border:1.5px dashed rgba(150,160,200,.45)}
+
+/* —— 分类 / 标签 —— */
+.sub-hero{
+  padding:28px 32px;margin-bottom:24px;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+}
+.sub-hero h1{font-size:36px;letter-spacing:3px}
+.sub-hero .count{font-size:14px;color:var(--ink-faint);letter-spacing:2px;margin-top:8px}
+.back-chip{
+  height:40px;padding:0 16px;border-radius:12px;
+  background:rgba(255,255,255,.85);border:1.5px solid #fff;box-shadow:var(--shadow-1);
+  font-size:13px;letter-spacing:1px;color:var(--ink-soft);
+  display:inline-flex;align-items:center;gap:6px;
+}
+
+/* Tweaks */
+#tweaks{position:fixed;right:28px;bottom:28px;z-index:99;font-size:14px}
+#tweaks .panel{
+  width:300px;background:rgba(255,255,255,.94);backdrop-filter:blur(14px);
+  border-radius:22px;box-shadow:0 20px 60px rgba(70,80,130,.35);border:1.5px solid #fff;
+  padding:18px 20px 20px;display:none;margin-bottom:12px;
+}
+#tweaks.open .panel{display:block}
+#tweaks h4{font-size:13px;letter-spacing:3px;color:var(--ink-faint);margin-bottom:14px;font-weight:600}
+#tweaks .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px}
+#tweaks .row:last-child{margin-bottom:0}
+#tweaks label{color:var(--ink-soft);letter-spacing:1px;flex:none;font-size:13px}
+.seg{display:flex;background:#f0edf9;border-radius:999px;padding:3px;gap:2px;flex-wrap:wrap;justify-content:flex-end}
+.seg button{padding:6px 10px;border-radius:999px;font-size:12px;color:var(--ink-soft);letter-spacing:1px}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(90,100,160,.18)}
+#tweaks .fab{
+  height:46px;padding:0 20px;border-radius:999px;
+  background:rgba(255,255,255,.94);backdrop-filter:blur(14px);color:var(--ink);
+  box-shadow:0 12px 34px rgba(70,80,130,.35);border:1.5px solid #fff;
+  font-size:14px;letter-spacing:2px;display:flex;align-items:center;gap:8px;
+}
+#tweaks.open .fab{display:none}
+#tweaks .fab svg{width:16px;height:16px}
+
+.v1-banner{
+  position:relative;z-index:5;margin:0 56px 8px;
+  padding:10px 18px;border-radius:14px;
+  background:rgba(255,255,255,.65);border:1.5px dashed rgba(155,140,232,.4);
+  font-size:13px;letter-spacing:1px;color:var(--ink-soft);
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+
+<div id="stageWrap">
+<div id="stage" data-page="list" data-layout="card" data-season="spring">
+
+  <div class="deco" style="left:1680px;top:110px;animation:floaty 6s ease-in-out infinite">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4L12 2z" fill="#ffcf6e" opacity=".9"/></svg>
+  </div>
+  <div class="deco" style="left:70px;top:720px;animation:floaty 7s ease-in-out infinite;animation-delay:-3s">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4L12 2z" fill="#f490ad" opacity=".7"/></svg>
+  </div>
+
+  <header id="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4L12 2z" fill="#fff"/></svg>
+      </div>
+      <div>
+        <div class="brand-name font-display">某某の小站</div>
+        <div class="brand-sub">MOUMOU NO STATION</div>
+      </div>
+    </div>
+    <nav id="mainnav">
+      <span id="navPill"></span>
+      <button type="button">首页</button>
+      <button type="button" class="active">随笔</button>
+      <button type="button">日记</button>
+      <button type="button">知识库</button>
+      <button type="button">实验室</button>
+      <button type="button">对话</button>
+    </nav>
+    <div class="top-right">
+      <div class="clock-chip">
+        <div class="clock-time" id="clockTime">--<span class="colon">:</span>--</div>
+        <div class="clock-date" id="clockDate">----年--月--日</div>
+      </div>
+      <div class="avatar">某</div>
+    </div>
+  </header>
+
+  <div class="v1-banner text-wrap-pretty">
+    v1 骨架 · 五屏可切换 · 占位模块标有 [label] · 请用 Tweaks 切页 / 换时段
+  </div>
+
+  <!-- ========== 列表 ========== -->
+  <section class="page on" id="page-list" data-screen-label="01 List">
+    <span class="page-label">01 · LIST /blog</span>
+    <div class="list-head">
+      <div class="list-title-block">
+        <div class="eyebrow">JOURNAL</div>
+        <h1 class="font-display">随笔</h1>
+        <div class="sub">把日子写成一页页小故事</div>
+      </div>
+      <div class="list-actions">
+        <div class="seg-mini" id="layoutSeg">
+          <button type="button" class="on" data-layout="card">卡片</button>
+          <button type="button" data-layout="timeline">时间线</button>
+        </div>
+        <button type="button" class="chip-btn">最新 / 热门 [toggle]</button>
+        <button type="button" class="chip-btn primary font-display">发布文章</button>
+      </div>
+    </div>
+
+    <div class="list-toolbar">
+      <div class="search-box">[icon] 搜索标题…</div>
+      <div class="filter-row">
+        <span class="filter-pill on">全部</span>
+        <span class="filter-pill">前端</span>
+        <span class="filter-pill">随想</span>
+        <span class="filter-pill">笔记</span>
+      </div>
+    </div>
+
+    <div class="card-grid">
+      <article class="post-card">
+        <div class="cover">[image] 16:9 cover</div>
+        <div class="body">
+          <div class="meta"><span>分类</span><span>2026-07-12</span></div>
+          <div class="title font-display">文章标题占位</div>
+          <div class="ph-bar w80"></div>
+          <div class="ph-bar w60"></div>
+          <div class="stats"><span>[icon] 阅</span><span>[icon] 赞</span></div>
+        </div>
+      </article>
+      <article class="post-card">
+        <div class="cover">[image] 16:9 cover</div>
+        <div class="body">
+          <div class="meta"><span>分类</span><span>2026-07-08</span></div>
+          <div class="title font-display">第二篇占位</div>
+          <div class="ph-bar w80"></div>
+          <div class="ph-bar w40"></div>
+          <div class="stats"><span>[icon] 阅</span><span>[icon] 赞</span></div>
+        </div>
+      </article>
+      <article class="post-card">
+        <div class="cover">[image] 16:9 cover</div>
+        <div class="body">
+          <div class="meta"><span>分类</span><span>2026-06-30</span></div>
+          <div class="title font-display">第三篇占位</div>
+          <div class="ph-bar w80"></div>
+          <div class="ph-bar w60"></div>
+          <div class="stats"><span>[icon] 阅</span><span>[icon] 赞</span></div>
+        </div>
+      </article>
+      <article class="post-card">
+        <div class="cover">[image] 16:9 cover</div>
+        <div class="body">
+          <div class="meta"><span>分类</span><span>2026-06-21</span></div>
+          <div class="title font-display">第四篇占位</div>
+          <div class="ph-bar w80"></div>
+          <div class="ph-bar w30"></div>
+          <div class="stats"><span>[icon] 阅</span><span>[icon] 赞</span></div>
+        </div>
+      </article>
+      <article class="post-card">
+        <div class="cover">[image] 16:9 cover</div>
+        <div class="body">
+          <div class="meta"><span>分类</span><span>2026-06-14</span></div>
+          <div class="title font-display">第五篇占位</div>
+          <div class="ph-bar w80"></div>
+          <div class="ph-bar w60"></div>
+          <div class="stats"><span>[icon] 阅</span><span>[icon] 赞</span></div>
+        </div>
+      </article>
+      <article class="post-card">
+        <div class="cover">[image] 16:9 cover</div>
+        <div class="body">
+          <div class="meta"><span>分类</span><span>2026-06-02</span></div>
+          <div class="title font-display">第六篇占位</div>
+          <div class="ph-bar w80"></div>
+          <div class="ph-bar w40"></div>
+          <div class="stats"><span>[icon] 阅</span><span>[icon] 赞</span></div>
+        </div>
+      </article>
+    </div>
+
+    <div class="timeline-layout">
+      <aside class="side-panel glass">
+        <div class="side-block">
+          <h3 class="font-display">关于</h3>
+          <div class="ph-bar w80"></div>
+          <div class="ph-bar w60"></div>
+        </div>
+        <div class="side-block">
+          <h3 class="font-display">分类</h3>
+          <div class="ph-bar w40"></div>
+          <div class="ph-bar w50"></div>
+          <div class="ph-bar w30"></div>
+        </div>
+        <div class="side-block">
+          <h3 class="font-display">标签云</h3>
+          <div class="filter-row">
+            <span class="filter-pill">[tag]</span>
+            <span class="filter-pill">[tag]</span>
+            <span class="filter-pill">[tag]</span>
+          </div>
+        </div>
+      </aside>
+      <div class="timeline-rail">
+        <div class="tl-item">
+          <div class="meta" style="font-size:12px;color:var(--ink-faint);margin-bottom:8px">2026 · 七月</div>
+          <div class="title font-display" style="font-size:18px;margin-bottom:8px">时间线条目占位</div>
+          <div class="ph-bar w80"></div>
+          <div class="ph-bar w50"></div>
+        </div>
+        <div class="tl-item">
+          <div class="meta" style="font-size:12px;color:var(--ink-faint);margin-bottom:8px">2026 · 六月</div>
+          <div class="title font-display" style="font-size:18px;margin-bottom:8px">另一条占位</div>
+          <div class="ph-bar w80"></div>
+          <div class="ph-bar w40"></div>
+        </div>
+        <div class="tl-item">
+          <div class="meta" style="font-size:12px;color:var(--ink-faint);margin-bottom:8px">2026 · 五月</div>
+          <div class="title font-display" style="font-size:18px;margin-bottom:8px">更早的占位</div>
+          <div class="ph-bar w60"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pagination">
+      <span class="page-dot on">1</span>
+      <span class="page-dot">2</span>
+      <span class="page-dot">3</span>
+      <span class="page-dot">…</span>
+    </div>
+  </section>
+
+  <!-- ========== 详情 ========== -->
+  <section class="page" id="page-detail" data-screen-label="02 Detail">
+    <span class="page-label">02 · DETAIL /blog/:id</span>
+    <button type="button" class="back-chip" style="margin-bottom:16px">← 返回列表</button>
+    <div class="detail-cover">[image] 21:9 hero cover</div>
+    <div class="detail-grid">
+      <article class="detail-main glass">
+        <div class="detail-meta"><span>前端</span><span>2026-07-12</span><span>某某</span></div>
+        <h1 class="font-display text-wrap-pretty">文章标题占位 · 详情页骨架</h1>
+        <div class="ph-bar w60" style="margin-bottom:16px"></div>
+        <div class="filter-row" style="margin-bottom:8px">
+          <span class="filter-pill">[tag]</span>
+          <span class="filter-pill">[tag]</span>
+        </div>
+        <div class="detail-actions">
+          <button type="button" class="chip-btn">[icon] 点赞</button>
+          <button type="button" class="chip-btn">[icon] 分享</button>
+          <button type="button" class="chip-btn">[icon] 编辑</button>
+        </div>
+        <div class="prose-skel">
+          <div class="ph-bar"></div>
+          <div class="ph-bar w80"></div>
+          <div class="ph-bar w60"></div>
+          <div class="ph-bar"></div>
+          <div class="ph-bar w40"></div>
+          <div class="skel" data-label="[prose block]" style="height:120px;margin:8px 0"></div>
+          <div class="ph-bar"></div>
+          <div class="ph-bar w80"></div>
+          <div class="ph-bar w50"></div>
+        </div>
+        <div class="comment-stub">评论区 stub · 暂未开放</div>
+      </article>
+      <aside class="side-panel glass" style="align-self:start">
+        <div class="side-block">
+          <h3 class="font-display">相关文章</h3>
+          <div class="ph-bar w80"></div>
+          <div class="ph-bar w60"></div>
+          <div class="ph-bar w70" style="margin-top:12px"></div>
+          <div class="ph-bar w50"></div>
+        </div>
+        <div class="side-block">
+          <h3 class="font-display">标签云</h3>
+          <div class="filter-row">
+            <span class="filter-pill">[tag]</span>
+            <span class="filter-pill">[tag]</span>
+            <span class="filter-pill">[tag]</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ========== 发布 ========== -->
+  <section class="page" id="page-create" data-screen-label="03 Create">
+    <span class="page-label">03 · CREATE /blog/create</span>
+    <div class="list-head" style="margin-bottom:20px">
+      <div class="list-title-block">
+        <div class="eyebrow">EDITOR</div>
+        <h1 class="font-display" style="font-size:40px">写文章</h1>
+        <div class="sub">草稿 / 发布 · 表单骨架</div>
+      </div>
+      <button type="button" class="back-chip">← 返回</button>
+    </div>
+    <div class="create-grid">
+      <div class="form-panel glass">
+        <div class="form-row">
+          <div class="form-label">标题</div>
+          <div class="form-field">[input] 文章标题</div>
+        </div>
+        <div class="form-row">
+          <div class="form-label">摘要</div>
+          <div class="form-field">[input] 一句话摘要</div>
+        </div>
+        <div class="form-row">
+          <div class="form-label">正文</div>
+          <div class="form-field tall">[textarea] Markdown 正文区域</div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn ghost">重置</button>
+          <button type="button" class="btn">存草稿</button>
+          <button type="button" class="btn primary font-display">发布</button>
+        </div>
+      </div>
+      <aside class="form-panel glass">
+        <div class="form-row">
+          <div class="form-label">封面</div>
+          <div class="cover-upload">[image] 16:9 upload</div>
+        </div>
+        <div class="form-row">
+          <div class="form-label">分类</div>
+          <div class="form-field">[select] 选择分类</div>
+        </div>
+        <div class="form-row">
+          <div class="form-label">标签</div>
+          <div class="filter-row">
+            <span class="filter-pill">[tag]</span>
+            <span class="filter-pill">[tag]+</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ========== 分类 ========== -->
+  <section class="page" id="page-category" data-screen-label="04 Category">
+    <span class="page-label">04 · CATEGORY /category/:name</span>
+    <div class="sub-hero glass">
+      <div>
+        <div class="eyebrow" style="font-size:12px;letter-spacing:4px;color:var(--ink-faint)">CATEGORY</div>
+        <h1 class="font-display">前端</h1>
+        <div class="count">共 8 篇 · 筛选结果骨架</div>
+      </div>
+      <button type="button" class="back-chip">← 全部随笔</button>
+    </div>
+    <div class="card-grid" style="grid-template-columns:repeat(3,1fr)">
+      <article class="post-card"><div class="cover">[image] 16:9</div><div class="body"><div class="title font-display">分类下列表项</div><div class="ph-bar w80"></div><div class="ph-bar w50"></div></div></article>
+      <article class="post-card"><div class="cover">[image] 16:9</div><div class="body"><div class="title font-display">分类下列表项</div><div class="ph-bar w80"></div><div class="ph-bar w40"></div></div></article>
+      <article class="post-card"><div class="cover">[image] 16:9</div><div class="body"><div class="title font-display">分类下列表项</div><div class="ph-bar w60"></div><div class="ph-bar w30"></div></div></article>
+    </div>
+  </section>
+
+  <!-- ========== 标签 ========== -->
+  <section class="page" id="page-tag" data-screen-label="05 Tag">
+    <span class="page-label">05 · TAG /tag/:name</span>
+    <div class="sub-hero glass">
+      <div>
+        <div class="eyebrow" style="font-size:12px;letter-spacing:4px;color:var(--ink-faint)">TAG</div>
+        <h1 class="font-display">#Vue</h1>
+        <div class="count">共 5 篇 · 标签筛选骨架</div>
+      </div>
+      <button type="button" class="back-chip">← 全部随笔</button>
+    </div>
+    <div class="card-grid" style="grid-template-columns:repeat(3,1fr)">
+      <article class="post-card"><div class="cover">[image] 16:9</div><div class="body"><div class="title font-display">标签下列表项</div><div class="ph-bar w80"></div></div></article>
+      <article class="post-card"><div class="cover">[image] 16:9</div><div class="body"><div class="title font-display">标签下列表项</div><div class="ph-bar w60"></div></div></article>
+      <article class="post-card"><div class="cover">[image] 16:9</div><div class="body"><div class="title font-display">标签下列表项</div><div class="ph-bar w70"></div></div></article>
+    </div>
+  </section>
+
+</div>
+</div>
+
+<div id="tweaks">
+  <div class="panel">
+    <h4>TWEAKS</h4>
+    <div class="row">
+      <label>当前页</label>
+      <div class="seg" id="pageSeg">
+        <button type="button" data-page="list" class="on">列表</button>
+        <button type="button" data-page="detail">详情</button>
+        <button type="button" data-page="create">发布</button>
+        <button type="button" data-page="category">分类</button>
+        <button type="button" data-page="tag">标签</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>列表布局</label>
+      <div class="seg" id="layoutSegTweaks">
+        <button type="button" data-layout="card" class="on">卡片</button>
+        <button type="button" data-layout="timeline">时间线</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>时段主题</label>
+      <div class="seg" id="themeSeg">
+        <button type="button" data-theme="morning" class="on">清晨</button>
+        <button type="button" data-theme="noon">正午</button>
+        <button type="button" data-theme="dusk">黄昏</button>
+        <button type="button" data-theme="night">星夜</button>
+      </div>
+    </div>
+  </div>
+  <button class="fab" id="tweaksFab" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2.4"/><circle cx="8" cy="16" r="2.4"/></svg>
+    Tweaks
+  </button>
+</div>
+
+<script>
+const STAGE_W = 1920;
+const PAGE_H = { list: 1480, detail: 1680, create: 1320, category: 1180, tag: 1180 };
+let STAGE_H = PAGE_H.list;
+
+const stageWrap = document.getElementById('stageWrap');
+const stage = document.getElementById('stage');
+
+function fit(){
+  const s = Math.min(innerWidth / STAGE_W, 1.15);
+  stage.style.transform = `scale(${s})`;
+  stage.style.height = STAGE_H + 'px';
+  stageWrap.style.width = STAGE_W * s + 'px';
+  stageWrap.style.height = STAGE_H * s + 'px';
+}
+addEventListener('resize', fit);
+
+function setPage(name){
+  STAGE_H = PAGE_H[name] || 1400;
+  stage.dataset.page = name;
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('on', p.id === 'page-' + name));
+  document.querySelectorAll('#pageSeg button').forEach(b => b.classList.toggle('on', b.dataset.page === name));
+  fit();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function setLayout(mode){
+  stage.dataset.layout = mode;
+  document.querySelectorAll('#layoutSeg button, #layoutSegTweaks button').forEach(b => {
+    b.classList.toggle('on', b.dataset.layout === mode);
+  });
+}
+
+function setTheme(name){
+  document.documentElement.dataset.theme = name;
+  document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.theme === name));
+}
+
+/* clock */
+const timeEl = document.getElementById('clockTime');
+const dateEl = document.getElementById('clockDate');
+const weekCN = ['日','一','二','三','四','五','六'];
+function tick(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,'0');
+  timeEl.innerHTML = `${p(d.getHours())}<span class="colon">:</span>${p(d.getMinutes())} <span class="sec">${p(d.getSeconds())}</span>`;
+  dateEl.textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 · 周${weekCN[d.getDay()]}`;
+}
+tick(); setInterval(tick, 1000);
+
+/* nav pill */
+const nav = document.getElementById('mainnav');
+const pill = document.getElementById('navPill');
+function movePill(btn){
+  pill.style.left = btn.offsetLeft + 'px';
+  pill.style.width = btn.offsetWidth + 'px';
+  pill.style.opacity = 1;
+}
+movePill(nav.querySelector('button.active'));
+addEventListener('resize', () => movePill(nav.querySelector('button.active')));
+
+/* tweaks */
+const tweaks = document.getElementById('tweaks');
+document.getElementById('tweaksFab').addEventListener('click', () => tweaks.classList.add('open'));
+document.addEventListener('click', e => {
+  if(!tweaks.contains(e.target)) tweaks.classList.remove('open');
+});
+
+document.getElementById('pageSeg').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if(!btn) return;
+  setPage(btn.dataset.page);
+});
+document.getElementById('layoutSeg').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if(!btn) return;
+  setLayout(btn.dataset.layout);
+});
+document.getElementById('layoutSegTweaks').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if(!btn) return;
+  setLayout(btn.dataset.layout);
+});
+document.getElementById('themeSeg').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if(!btn) return;
+  setTheme(btn.dataset.theme);
+});
+
+fit();
+</script>
+</body>
+</html>

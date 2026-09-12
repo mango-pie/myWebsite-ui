@@ -1,0 +1,2240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>午夜电台 · 音乐播放器设计稿 v6（夜）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;700;900&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   午夜电台 · v6（只排印「夜」）
+   ------------------------------------------------------------
+   设计语言：月光 + 星野 + 窗灯 + 午夜电台（与晨/午/暮完全独立）
+   - 背景：墨蓝纸面、月亮带环形山、星野、云缕、流星、星座、
+     一盏还亮着的窗灯、夜雾
+   - 按钮：星标按钮（细线 + 月光悬停），播放键为满月钮
+   - 装饰：星座连线、流星、云缕、窗灯、月光声呐
+   - 唱片：月光唱片（墨盘 + 月亮标签）
+   排版骨架沿用已确认版本；材料与元素全部重新设计。
+   ============================================================ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  /* 夜 · 材料色 */
+  --paper: #151923;
+  --paper-2: #1a2029;
+  --paper-3: #232a37;
+  --ink: #e9e6da;
+  --sub: #9aa2b2;
+  --dim: #5f6776;
+  --line: rgba(233, 230, 218, 0.14);
+  --line-strong: rgba(233, 230, 218, 0.32);
+  --accent: #b9c8e6;
+  --accent-soft: rgba(185, 200, 230, 0.14);
+  --moon: #eef2fa;
+  --lamp: #e8b36a;
+  --lamp-soft: rgba(232, 179, 106, 0.18);
+  --star: rgba(255, 252, 244, 0.9);
+  --vinyl: #0e1118;
+  --vinyl-dark: #07090e;
+  --ease: cubic-bezier(0.22, 0.8, 0.3, 1);
+
+  --page-bg: #10141c;
+  --page-ink: #e9e6da;
+  --page-muted: #7d8596;
+  --page-line: rgba(233, 230, 218, 0.16);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background:
+    radial-gradient(1100px 520px at 70% -10%, rgba(185, 200, 230, 0.1), transparent 62%),
+    var(--page-bg);
+  color: var(--page-ink);
+  font-family: "Outfit", "PingFang SC", "Microsoft YaHei", sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; cursor: pointer; }
+.mono { font-family: "JetBrains Mono", "Cascadia Mono", monospace; }
+.serif { font-family: "Noto Serif SC", "Songti SC", "SimSun", serif; }
+
+/* ---------- 画布页头 ---------- */
+.canvas-head {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 40px 34px 22px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--page-line);
+}
+
+.canvas-head h1 {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: clamp(26px, 3vw, 38px);
+  font-weight: 400;
+  letter-spacing: 0.14em;
+}
+
+.canvas-head h1 em {
+  font-style: normal;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.canvas-head__sub {
+  margin-top: 8px;
+  color: var(--page-muted);
+  font-size: 14px;
+}
+
+.canvas-head__meta {
+  flex: none;
+  text-align: right;
+  color: var(--page-muted);
+  font-size: 12px;
+  line-height: 1.9;
+}
+
+.canvas-head__meta b { color: var(--page-ink); font-weight: 600; }
+
+.canvas-head__stamp {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  color: var(--accent);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  background: rgba(185, 200, 230, 0.06);
+}
+
+/* ---------- 主舞台 ---------- */
+.page-stage {
+  max-width: 1500px;
+  margin: 18px 34px 0;
+}
+
+.browser-frame {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.55);
+}
+
+.browser-frame__bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.browser-frame__dots { display: flex; gap: 7px; }
+.browser-frame__dots i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--paper-3);
+}
+
+.browser-frame__url {
+  flex: 1;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 5px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--sub);
+  font-size: 11.5px;
+  text-align: center;
+  font-family: "JetBrains Mono", monospace;
+}
+
+/* ---- 报头（电台头部）---- */
+.radio-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 30px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.radio-callsign {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.radio-seal {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  background: radial-gradient(circle at 34% 32%, rgba(238, 242, 250, 0.95), var(--accent) 60%, rgba(185, 200, 230, 0.4));
+  color: var(--paper);
+  font-family: "Noto Serif SC", serif;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: 0 0 22px rgba(185, 200, 230, 0.4);
+}
+
+.radio-callsign__name {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  line-height: 1.1;
+}
+
+.radio-callsign__name span { color: var(--accent); font-weight: 700; }
+
+.radio-callsign__freq {
+  margin-top: 4px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  color: var(--sub);
+  letter-spacing: 0.14em;
+  line-height: 1.7;
+}
+
+.radio-callsign__freq b {
+  display: inline-block;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.radio-nav {
+  display: flex;
+  gap: 2px;
+}
+
+.radio-nav button {
+  position: relative;
+  padding: 7px 14px;
+  background: transparent;
+  border: none;
+  color: var(--sub);
+  font-size: 13px;
+  border-radius: 4px;
+  transition: color 0.25s var(--ease), background 0.25s var(--ease);
+}
+
+.radio-nav button:hover { color: var(--ink); background: var(--accent-soft); }
+.radio-nav button.is-active { color: var(--accent); font-weight: 600; }
+.radio-nav button.is-active::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 1px;
+  height: 1px;
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(185, 200, 230, 0.7);
+}
+
+.radio-head__actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.on-air {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: 6px;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  color: var(--sub);
+  font-family: "JetBrains Mono", monospace;
+}
+
+.on-air__lamp {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lamp);
+  box-shadow: 0 0 0 0 rgba(232, 179, 106, 0.6);
+}
+
+.is-playing .on-air__lamp { animation: lamp-pulse 2.6s ease-in-out infinite; }
+
+@keyframes lamp-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 179, 106, 0.55); }
+  50% { box-shadow: 0 0 0 7px rgba(232, 179, 106, 0); }
+}
+
+/* 星标按钮：细线 + 月光悬停 */
+.paper-btn {
+  height: 34px;
+  padding: 0 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: rgba(185, 200, 230, 0.04);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: border-color 0.25s var(--ease), background 0.25s var(--ease),
+    box-shadow 0.25s var(--ease), color 0.25s var(--ease);
+}
+
+.paper-btn svg { width: 14px; height: 14px; }
+.paper-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: 0 0 14px rgba(185, 200, 230, 0.24);
+}
+.paper-btn:active { transform: translateY(1px); }
+
+/* ---- 主体三栏 ---- */
+.radio-body {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr) 0;
+  min-height: 620px;
+  transition: grid-template-columns 0.45s var(--ease);
+  position: relative;
+}
+
+.radio-body.has-drawer { grid-template-columns: 208px minmax(0, 1fr) 300px; }
+
+/* 左栏：夜航时刻表 */
+.rail {
+  border-right: 1px solid var(--line);
+  padding: 18px 14px 20px;
+  background:
+    linear-gradient(180deg, rgba(185, 200, 230, 0.04), transparent 34%),
+    var(--paper-2);
+}
+
+.rail__group {
+  margin-top: 16px;
+  padding: 0 8px 6px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+  font-family: "JetBrains Mono", monospace;
+  border-bottom: 1px solid var(--line);
+}
+
+.rail__group:first-child { margin-top: 0; }
+
+.rail-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--sub);
+  font-size: 13px;
+  text-align: left;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.rail-item:hover { background: var(--accent-soft); color: var(--ink); }
+.rail-item.is-active {
+  color: var(--accent);
+  background: rgba(185, 200, 230, 0.1);
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.rail-item__num {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: var(--dim);
+  transition: color 0.2s var(--ease);
+}
+
+.rail-item.is-active .rail-item__num { color: var(--accent); }
+
+.rail-item__count {
+  margin-left: auto;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  color: var(--dim);
+}
+
+.rail-item__badge {
+  margin-left: auto;
+  font-size: 9px;
+  padding: 1px 7px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+}
+
+/* ---- 中栏舞台 ---- */
+.stage {
+  position: relative;
+  min-height: 620px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 40px 34px;
+  overflow: hidden;
+  text-align: center;
+}
+
+/* 夜 · 背景层：星野 + 月亮 + 云缕 + 星座 + 流星 + 窗灯 + 夜雾 */
+.night-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.nt-stars { position: absolute; inset: 0; }
+
+.nt-stars i {
+  position: absolute;
+  width: 2.5px;
+  height: 2.5px;
+  border-radius: 50%;
+  background: var(--star);
+  box-shadow: 0 0 6px rgba(255, 252, 244, 0.7);
+  animation: star-twinkle 3.2s ease-in-out infinite;
+}
+
+.nt-stars i:nth-child(1) { left: 8%; top: 16%; }
+.nt-stars i:nth-child(2) { left: 18%; top: 30%; animation-delay: -0.5s; }
+.nt-stars i:nth-child(3) { left: 30%; top: 12%; animation-delay: -1.1s; }
+.nt-stars i:nth-child(4) { left: 40%; top: 26%; animation-delay: -1.6s; }
+.nt-stars i:nth-child(5) { left: 52%; top: 14%; animation-delay: -0.3s; }
+.nt-stars i:nth-child(6) { left: 63%; top: 30%; animation-delay: -2s; }
+.nt-stars i:nth-child(7) { left: 74%; top: 18%; animation-delay: -0.9s; }
+.nt-stars i:nth-child(8) { left: 84%; top: 34%; animation-delay: -1.4s; }
+.nt-stars i:nth-child(9) { left: 14%; top: 46%; animation-delay: -2.3s; }
+.nt-stars i:nth-child(10) { left: 34%; top: 52%; animation-delay: -0.7s; }
+.nt-stars i:nth-child(11) { left: 58%; top: 48%; animation-delay: -1.8s; }
+.nt-stars i:nth-child(12) { left: 78%; top: 56%; animation-delay: -1.2s; }
+.nt-stars i:nth-child(13) { left: 88%; top: 12%; animation-delay: -2.6s; }
+.nt-stars i:nth-child(14) { left: 46%; top: 42%; animation-delay: -0.4s; }
+.nt-stars i:nth-child(15) { left: 24%; top: 64%; animation-delay: -1.9s; }
+
+@keyframes star-twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.nt-moon {
+  position: absolute;
+  top: 7%;
+  right: 13%;
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 32%, #ffffff, var(--moon) 62%, #d8e0ee 100%);
+  box-shadow: 0 0 60px 20px rgba(238, 242, 250, 0.22);
+}
+
+.nt-moon::before {
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 16px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(200, 208, 224, 0.75);
+  box-shadow:
+    28px 16px 0 -4px rgba(200, 208, 224, 0.7),
+    9px 36px 0 -5px rgba(200, 208, 224, 0.6),
+    -14px 26px 0 -6px rgba(200, 208, 224, 0.55);
+}
+
+.nt-wisp {
+  position: absolute;
+  top: 9%;
+  right: 8%;
+  width: 210px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(35, 42, 55, 0.85);
+  filter: blur(7px);
+  animation: wisp-drift 16s ease-in-out infinite alternate;
+}
+
+.nt-wisp--b {
+  top: 15%;
+  right: 4%;
+  width: 150px;
+  animation-delay: -6s;
+  opacity: 0.8;
+}
+
+@keyframes wisp-drift {
+  from { transform: translateX(-12px); }
+  to { transform: translateX(16px); }
+}
+
+/* 星座连线 */
+.nt-constellation {
+  position: absolute;
+  left: 24px;
+  top: 20px;
+  width: 110px;
+  height: 74px;
+  opacity: 0.65;
+}
+
+.nt-constellation svg { width: 100%; height: 100%; }
+
+.nt-constellation line {
+  stroke: rgba(185, 200, 230, 0.4);
+  stroke-width: 1;
+}
+
+.nt-constellation circle {
+  fill: var(--star);
+  animation: star-twinkle 2.8s ease-in-out infinite;
+}
+
+.nt-constellation circle:nth-of-type(2) { animation-delay: -1s; }
+.nt-constellation circle:nth-of-type(3) { animation-delay: -2s; }
+
+/* 流星 */
+.nt-meteor {
+  position: absolute;
+  left: -40px;
+  top: 18%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    -30px 8px 0 -1px rgba(255, 255, 255, 0.8),
+    -62px 18px 0 -2px rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  animation: meteor-fly 9s linear infinite;
+}
+
+@keyframes meteor-fly {
+  0% { transform: translate(0, 0); opacity: 0; }
+  2% { opacity: 1; }
+  8% { transform: translate(320px, 92px); opacity: 0; }
+  100% { transform: translate(320px, 92px); opacity: 0; }
+}
+
+/* 窗灯：一盏还亮着的窗 */
+.nt-window {
+  position: absolute;
+  left: 30px;
+  bottom: 22px;
+  width: 58px;
+  height: 62px;
+  border-radius: 3px;
+  border: 1px solid var(--line-strong);
+  background: var(--paper-3);
+  box-shadow: inset 0 0 0 1px rgba(233, 230, 218, 0.05);
+}
+
+.nt-window::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  top: 5px;
+  bottom: 5px;
+  background: linear-gradient(180deg, rgba(232, 179, 106, 0.85), rgba(232, 179, 106, 0.55));
+  box-shadow: 0 0 26px 12px rgba(232, 179, 106, 0.45);
+  animation: window-breathe 5s ease-in-out infinite;
+}
+
+.nt-window::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 5px;
+  bottom: 5px;
+  width: 1px;
+  background: rgba(21, 25, 35, 0.55);
+}
+
+@keyframes window-breathe {
+  0%, 100% { box-shadow: 0 0 20px 9px rgba(232, 179, 106, 0.35); }
+  50% { box-shadow: 0 0 30px 15px rgba(232, 179, 106, 0.5); }
+}
+
+/* 夜雾 */
+.nt-fog {
+  position: absolute;
+  left: -12%;
+  right: -12%;
+  bottom: -4%;
+  height: 110px;
+  background: linear-gradient(180deg, transparent, rgba(9, 12, 18, 0.42));
+  filter: blur(6px);
+}
+
+/* 夜 · 音场（月光声呐 + 缓波） */
+.sound-field {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.sf-sonar {
+  position: absolute;
+  left: 50%;
+  bottom: 34px;
+  width: 260px;
+  height: 260px;
+  margin-left: -130px;
+  opacity: 0.4;
+}
+
+.sf-sonar i {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(185, 200, 230, 0.45);
+  border-radius: 50%;
+  animation: sonar-ping 5.5s ease-out infinite;
+}
+
+.sf-sonar i:nth-child(2) { animation-delay: -1.8s; }
+.sf-sonar i:nth-child(3) { animation-delay: -3.6s; }
+
+@keyframes sonar-ping {
+  0% { transform: scale(0.12); opacity: 0.9; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+.sf-wave {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: 40px;
+  height: 42px;
+  opacity: 0.5;
+}
+
+.sf-wave svg { width: 100%; height: 100%; overflow: visible; }
+
+.sf-wave path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+}
+
+.sf-wave .wave-a { animation: night-wave 8s ease-in-out infinite alternate; }
+.sf-wave .wave-b { animation: night-wave 10s ease-in-out infinite alternate-reverse; opacity: 0.55; }
+
+@keyframes night-wave {
+  from { transform: translateX(-10px) scaleY(1); }
+  to { transform: translateX(10px) scaleY(1.06); }
+}
+
+.sf-note {
+  position: absolute;
+  left: 18px;
+  bottom: 14px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--dim);
+}
+
+.stage > *:not(.night-bg) { position: relative; z-index: 1; }
+
+/* 月光唱片 */
+.vinyl {
+  position: relative;
+  width: 236px;
+  height: 236px;
+  flex: none;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center,
+      var(--accent) 0 5%,
+      transparent 5.5% 7%,
+      var(--paper-3) 7% 13%,
+      transparent 13.5%,
+      var(--vinyl) 22% 68%,
+      var(--vinyl-dark) 84% 100%);
+  border: 1px solid var(--line-strong);
+  box-shadow:
+    0 24px 50px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(185, 200, 230, 0.14);
+}
+
+.vinyl::before {
+  content: "";
+  position: absolute;
+  inset: 17%;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(circle, transparent 0 2.4px, rgba(233, 230, 218, 0.05) 2.4px 2.7px);
+}
+
+/* 月亮标签 */
+.vinyl__label {
+  position: absolute;
+  inset: 13%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(238, 242, 250, 0.06), transparent 70%),
+    #10141c;
+  border: 1px solid var(--line-strong);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.vinyl__label::before {
+  content: "";
+  position: absolute;
+  inset: 24%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 32%, #ffffff, var(--moon) 60%, #cfd8e8);
+  box-shadow: 0 0 18px rgba(238, 242, 250, 0.3);
+}
+
+.vinyl__label::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 31%;
+  width: 8px;
+  height: 8px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: rgba(180, 190, 210, 0.7);
+  box-shadow:
+    12px 14px 0 -3px rgba(180, 190, 210, 0.6),
+    -10px 20px 0 -4px rgba(180, 190, 210, 0.5);
+}
+
+.vinyl__label span {
+  position: relative;
+  z-index: 1;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: var(--accent);
+  background: rgba(16, 20, 28, 0.72);
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  padding: 3px 8px;
+}
+
+.is-playing .vinyl { animation: vinyl-spin 14s linear infinite; }
+
+@keyframes vinyl-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 曲目信息 */
+.now-meta {
+  margin-top: 28px;
+  max-width: 520px;
+}
+
+.now-meta__eyebrow {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.24em;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.now-meta__eyebrow::before {
+  content: "· ";
+  letter-spacing: 0;
+}
+
+.now-meta__title {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: clamp(20px, 2.4vw, 28px);
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+}
+
+.now-meta__artist {
+  margin-top: 4px;
+  color: var(--sub);
+  font-size: 14px;
+}
+
+.now-meta__chips {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 星标标签 */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 11px;
+  font-size: 11px;
+  color: var(--sub);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(185, 200, 230, 0.04);
+}
+
+.chip--accent {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 500;
+}
+
+.chip svg { width: 12px; height: 12px; }
+
+/* 轮播歌词 */
+.lyric-carousel {
+  position: relative;
+  width: min(520px, 90%);
+  height: 108px;
+  margin: 22px auto 0;
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, transparent, rgba(185, 200, 230, 0.04) 50%, transparent);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 26%, #000 74%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 26%, #000 74%, transparent 100%);
+}
+
+.lyric-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  transform: translateY(-50%);
+  transition: transform 0.7s var(--ease);
+}
+
+.lyric-line {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 15px;
+  color: var(--dim);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.5s var(--ease), color 0.5s var(--ease), font-size 0.5s var(--ease);
+}
+
+.lyric-line.is-current {
+  opacity: 1;
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.lyric-line.is-near { opacity: 0.55; }
+
+.lyric-tip {
+  margin-top: 8px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--dim);
+}
+
+/* 进度：月光细线 + 星拇指 */
+.now-progress {
+  width: min(560px, 88%);
+  margin-top: 22px;
+}
+
+.now-progress__row {
+  display: grid;
+  grid-template-columns: 52px 1fr 52px;
+  gap: 12px;
+  align-items: center;
+}
+
+.now-progress__time {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--sub);
+  text-align: center;
+}
+
+.now-progress__track {
+  position: relative;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.now-progress__track::before {
+  content: "";
+  width: 100%;
+  height: 1px;
+  background: var(--line-strong);
+}
+
+.now-progress__fill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 32%;
+  height: 2px;
+  background: var(--accent);
+  transform: translateY(-50%);
+  box-shadow: 0 0 8px rgba(185, 200, 230, 0.65);
+}
+
+.now-progress__thumb {
+  position: absolute;
+  left: 32%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 32%, #ffffff, var(--moon) 62%, #cfd8e8);
+  border: 1px solid rgba(21, 25, 35, 0.6);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 10px rgba(238, 242, 250, 0.7);
+  opacity: 0;
+  transition: opacity 0.2s var(--ease);
+}
+
+.now-progress__track:hover .now-progress__thumb { opacity: 1; }
+
+.is-playing .now-progress__fill { animation: prog-run 32s linear infinite; }
+
+@keyframes prog-run {
+  from { width: 3%; }
+  to { width: 96%; }
+}
+
+/* 控制：星标钮 + 满月播放钮 */
+.now-controls {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.now-controls .ctrl {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(185, 200, 230, 0.04);
+  color: var(--sub);
+  transition: border-color 0.25s var(--ease), background 0.25s var(--ease),
+    color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+.now-controls .ctrl:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: 0 0 14px rgba(185, 200, 230, 0.22);
+}
+.now-controls .ctrl:active { transform: scale(0.94); }
+.now-controls .ctrl svg { width: 17px; height: 17px; }
+
+.now-controls .play {
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(238, 242, 250, 0.75);
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #ffffff, var(--moon) 58%, #c9d4e6 100%);
+  color: #1a2130;
+  box-shadow:
+    0 0 0 4px rgba(185, 200, 230, 0.14),
+    0 0 30px rgba(238, 242, 250, 0.3);
+}
+
+.now-controls .play:hover {
+  background: radial-gradient(circle at 34% 30%, #ffffff, var(--moon) 58%, #c9d4e6);
+  box-shadow:
+    0 0 0 6px rgba(185, 200, 230, 0.1),
+    0 0 40px rgba(238, 242, 250, 0.4);
+  color: #1a2130;
+}
+
+.now-controls .play svg { width: 22px; height: 22px; }
+
+.ico-pause { display: none; }
+.is-playing .ico-play { display: none; }
+.is-playing .ico-pause { display: block; }
+
+.now-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 6px;
+}
+
+.now-actions .chip-btn {
+  height: 30px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(185, 200, 230, 0.04);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--sub);
+  font-size: 11.5px;
+  transition: border-color 0.2s var(--ease), color 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+.now-actions .chip-btn:hover { border-color: var(--accent); color: var(--ink); background: var(--accent-soft); }
+.now-actions .chip-btn.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.now-actions .chip-btn svg { width: 13px; height: 13px; }
+
+/* ---- 右侧设置栏（午夜抽屉）---- */
+.settings-drawer {
+  border-left: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(185, 200, 230, 0.05), transparent 30%),
+    var(--paper-2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateX(16px);
+  transition: opacity 0.35s var(--ease), transform 0.35s var(--ease);
+}
+
+.has-drawer .settings-drawer { opacity: 1; transform: translateX(0); }
+
+.settings-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 18px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.settings-drawer__head h3 {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+}
+
+.settings-drawer__head h3 small {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  color: var(--dim);
+  letter-spacing: 0.18em;
+  display: block;
+}
+
+.settings-drawer__head button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--sub);
+}
+
+.settings-drawer__head button:hover { border-color: var(--accent); color: var(--accent); }
+.settings-drawer__head button svg { width: 13px; height: 13px; }
+
+.settings-body {
+  flex: 1;
+  padding: 8px 18px 20px;
+  overflow: auto;
+}
+
+.set-group { margin-top: 18px; }
+.set-group:first-child { margin-top: 8px; }
+
+.set-group__title {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 5px;
+}
+
+.set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.set-row:last-child { border-bottom: none; }
+
+.set-row__label { font-size: 13px; color: var(--ink); }
+
+.set-row__hint {
+  display: block;
+  font-size: 11px;
+  color: var(--dim);
+  margin-top: 1px;
+}
+
+.set-row__value {
+  flex: none;
+  font-size: 12px;
+  color: var(--sub);
+}
+
+/* 月相开关 */
+.toggle {
+  position: relative;
+  width: 42px;
+  height: 21px;
+  flex: none;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--paper-3);
+  cursor: pointer;
+  transition: background 0.25s var(--ease), border-color 0.25s var(--ease);
+}
+
+.toggle::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--sub);
+  transition: transform 0.25s var(--ease), background 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+.toggle.is-on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.toggle.is-on::after {
+  transform: translateX(21px);
+  background: radial-gradient(circle at 34% 32%, #ffffff, var(--moon) 62%, #cfd8e8);
+  box-shadow: 0 0 8px rgba(238, 242, 250, 0.55);
+}
+
+.set-note {
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 5px;
+  font-size: 11px;
+  color: var(--dim);
+  line-height: 1.55;
+}
+
+.set-seg {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+
+.set-seg button {
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: rgba(185, 200, 230, 0.04);
+  color: var(--sub);
+  font-size: 12px;
+  transition: all 0.2s var(--ease);
+}
+
+.set-seg button:hover { border-color: var(--accent); color: var(--ink); }
+.set-seg button.is-on {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.set-seg button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.set-seg--2 { grid-template-columns: repeat(2, 1fr); }
+
+.period-status {
+  margin-top: 6px;
+  padding: 8px 11px;
+  border: 1px dashed var(--accent);
+  border-radius: 5px;
+  font-size: 11px;
+  color: var(--accent);
+  line-height: 1.5;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 0;
+  font-size: 12px;
+  color: var(--sub);
+  border-bottom: 1px solid var(--line);
+}
+
+.shortcut-row:last-child { border-bottom: none; }
+
+.shortcut-row kbd {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 7px;
+  background: var(--paper);
+}
+
+/* ============================================================
+   悬浮窗（午夜小卡 + 停靠条）
+   ============================================================ */
+.float-stage {
+  max-width: 1500px;
+  margin: 18px 34px 0;
+}
+
+.float-frame {
+  border-radius: 12px;
+  border: 1px solid var(--page-line);
+  overflow: hidden;
+  background:
+    radial-gradient(800px 360px at 70% -8%, rgba(185, 200, 230, 0.08), transparent 60%),
+    var(--page-bg);
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.5);
+}
+
+.float-frame__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--page-line);
+  font-size: 12px;
+  color: var(--page-muted);
+}
+
+.float-frame__bar b { color: var(--page-ink); font-weight: 600; }
+
+.float-scene {
+  position: relative;
+  min-height: 430px;
+  padding: 44px 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 60px;
+  flex-wrap: wrap;
+  overflow: hidden;
+}
+
+.float-scene .night-bg { z-index: 0; }
+.float-scene > *:not(.night-bg) { position: relative; z-index: 1; }
+
+/* 午夜小卡（悬浮窗） */
+.float-window {
+  width: 360px;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(185, 200, 230, 0.05), transparent 36%),
+    var(--paper);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.float-window__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.float-window__head .fm-tag {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--sub);
+}
+
+.float-window__head .fm-tag::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 32%, #fff, var(--moon) 60%);
+  box-shadow: 0 0 8px rgba(238, 242, 250, 0.8);
+  vertical-align: 1px;
+}
+
+.float-window__head-actions { display: flex; gap: 2px; }
+.float-window__head-actions button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: none;
+  color: var(--sub);
+  border-radius: 50%;
+}
+
+.float-window__head-actions button:hover { background: var(--accent-soft); color: var(--accent); }
+.float-window__head-actions button svg { width: 14px; height: 14px; }
+
+.float-window__body {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 14px;
+  align-items: center;
+  padding: 6px 14px 12px;
+}
+
+.float-window__vinyl {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center,
+      var(--accent) 0 8%,
+      transparent 8.5% 11%,
+      var(--paper-3) 11% 22%,
+      transparent 22.5%,
+      var(--vinyl) 40% 100%);
+  border: 1px solid var(--line-strong);
+}
+
+.float-window__vinyl::before {
+  content: "";
+  position: absolute;
+  inset: 26%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 32%, #ffffff, var(--moon) 60%, #cfd8e8);
+  box-shadow: 0 0 10px rgba(238, 242, 250, 0.4);
+}
+
+.is-playing .float-window__vinyl { animation: vinyl-spin 14s linear infinite; }
+
+.float-window__meta { min-width: 0; }
+.float-window__title {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.float-window__artist {
+  font-size: 12px;
+  color: var(--sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.float-window__progress {
+  margin: 0 14px 8px;
+  position: relative;
+  height: 14px;
+}
+
+.float-window__progress::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--line-strong);
+}
+
+.float-window__progress i {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 32%;
+  height: 2px;
+  background: var(--accent);
+  transform: translateY(-50%);
+  box-shadow: 0 0 7px rgba(185, 200, 230, 0.6);
+}
+
+.is-playing .float-window__progress i { animation: prog-run 32s linear infinite; }
+
+.float-window__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px 14px;
+}
+
+.float-window__controls .ctrl {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(185, 200, 230, 0.04);
+  color: var(--sub);
+}
+
+.float-window__controls .ctrl:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.float-window__controls .ctrl svg { width: 14px; height: 14px; }
+
+.float-window__controls .play {
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(238, 242, 250, 0.7);
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #ffffff, var(--moon) 60%, #c9d4e6);
+  color: #1a2130;
+  box-shadow: 0 0 18px rgba(238, 242, 250, 0.28);
+}
+
+.float-window__controls .play svg { width: 17px; height: 17px; }
+
+/* 停靠条（午夜印张） */
+.dock-bar {
+  width: min(680px, 92%);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(185, 200, 230, 0.05), transparent 40%),
+    var(--paper);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.48);
+}
+
+.dock-bar__main {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px 12px;
+}
+
+.dock-bar__vinyl {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center,
+      var(--accent) 0 10%,
+      transparent 10.5% 13%,
+      var(--paper-3) 13% 25%,
+      transparent 25.5%,
+      var(--vinyl) 45% 100%);
+  border: 1px solid var(--line-strong);
+}
+
+.dock-bar__vinyl::before {
+  content: "";
+  position: absolute;
+  inset: 26%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 32%, #ffffff, var(--moon) 60%);
+}
+
+.is-playing .dock-bar__vinyl { animation: vinyl-spin 14s linear infinite; }
+
+.dock-bar__meta { min-width: 0; }
+.dock-bar__title {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dock-bar__artist {
+  font-size: 11.5px;
+  color: var(--sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dock-bar__actions { display: flex; gap: 2px; }
+.dock-bar__actions button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--sub);
+}
+
+.dock-bar__actions button:hover { background: var(--accent-soft); color: var(--accent); }
+.dock-bar__actions button svg { width: 14px; height: 14px; }
+
+.dock-bar__progress {
+  position: relative;
+  height: 10px;
+  margin: 0 14px;
+}
+
+.dock-bar__progress::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--line-strong);
+}
+
+.dock-bar__progress i {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 32%;
+  height: 2px;
+  background: var(--accent);
+  transform: translateY(-50%);
+  box-shadow: 0 0 6px rgba(185, 200, 230, 0.55);
+}
+
+.is-playing .dock-bar__progress i { animation: prog-run 32s linear infinite; }
+
+/* ============================================================
+   本期排印说明
+   ============================================================ */
+.note-band {
+  max-width: 1500px;
+  margin: 44px auto 0;
+  padding: 0 34px;
+}
+
+.note-band__head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--page-line);
+}
+
+.note-band__head h2 {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
+
+.note-band__head p { color: var(--page-muted); font-size: 13px; }
+
+.note-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.note-card {
+  padding: 16px 18px;
+  border: 1px solid var(--page-line);
+  border-radius: 10px;
+  background: rgba(185, 200, 230, 0.04);
+}
+
+.note-card__no {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  color: var(--accent);
+  letter-spacing: 0.16em;
+}
+
+.note-card__title {
+  margin-top: 4px;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.note-card__desc {
+  margin-top: 5px;
+  font-size: 12.5px;
+  color: var(--page-muted);
+  line-height: 1.6;
+}
+
+/* ---------- 页脚 ---------- */
+.canvas-foot {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 34px 34px 80px;
+}
+
+.canvas-foot__box {
+  border: 1px solid var(--page-line);
+  border-radius: 10px;
+  padding: 20px 24px;
+  background: rgba(185, 200, 230, 0.04);
+  font-size: 13px;
+  color: var(--page-muted);
+}
+
+.canvas-foot__box strong {
+  color: var(--page-ink);
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+}
+
+.canvas-foot__box ul {
+  margin: 10px 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* ---------- Tweaks ---------- */
+.tweaks-toggle {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 80;
+  padding: 9px 18px;
+  border-radius: 6px;
+  border: 1px solid #b9c8e6;
+  background: #1a2029;
+  color: #b9c8e6;
+  font-size: 12.5px;
+  font-weight: 500;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+.tweaks {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 81;
+  width: 272px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #b9c8e6;
+  background: #1a2029;
+  color: #e9e6da;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+  transform: translateY(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+.tweaks.is-open { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+.tweaks__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tweaks__close {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--sub);
+}
+
+.tweaks__close svg { width: 13px; height: 13px; }
+
+.tweak-group { margin-bottom: 13px; }
+
+.tweak-group__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--sub);
+  letter-spacing: 0.1em;
+}
+
+.tweak-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 0;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tweak-switch input { display: none; }
+.tweak-switch .toggle { pointer-events: none; }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1100px) {
+  .radio-body { grid-template-columns: 180px minmax(0, 1fr); }
+  .radio-body.has-drawer { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .settings-drawer {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 300px;
+    z-index: 5;
+  }
+  .note-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 760px) {
+  .canvas-head { flex-direction: column; align-items: flex-start; padding: 28px 18px 18px; }
+  .canvas-head__meta { text-align: left; }
+  .page-stage, .float-stage, .note-band, .canvas-foot { padding-left: 18px; padding-right: 18px; }
+  .page-stage, .float-stage { margin-left: 18px; margin-right: 18px; }
+  .note-grid { grid-template-columns: 1fr; }
+  .float-scene { flex-direction: column; }
+  .radio-head { grid-template-columns: 1fr auto; }
+  .radio-nav { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .is-playing .vinyl,
+  .is-playing .float-window__vinyl,
+  .is-playing .dock-bar__vinyl,
+  .nt-window::before { animation: none; }
+  .is-playing .now-progress__fill,
+  .is-playing .float-window__progress i,
+  .is-playing .dock-bar__progress i { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="canvas-head">
+  <div>
+    <h1>午夜电台 · <em>夜</em></h1>
+    <p class="canvas-head__sub">v6 单时段排印 · 月光 / 星野 / 窗灯 / 午夜电台 · 排版骨架沿用 · 与前三版材料完全独立</p>
+  </div>
+  <div class="canvas-head__meta">
+    <b>本期：MIDNIGHT EDITION</b><br>
+    2026.08.01 · 不参考任何现有设计文件<br>
+    <span class="canvas-head__stamp">夜 · 星野号</span>
+  </div>
+</header>
+
+<div class="theme-root is-playing" id="themeRoot">
+
+  <!-- ============ 独立音乐页 ============ -->
+  <div class="page-stage">
+    <div class="browser-frame">
+      <div class="browser-frame__bar">
+        <div class="browser-frame__dots"><i></i><i></i><i></i></div>
+        <div class="browser-frame__url">midnight-broadcast.local / now-playing</div>
+        <div style="width:52px"></div>
+      </div>
+
+      <div class="radio-head">
+        <div class="radio-callsign">
+          <span class="radio-seal">夜</span>
+          <div>
+            <div class="radio-callsign__name">午夜<span>电台</span></div>
+            <div class="radio-callsign__freq"><b>MIDNIGHT</b> · FM 87.5 · 00:00</div>
+          </div>
+        </div>
+        <nav class="radio-nav">
+          <button class="is-active">正在播放</button>
+          <button>本地资料库</button>
+          <button>歌词</button>
+          <button>播放列表</button>
+          <button>网易云 <span style="font-size:10px;opacity:.65">可选</span></button>
+        </nav>
+        <div class="radio-head__actions">
+          <span class="on-air"><span class="on-air__lamp"></span>ON AIR</span>
+          <button class="paper-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg>搜索</button>
+          <button class="paper-btn" id="openSettingsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h9M18 7h2M4 17h3M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>设置</button>
+        </div>
+      </div>
+
+      <div class="radio-body" id="radioBody">
+        <aside class="rail">
+          <span class="rail__group">夜航时刻 · SCHEDULE</span>
+          <button class="rail-item is-active"><span class="rail-item__num">00:01</span><span>全部音乐</span><span class="rail-item__count">42</span></button>
+          <button class="rail-item"><span class="rail-item__num">00:02</span><span>专辑</span><span class="rail-item__count">9</span></button>
+          <button class="rail-item"><span class="rail-item__num">00:03</span><span>艺术家</span><span class="rail-item__count">6</span></button>
+          <button class="rail-item"><span class="rail-item__num">00:04</span><span>文件夹</span><span class="rail-item__count">3</span></button>
+          <span class="rail__group">歌单 · PLAYLISTS</span>
+          <button class="rail-item"><span class="rail-item__num">00:05</span><span>收藏</span><span class="rail-item__count">12</span></button>
+          <button class="rail-item"><span class="rail-item__num">00:06</span><span>最近添加</span><span class="rail-item__count">8</span></button>
+          <button class="rail-item"><span class="rail-item__num">00:07</span><span>午夜歌单</span><span class="rail-item__badge">SMART</span></button>
+          <button class="rail-item"><span class="rail-item__num">00:08</span><span>播放历史</span><span class="rail-item__count">24</span></button>
+        </aside>
+
+        <main class="stage">
+          <div class="night-bg" aria-hidden="true">
+            <div class="nt-stars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <span class="nt-moon"></span>
+            <span class="nt-wisp"></span>
+            <span class="nt-wisp nt-wisp--b"></span>
+            <div class="nt-constellation">
+              <svg viewBox="0 0 110 74" fill="none">
+                <line x1="12" y1="58" x2="34" y2="26" stroke="rgba(185,200,230,0.4)" stroke-width="1"/>
+                <line x1="34" y1="26" x2="66" y2="12" stroke="rgba(185,200,230,0.4)" stroke-width="1"/>
+                <line x1="66" y1="12" x2="88" y2="34" stroke="rgba(185,200,230,0.35)" stroke-width="1"/>
+                <circle cx="12" cy="58" r="2.4" fill="#fff"/>
+                <circle cx="34" cy="26" r="2.8" fill="#fff"/>
+                <circle cx="66" cy="12" r="2.2" fill="#fff"/>
+                <circle cx="88" cy="34" r="2.6" fill="#fff"/>
+              </svg>
+            </div>
+            <span class="nt-meteor"></span>
+            <div class="nt-window"></div>
+            <span class="nt-fog"></span>
+          </div>
+
+          <div class="sound-field">
+            <div class="sf-sonar"><i></i><i></i><i></i></div>
+            <div class="sf-wave">
+              <svg viewBox="0 0 900 60" preserveAspectRatio="none">
+                <path class="wave-a" d="M0 30 C 60 14, 110 46, 170 30 S 290 16, 350 30 470 44, 530 30 650 14, 710 32 830 46, 900 28" />
+                <path class="wave-b" d="M0 34 C 70 22, 130 42, 200 32 S 320 20, 390 34 510 44, 580 30 700 18, 770 34 900 30" />
+              </svg>
+            </div>
+            <span class="sf-note">FIELD · 月光声呐（占位）</span>
+          </div>
+
+          <div class="vinyl"><div class="vinyl__label"><span>MOON · SIDE D</span></div></div>
+
+          <div class="now-meta">
+            <div class="now-meta__eyebrow">NOW PLAYING · 午夜栏目 03</div>
+            <h3 class="now-meta__title serif">示例曲目（本地文件占位）</h3>
+            <p class="now-meta__artist">艺术家待填 · 专辑待填</p>
+            <div class="now-meta__chips">
+              <span class="chip chip--accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 15V4M8 8l4-4 4 4M4 16.5v2A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>本地库</span>
+              <span class="chip mono">FLAC · 44.1kHz</span>
+              <span class="chip mono">320kbps</span>
+            </div>
+          </div>
+
+          <div class="lyric-carousel">
+            <div class="lyric-track" id="lyricTrack">
+              <div class="lyric-line is-near">月光 从窗沿漏进来</div>
+              <div class="lyric-line is-near">星星 排成一首歌</div>
+              <div class="lyric-line is-current">午夜电台 播到这一首</div>
+              <div class="lyric-line is-near">楼下 有一盏灯还亮着</div>
+              <div class="lyric-line is-near">唱片 转过零点的刻度</div>
+              <div class="lyric-line">歌单 收进夜的最深处</div>
+              <div class="lyric-line">下一首 留给梦里的人</div>
+            </div>
+          </div>
+          <div class="lyric-tip">轮播歌词 · 点击可跳转（占位）</div>
+
+          <div class="now-progress">
+            <div class="now-progress__row">
+              <span class="now-progress__time">1:24</span>
+              <div class="now-progress__track"><div class="now-progress__fill"></div><div class="now-progress__thumb"></div></div>
+              <span class="now-progress__time">4:10</span>
+            </div>
+          </div>
+
+          <div class="now-controls">
+            <button class="ctrl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 6H7a4 4 0 0 0-4 4v1M7 18h10a4 4 0 0 0 4-4v-1M18.5 20.5 21 18l-2.5-2.5M5.5 3.5 3 6l2.5 2.5"/></svg></button>
+            <button class="ctrl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 5v14"/><path d="M17.5 6.5 8.5 12l9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+            <button class="ctrl play" id="mainPlayBtn">
+              <svg class="ico-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+              <svg class="ico-pause" viewBox="0 0 24 24"><rect x="6.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/><rect x="13.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/></svg>
+            </button>
+            <button class="ctrl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M17.5 5v14"/><path d="M6.5 6.5l9 5.5-9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+            <button class="ctrl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z" fill="currentColor" stroke="none"/><path d="M15.5 9a5 5 0 0 1 0 6"/><path d="M17.8 6.8a9 9 0 0 1 0 10.4"/></svg></button>
+          </div>
+
+          <div class="now-actions">
+            <button class="chip-btn is-active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h12M4 17.5h8"/></svg>歌词</button>
+            <button class="chip-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h10M4 17.5h6"/></svg>队列</button>
+            <button class="chip-btn mono">1.0×</button>
+            <button class="chip-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h14"/><circle cx="9" cy="7" r="1.8" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="11" cy="17" r="1.8" fill="currentColor" stroke="none"/></svg>EQ</button>
+          </div>
+        </main>
+
+        <aside class="settings-drawer" id="settingsDrawer">
+          <div class="settings-drawer__head">
+            <h3 class="serif">设置<small>SETTINGS · 午夜版</small></h3>
+            <button id="closeSettingsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+          </div>
+          <div class="settings-body">
+            <div class="set-group">
+              <div class="set-group__title">主题时段</div>
+              <div class="set-seg">
+                <button disabled title="已排印">晨</button>
+                <button disabled title="已排印">午</button>
+                <button disabled title="已排印">暮</button>
+                <button class="is-on">夜</button>
+              </div>
+              <div class="period-status">四版全部独立排印完成：晨 = 报纸，午 = 烈日，暮 = 霞光，夜 = 星野。</div>
+            </div>
+
+            <div class="set-group">
+              <div class="set-group__title">播放</div>
+              <div class="set-row">
+                <span>
+                  <span class="set-row__label">无缝播放</span>
+                  <span class="set-row__hint">同采样率曲目无缝衔接</span>
+                </span>
+                <span class="toggle is-on" data-toggle></span>
+              </div>
+              <div class="set-row">
+                <span>
+                  <span class="set-row__label">交叉淡化</span>
+                  <span class="set-row__hint">切歌时淡入淡出</span>
+                </span>
+                <span class="toggle" data-toggle></span>
+              </div>
+              <div class="set-row">
+                <span class="set-row__label">播放倍速</span>
+                <span class="set-row__value mono">1.0×</span>
+              </div>
+            </div>
+
+            <div class="set-group">
+              <div class="set-group__title">歌词</div>
+              <div class="set-seg set-seg--2" data-lyric-seg>
+                <button class="is-on">逐词</button>
+                <button>逐行</button>
+              </div>
+              <div class="set-row" style="margin-top:10px">
+                <span class="set-row__label">本地 LRC 优先</span>
+                <span class="toggle is-on" data-toggle></span>
+              </div>
+            </div>
+
+            <div class="set-group">
+              <div class="set-group__title">音乐源</div>
+              <div class="set-row">
+                <span>
+                  <span class="set-row__label">本地资料库</span>
+                  <span class="set-row__hint">文件夹扫描 · 始终可用</span>
+                </span>
+                <span class="toggle is-on" data-toggle data-lock></span>
+              </div>
+              <div class="set-row">
+                <span>
+                  <span class="set-row__label">网易云搜索</span>
+                  <span class="set-row__hint">可选源 · 接口不稳定</span>
+                </span>
+                <span class="toggle" data-toggle data-netease></span>
+              </div>
+              <div class="set-note">开启后仅在搜索 / 歌词补全时联网；失败自动降级为本地库。</div>
+            </div>
+
+            <div class="set-group">
+              <div class="set-group__title">快捷键</div>
+              <div class="shortcut-row"><span>播放 / 暂停</span><kbd>Space</kbd></div>
+              <div class="shortcut-row"><span>上一首 / 下一首</span><kbd>← →</kbd></div>
+              <div class="shortcut-row"><span>搜索</span><kbd>Ctrl K</kbd></div>
+              <div class="shortcut-row"><span>静音</span><kbd>M</kbd></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 悬浮窗 ============ -->
+  <div class="float-stage">
+    <div class="float-frame">
+      <div class="float-frame__bar">
+        <span><b>悬浮窗</b> · 午夜小卡（星野 + 月亮标签）</span>
+        <span class="mono" style="font-size:11px">MIDNIGHT FLOAT</span>
+      </div>
+      <div class="float-scene">
+        <div class="night-bg" aria-hidden="true">
+          <div class="nt-stars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <span class="nt-moon"></span>
+          <span class="nt-wisp"></span>
+          <span class="nt-meteor"></span>
+        </div>
+
+        <div class="float-window">
+          <div class="float-window__head">
+            <span class="fm-tag">MIDNIGHT EDITION · 00:00</span>
+            <div class="float-window__head-actions">
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h10M4 17.5h6"/></svg></button>
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 10l4-4 4 4"/><path d="M8 14l4 4 4-4"/></svg></button>
+            </div>
+          </div>
+          <div class="float-window__body">
+            <div class="float-window__vinyl"></div>
+            <div class="float-window__meta">
+              <div class="float-window__title serif">示例曲目（本地占位）</div>
+              <div class="float-window__artist">艺术家待填 · 午夜歌单</div>
+            </div>
+          </div>
+          <div class="float-window__progress"><i></i></div>
+          <div class="float-window__controls">
+            <button class="ctrl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 5v14"/><path d="M17.5 6.5 8.5 12l9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+            <button class="ctrl play">
+              <svg class="ico-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+              <svg class="ico-pause" viewBox="0 0 24 24"><rect x="6.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/><rect x="13.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/></svg>
+            </button>
+            <button class="ctrl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M17.5 5v14"/><path d="M6.5 6.5l9 5.5-9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+          </div>
+        </div>
+
+        <div class="dock-bar">
+          <div class="dock-bar__main">
+            <div class="dock-bar__vinyl"></div>
+            <div class="dock-bar__meta">
+              <div class="dock-bar__title serif">示例曲目（本地占位）</div>
+              <div class="dock-bar__artist">艺术家待填 · 午夜歌单</div>
+            </div>
+            <div class="dock-bar__actions">
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 5v14"/><path d="M17.5 6.5 8.5 12l9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+              <button>
+                <svg class="ico-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+                <svg class="ico-pause" viewBox="0 0 24 24"><rect x="6.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/><rect x="13.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/></svg>
+              </button>
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h10M4 17.5h6"/></svg></button>
+            </div>
+          </div>
+          <div class="dock-bar__progress"><i></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 本期排印说明 ============ -->
+<section class="note-band">
+  <div class="note-band__head">
+    <h2>本期「夜」排印了什么</h2>
+    <p>背景 / 按钮 / 装饰三个层面全部换材料，与晨、午、暮无共享元素</p>
+  </div>
+  <div class="note-grid">
+    <div class="note-card">
+      <div class="note-card__no">01 · 背景</div>
+      <div class="note-card__title">星野 + 月亮 + 窗灯</div>
+      <div class="note-card__desc">墨蓝纸面，十五颗星星在眨眼，右上角月亮带环形山和云缕，左上有星座连线，流星偶尔划过，左下角一盏还亮着的窗灯。</div>
+    </div>
+    <div class="note-card">
+      <div class="note-card__no">02 · 按钮</div>
+      <div class="note-card__title">星标按钮</div>
+      <div class="note-card__desc">细线 + 微光底，悬停时亮起月光描边；播放键是满月钮（带环形山和月晕），和前三个播放键形态完全不同。</div>
+    </div>
+    <div class="note-card">
+      <div class="note-card__no">03 · 装饰</div>
+      <div class="note-card__title">星座 · 流星 · 声呐</div>
+      <div class="note-card__desc">音场改成月光声呐（扩散圆环）加缓波；左栏用 00:01–00:08 午夜时刻码；底部一层夜雾。</div>
+    </div>
+    <div class="note-card">
+      <div class="note-card__no">04 · 唱片</div>
+      <div class="note-card__title">月光唱片</div>
+      <div class="note-card__desc">墨色盘身 + 月亮标签（带环形山和月晕），中心孔是月光银；悬浮窗与停靠条同步换版。</div>
+    </div>
+  </div>
+</section>
+
+<footer class="canvas-foot">
+  <div class="canvas-foot__box">
+    <strong>四版排印完成：</strong>晨 = 报纸 / 午 = 烈日 / 暮 = 霞光 / 夜 = 星野。每版独立材料、独立按钮、独立装饰、独立唱片。
+    <ul>
+      <li>下一步建议：挑选你最喜欢的一版（或混搭），进入可点击 v0 原型。</li>
+      <li>原型会补上传流程、空状态、加载与错误态，再进 Vue 重构。</li>
+    </ul>
+  </div>
+</footer>
+
+<!-- ============ Tweaks ============ -->
+<button class="tweaks-toggle" id="tweaksToggle">Tweaks</button>
+
+<div class="tweaks" id="tweaks">
+  <div class="tweaks__head">
+    <span>Tweaks · 夜</span>
+    <button class="tweaks__close" id="tweaksClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+  <div class="tweak-group">
+    <label class="tweak-switch">
+      <span>播放演示</span>
+      <input type="checkbox" id="demoPlay" checked>
+      <span class="toggle is-on"></span>
+    </label>
+    <label class="tweak-switch">
+      <span>侧边设置栏</span>
+      <input type="checkbox" id="demoDrawer" checked>
+      <span class="toggle is-on"></span>
+    </label>
+    <label class="tweak-switch">
+      <span>网易云源（演示）</span>
+      <input type="checkbox" id="demoNetease">
+      <span class="toggle"></span>
+    </label>
+  </div>
+</div>
+
+<script>
+(function () {
+  var themeRoot = document.getElementById('themeRoot');
+
+  var tweaks = document.getElementById('tweaks');
+  document.getElementById('tweaksToggle').addEventListener('click', function () {
+    tweaks.classList.toggle('is-open');
+  });
+  document.getElementById('tweaksClose').addEventListener('click', function () {
+    tweaks.classList.remove('is-open');
+  });
+
+  var demoPlay = document.getElementById('demoPlay');
+  var lyricLines = Array.prototype.slice.call(document.querySelectorAll('.lyric-line'));
+  var lyricIndex = 2;
+  var lyricTimer = null;
+
+  function renderLyrics() {
+    var track = document.getElementById('lyricTrack');
+    if (!track) return;
+    var count = lyricLines.length;
+    var offset = Math.max(0, Math.min(lyricIndex - 2, count - 4));
+    track.style.transform = 'translateY(calc(-50% - ' + offset * 42 + 'px))';
+    lyricLines.forEach(function (line, i) {
+      line.classList.toggle('is-current', i === lyricIndex);
+      line.classList.toggle('is-near', Math.abs(i - lyricIndex) <= 2 && i !== lyricIndex);
+    });
+  }
+
+  function setPlaying(on) {
+    themeRoot.classList.toggle('is-playing', on);
+    demoPlay.checked = on;
+    clearInterval(lyricTimer);
+    if (on) {
+      lyricTimer = setInterval(function () {
+        lyricIndex = (lyricIndex + 1) % lyricLines.length;
+        renderLyrics();
+      }, 3200);
+    }
+  }
+
+  demoPlay.addEventListener('change', function () {
+    setPlaying(demoPlay.checked);
+  });
+  document.getElementById('mainPlayBtn').addEventListener('click', function () {
+    setPlaying(!themeRoot.classList.contains('is-playing'));
+  });
+  renderLyrics();
+  setPlaying(true);
+
+  var radioBody = document.getElementById('radioBody');
+  var drawerCheck = document.getElementById('demoDrawer');
+
+  function setDrawer(on) {
+    radioBody.classList.toggle('has-drawer', on);
+    drawerCheck.checked = on;
+  }
+
+  document.getElementById('openSettingsBtn').addEventListener('click', function () {
+    setDrawer(true);
+  });
+  document.getElementById('closeSettingsBtn').addEventListener('click', function () {
+    setDrawer(false);
+  });
+  drawerCheck.addEventListener('change', function () {
+    setDrawer(drawerCheck.checked);
+  });
+  setDrawer(true);
+
+  document.querySelectorAll('[data-toggle]').forEach(function (t) {
+    t.addEventListener('click', function () {
+      if (t.hasAttribute('data-lock')) return;
+      t.classList.toggle('is-on');
+      if (t.hasAttribute('data-netease')) {
+        document.getElementById('demoNetease').checked = t.classList.contains('is-on');
+      }
+    });
+  });
+
+  var neteaseToggle = document.getElementById('demoNetease');
+  neteaseToggle.addEventListener('change', function () {
+    document.querySelectorAll('[data-netease]').forEach(function (t) {
+      t.classList.toggle('is-on', neteaseToggle.checked);
+    });
+  });
+
+  document.querySelectorAll('[data-lyric-seg]').forEach(function (seg) {
+    seg.addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      seg.querySelectorAll('button').forEach(function (b) { b.classList.remove('is-on'); });
+      btn.classList.add('is-on');
+    });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.target instanceof HTMLInputElement) return;
+    if (e.key === 'p' || e.key === 'P') {
+      setPlaying(!themeRoot.classList.contains('is-playing'));
+    }
+  });
+})();
+</script>
+</body>
+</html>

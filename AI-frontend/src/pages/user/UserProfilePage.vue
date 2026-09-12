@@ -6,19 +6,95 @@
  */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
-import { Pencil, LogOut, Save, X, LogIn, UserPlus } from 'lucide-vue-next'
+import { message, Modal } from 'ant-design-vue'
+import { Pencil, LogOut, Save, X, LogIn, UserPlus, Copy, Plus, Trash2 } from 'lucide-vue-next'
 import IconAction from '@/components/ui/IconAction.vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { userLogout, updateUser } from '@/api/userController'
+import { bindPetDevice, listPetDevices, revokePetDevice } from '@/api/petDeviceController'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
+
+const petDevices = ref<API.PetDeviceVO[]>([])
+const petLoading = ref(false)
+const lastBoundToken = ref('')
+
+async function loadPetDevices() {
+  if (!loginUserStore.loginUser?.id) return
+  petLoading.value = true
+  try {
+    const res = await listPetDevices()
+    if (res.data?.code === 0) {
+      petDevices.value = res.data.data ?? []
+    }
+  } finally {
+    petLoading.value = false
+  }
+}
+
+async function handleBindPet() {
+  const res = await bindPetDevice({
+    deviceName: 'EchoBot',
+    clientInfo: navigator.userAgent.slice(0, 200),
+  })
+  if (res.data?.code !== 0 || !res.data.data?.token) {
+    message.error(res.data?.message || '绑定失败')
+    return
+  }
+  lastBoundToken.value = res.data.data.token
+  Modal.success({
+    title: '设备已绑定 — 请立即保存 Token',
+    width: 560,
+    content: `明文令牌只显示一次，写入 EchoBot 的 .env：\n\nSITE_API_BASE_URL=<你的网站>/api\nSITE_DEVICE_TOKEN=${res.data.data.token}`,
+    okText: '已复制并关闭',
+    async onOk() {
+      try {
+        await navigator.clipboard.writeText(res.data.data!.token!)
+        message.success('Token 已复制')
+      } catch {
+        /* ignore */
+      }
+    },
+  })
+  await loadPetDevices()
+}
+
+async function copyLastToken() {
+  if (!lastBoundToken.value) {
+    message.info('仅刚绑定的 token 可复制；历史设备无法再查看明文')
+    return
+  }
+  await navigator.clipboard.writeText(lastBoundToken.value)
+  message.success('已复制')
+}
+
+async function handleRevokePet(id?: number) {
+  if (!id) return
+  Modal.confirm({
+    title: '撤销该设备？',
+    content: '撤销后 EchoBot 将无法再调用云端接口，需重新绑定。',
+    okText: '撤销',
+    okType: 'danger',
+    async onOk() {
+      const res = await revokePetDevice({ id })
+      if (res.data?.code === 0) {
+        message.success('已撤销')
+        await loadPetDevices()
+      } else {
+        message.error(res.data?.message || '撤销失败')
+      }
+    },
+  })
+}
 
 // 进入页面时若 store 里还没有用户信息则拉取一次（例如直接访问 /user/profile）
 onMounted(async () => {
   if (!loginUserStore.loginUser?.id) {
     await loginUserStore.fetchLoginUser()
+  }
+  if (loginUserStore.loginUser?.id) {
+    await loadPetDevices()
   }
 })
 
@@ -119,6 +195,46 @@ const handleLogout = async () => {
               <IconAction :icon="Pencil" label="修改信息" variant="primary" motion="pop" @click="startEdit" />
               <IconAction :icon="LogOut" label="退出登录" variant="danger" motion="slide" @click="handleLogout" />
             </a-space>
+
+            <a-divider />
+            <div class="pet-bind">
+              <div class="pet-bind-head">
+                <strong>EchoBot 桌宠云端绑定</strong>
+                <span>本地桌宠用 Device Token 调网站日记 / 聊天，与网页宠物无关。</span>
+              </div>
+              <a-space style="margin-bottom: 12px">
+                <IconAction :icon="Plus" label="绑定新设备" variant="primary" motion="pop" @click="handleBindPet" />
+                <IconAction
+                  v-if="lastBoundToken"
+                  :icon="Copy"
+                  label="复制刚生成的 Token"
+                  variant="soft"
+                  @click="copyLastToken"
+                />
+              </a-space>
+              <a-spin :spinning="petLoading">
+                <a-empty v-if="!petDevices.length" description="尚未绑定设备" />
+                <a-list v-else :data-source="petDevices" item-layout="horizontal" size="small">
+                  <template #renderItem="{ item }">
+                    <a-list-item>
+                      <a-list-item-meta
+                        :title="item.deviceName || 'EchoBot'"
+                        :description="`${item.tokenPrefix || ''}… · ${item.revoked ? '已撤销' : '有效'} · ${item.createdTime || ''}`"
+                      />
+                      <template #actions>
+                        <IconAction
+                          v-if="!item.revoked"
+                          :icon="Trash2"
+                          label="撤销"
+                          variant="danger"
+                          @click="handleRevokePet(item.id)"
+                        />
+                      </template>
+                    </a-list-item>
+                  </template>
+                </a-list>
+              </a-spin>
+            </div>
           </template>
 
           <!-- 编辑模式 -->
@@ -218,6 +334,21 @@ const handleLogout = async () => {
   display: block;
   margin-top: 8px;
   border-radius: 8px;
+}
+
+.pet-bind-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.pet-bind-head strong {
+  font-size: 15px;
+  color: var(--color-text-primary);
+}
+.pet-bind-head span {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
 }
 </style>
 

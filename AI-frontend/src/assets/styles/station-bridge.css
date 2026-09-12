@@ -1,0 +1,92 @@
+/* Bridge: keep functional admin/antd content readable inside Reading Room stage */
+.reading-room-root .reading-bridge {
+  height: calc(996px - 52px);
+  overflow: auto;
+  padding: 4px 2px 20px;
+  border-radius: var(--r-md, 20px);
+}
+.reading-room-root .reading-bridge .admin-theme-page,
+.reading-room-root .reading-bridge .kb-room-page {
+  max-width: none;
+  margin: 0;
+  color: var(--ink);
+}
+.reading-room-root .reading-bridge .admin-page-hero,
+.reading-room-root .reading-bridge .admin-filter-bar,
+.reading-room-root .reading-bridge .admin-card,
+.reading-room-root .reading-bridge .ant-card,
+.reading-room-root .reading-bridge .ant-table-wrapper {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.95) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--shadow-1);
+  color: var(--ink) !important;
+}
+.reading-room-root .reading-bridge .hero-title,
+.reading-room-root .reading-bridge .hero-subtitle,
+.reading-room-root .reading-bridge .ant-breadcrumb,
+.reading-room-root .reading-bridge .ant-table,
+.reading-room-root .reading-bridge .ant-form-item-label > label {
+  color: var(--ink) !important;
+}
+.reading-room-root .reading-bridge .ant-input,
+.reading-room-root .reading-bridge .ant-input-affix-wrapper,
+.reading-room-root .reading-bridge .ant-select-selector,
+.reading-room-root .reading-bridge .ant-input-number,
+.reading-room-root .reading-bridge textarea.ant-input {
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: var(--ink) !important;
+  border-color: rgba(155, 140, 232, 0.28) !important;
+}
+.reading-room-root .reading-bridge .ant-btn-primary {
+  background: var(--room) !important;
+  border-color: var(--room) !important;
+}
+.reading-room-root .reading-bridge .admin-breadcrumb {
+  display: none;
+}
+
+/* Knowledge detail/chat bridge inside library room */
+.knowledge-room-root .knowledge-bridge {
+  height: 996px;
+  overflow: auto;
+  padding: 0 2px 16px;
+}
+.knowledge-room-root .knowledge-bridge .admin-theme-page,
+.knowledge-room-root .knowledge-bridge .kb-room-page {
+  max-width: none;
+  margin: 0;
+  color: var(--ink);
+}
+.knowledge-room-root .knowledge-bridge .admin-page-hero,
+.knowledge-room-root .knowledge-bridge .admin-filter-bar,
+.knowledge-room-root .knowledge-bridge .admin-card,
+.knowledge-room-root .knowledge-bridge .ant-card {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.95) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--shadow-1);
+  color: var(--ink) !important;
+}
+.knowledge-room-root .knowledge-bridge .hero-title,
+.knowledge-room-root .knowledge-bridge .hero-subtitle,
+.knowledge-room-root .knowledge-bridge .ant-breadcrumb,
+.knowledge-room-root .knowledge-bridge .ant-table,
+.knowledge-room-root .knowledge-bridge .ant-form-item-label > label {
+  color: var(--ink) !important;
+}
+.knowledge-room-root .knowledge-bridge .ant-input,
+.knowledge-room-root .knowledge-bridge .ant-input-affix-wrapper,
+.knowledge-room-root .knowledge-bridge .ant-select-selector,
+.knowledge-room-root .knowledge-bridge textarea.ant-input {
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: var(--ink) !important;
+  border-color: rgba(106, 174, 232, 0.28) !important;
+}
+.knowledge-room-root .knowledge-bridge .ant-btn-primary {
+  background: var(--room) !important;
+  border-color: var(--room) !important;
+}
+.knowledge-room-root .knowledge-bridge .admin-breadcrumb {
+  display: none;
+}

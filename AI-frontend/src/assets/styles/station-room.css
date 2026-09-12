@@ -1,0 +1,534 @@
+/* Shared station chrome for worklog / lab / chat / auth (HomeTopbar + 1920×1080 stage) */
+.station-room-root {
+  --room: #9b8ce8;
+  --room-soft: #e4dffd;
+  --craft-glass: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  min-height: 100vh;
+}
+.station-room-root[data-room='worklog'] {
+  --room: #5fc4a5;
+  --room-soft: #d6f2e8;
+}
+.station-room-root[data-room='lab'] {
+  --room: #c79ae0;
+  --room-soft: #f0e4fa;
+}
+.station-room-root[data-room='chat'] {
+  --room: #9b8ce8;
+  --room-soft: #e4dffd;
+}
+.station-room-root[data-room='auth'] {
+  --room: #f490ad;
+  --room-soft: #fde4ec;
+}
+.station-room-root[data-room='settings'] {
+  --room: #7a83a0;
+  --room-soft: #e8ebf4;
+}
+
+html.station-room-lock,
+body.station-room-lock {
+  overflow: hidden;
+  min-height: 100%;
+}
+
+.station-room-root #stage {
+  background: transparent;
+}
+.station-room-root #topbar {
+  height: 84px;
+  padding: 0 48px;
+  gap: 28px;
+}
+.station-room-root #topbar .brand-name {
+  font-size: 20px;
+}
+.station-room-root #mainnav button {
+  padding: 8px 15px;
+  font-size: 14px;
+}
+
+.station-room-root .note-chip {
+  position: absolute;
+  z-index: 6;
+  top: 90px;
+  left: 48px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--ink-faint);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1.5px dashed color-mix(in srgb, var(--room) 45%, transparent);
+  border-radius: 999px;
+  padding: 5px 12px;
+  max-width: 820px;
+}
+
+.station-room-root .station-page {
+  position: relative;
+  z-index: 4;
+  height: 996px;
+  padding: 36px 48px 28px;
+  animation: stationPageIn 0.42s var(--ease-out);
+  overflow: auto;
+}
+.station-room-root[data-fill='frame'] .station-page {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 40px 24px;
+}
+.station-room-root[data-fill='frame'] .station-page > * {
+  flex: 1;
+  min-height: 0;
+}
+.station-room-root[data-fill='frame'] .chat-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+  min-height: 0;
+}
+
+@keyframes stationPageIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Restore controls that home-v3 resets (`button { background:none }`) */
+.station-room-root button.antd-btn,
+.station-room-root .ant-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  background: var(--craft-glass);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+}
+.station-room-root .ant-btn-primary,
+.station-room-root button.antd-btn.primary {
+  background: var(--room) !important;
+  border-color: var(--room) !important;
+  color: #fff !important;
+}
+.station-room-root .ant-btn-text,
+.station-room-root .ant-btn-link {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none;
+  color: var(--ink-soft) !important;
+}
+.station-room-root .ant-input,
+.station-room-root .ant-input-affix-wrapper,
+.station-room-root .ant-select-selector,
+.station-room-root .ant-input-number,
+.station-room-root .ant-input-number-input,
+.station-room-root textarea.ant-input {
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: var(--ink) !important;
+  border-color: color-mix(in srgb, var(--room) 28%, transparent) !important;
+}
+.station-room-root .ant-select-selection-placeholder,
+.station-room-root .ant-input::placeholder,
+.station-room-root textarea.ant-input::placeholder {
+  color: var(--ink-faint) !important;
+}
+.station-room-root .ant-form-item-label > label,
+.station-room-root .ant-card-head-title,
+.station-room-root .ant-empty-description {
+  color: var(--ink) !important;
+}
+.station-room-root .ant-card {
+  background: var(--craft-glass) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.95) !important;
+  border-radius: 20px !important;
+  box-shadow: var(--shadow-1);
+}
+.station-room-root .ant-card-head,
+.station-room-root .ant-card-body,
+.station-room-root .ant-descriptions-view,
+.station-room-root .ant-descriptions-row > th,
+.station-room-root .ant-descriptions-row > td {
+  background: transparent !important;
+  border-color: color-mix(in srgb, var(--room) 18%, transparent) !important;
+  color: var(--ink) !important;
+}
+
+/* ── Glass card used by auth / chat home / lab create ── */
+.station-glass {
+  background: var(--craft-glass);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  border-radius: 22px;
+  box-shadow: var(--shadow-1);
+}
+
+/* ── Auth ── */
+.station-room-root .auth-stage {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 440px;
+  gap: 56px;
+  align-items: center;
+  padding: 24px 40px 40px;
+}
+.station-room-root .auth-welcome {
+  max-width: 520px;
+}
+.station-room-root .auth-kana {
+  font-size: 13px;
+  letter-spacing: 0.28em;
+  color: var(--ink-faint);
+  margin: 0 0 12px;
+}
+.station-room-root .auth-welcome h1 {
+  font-size: 56px;
+  line-height: 1.15;
+  letter-spacing: 2px;
+  margin: 0 0 16px;
+}
+.station-room-root .auth-welcome p {
+  font-size: 16px;
+  color: var(--ink-soft);
+  margin: 0;
+  max-width: 36ch;
+}
+.station-room-root .auth-card {
+  padding: 36px 32px 28px;
+}
+.station-room-root .auth-card .title {
+  font-size: 22px;
+  letter-spacing: 1px;
+  text-align: left;
+  margin: 0 0 6px;
+  color: var(--ink);
+}
+.station-room-root .auth-card .desc {
+  text-align: left;
+  color: var(--ink-soft);
+  margin: 0 0 22px;
+  font-size: 13px;
+}
+.station-room-root .auth-card .tips {
+  margin-bottom: 16px;
+  color: var(--ink-faint);
+  font-size: 13px;
+  text-align: right;
+}
+.station-room-root .auth-card .tips a {
+  color: var(--room);
+}
+.station-room-root .auth-card .ant-btn-primary {
+  width: 100%;
+  height: 44px;
+  border-radius: 14px;
+  font-size: 15px;
+}
+
+/* ── Worklog paper remap ── */
+.station-room-root .worklog-page {
+  --color-text-primary: var(--ink);
+  --color-text-secondary: var(--ink-soft);
+  --color-text-muted: var(--ink-faint);
+  --color-bg-card: var(--craft-glass);
+  --color-bg-surface: rgba(255, 255, 255, 0.92);
+  --color-border: rgba(255, 255, 255, 0.95);
+  --color-border-hover: color-mix(in srgb, var(--room) 45%, transparent);
+  --color-surface-hover: color-mix(in srgb, var(--room) 12%, transparent);
+  --shadow-sm: var(--shadow-1);
+  --worklog-accent: var(--room);
+  --worklog-accent-soft: color-mix(in srgb, var(--room) 16%, transparent);
+  max-width: none;
+  margin: 0;
+  padding: 8px 0 8px;
+  gap: 12px;
+}
+.station-room-root .worklog-hero h1 {
+  font-family: 'ZCOOL KuaiLe', 'PingFang SC', sans-serif;
+  font-size: 36px;
+  letter-spacing: 1px;
+  color: var(--ink);
+}
+.station-room-root .worklog-field--date input {
+  color-scheme: light;
+}
+.station-room-root .worklog-panel,
+.station-room-root .worklog-stat,
+.station-room-root .worklog-category-strip,
+.station-room-root .worklog-insights,
+.station-room-root .worklog-backup-banner,
+.station-room-root .worklog-import-banner {
+  background: var(--craft-glass);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-1);
+}
+.station-room-root button.antd-btn,
+.station-room-root button.icon-btn,
+.station-room-root button.worklog-preview-btn,
+.station-room-root button.worklog-cat-btn,
+.station-room-root button.worklog-category-chip,
+.station-room-root button.worklog-kw-chip {
+  border: 1px solid color-mix(in srgb, var(--room) 22%, transparent);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--ink);
+}
+.station-room-root .worklog-field input,
+.station-room-root .worklog-field textarea,
+.station-room-root .worklog-select {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  border: 1px solid color-mix(in srgb, var(--room) 28%, transparent);
+}
+
+/* ── Lab ── */
+.station-room-root #labPage {
+  max-width: none;
+  margin: 0;
+  padding: 4px 0 20px;
+}
+.station-room-root .lab-page__header {
+  margin: 0 0 22px;
+  text-align: left;
+}
+.station-room-root .lab-page__title {
+  font-family: 'ZCOOL KuaiLe', 'PingFang SC', sans-serif;
+  font-size: 40px;
+  letter-spacing: 2px;
+  background: none;
+  -webkit-text-fill-color: var(--ink);
+  color: var(--ink);
+}
+.station-room-root .lab-page__subtitle,
+.station-room-root .lab-page__section-title,
+.station-room-root .lab-page__section-count,
+.station-room-root .app-card__name,
+.station-room-root .app-card__time {
+  color: var(--ink-soft);
+}
+.station-room-root .lab-page__section-title {
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: var(--ink);
+}
+.station-room-root .lab-page__create,
+.station-room-root .lab-page__login-hint,
+.station-room-root .lab-create__input-wrap,
+.station-room-root .app-card {
+  background: var(--craft-glass);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-1);
+}
+.station-room-root .lab-create__textarea {
+  color: var(--ink) !important;
+}
+.station-room-root .app-card {
+  overflow: hidden;
+  border-radius: 20px;
+}
+.station-room-root .app-card:hover {
+  box-shadow: var(--shadow-2);
+  border-color: color-mix(in srgb, var(--room) 40%, white);
+}
+.station-room-root .lab-page__icon {
+  color: var(--room);
+}
+
+/* ── Chat home ── */
+.station-room-root #chatHomePage {
+  max-width: 720px;
+  margin: 48px auto 0;
+  padding: 0;
+  min-height: 0;
+}
+.station-room-root #chatHomePage .hero__title {
+  font-family: 'ZCOOL KuaiLe', 'PingFang SC', sans-serif;
+  font-size: 42px;
+  letter-spacing: 2px;
+  background: none;
+  -webkit-text-fill-color: var(--ink);
+  color: var(--ink);
+}
+.station-room-root #chatHomePage .hero__desc {
+  color: var(--ink-soft);
+}
+.station-room-root #chatHomePage .hero__icon {
+  color: var(--room);
+  background: var(--room-soft);
+}
+.station-room-root #chatHomePage .hero__input-wrap {
+  background: var(--craft-glass);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-1);
+}
+.station-room-root #chatHomePage .hero__textarea {
+  color: var(--ink) !important;
+}
+
+/* ── Chat / lab codegen conversation ── */
+.station-room-root .chat-page,
+.station-room-root .simple-chat-page {
+  height: 100%;
+  max-height: none;
+  padding: 0;
+}
+.station-room-root .chat-header,
+.station-room-root .chat-container,
+.station-room-root .chat-left,
+.station-room-root .chat-sidebar {
+  background: var(--craft-glass);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-1);
+  color: var(--ink);
+}
+.station-room-root .chat-header__title,
+.station-room-root .chat-sidebar__title,
+.station-room-root .chat-sidebar__header-title {
+  color: var(--ink);
+}
+.station-room-root .chat-sidebar__meta,
+.station-room-root .chat-streaming-hint {
+  color: var(--ink-faint);
+}
+.station-room-root .chat-msg__bubble {
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--ink);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+}
+.station-room-root .chat-msg--user .chat-msg__bubble {
+  background: color-mix(in srgb, var(--room) 22%, white);
+}
+.station-room-root .chat-send-btn {
+  background: var(--room) !important;
+  border: none !important;
+  color: #fff !important;
+}
+.station-room-root .chat-right {
+  background: var(--craft-glass);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+}
+
+/* ── Site settings ── */
+.station-room-root[data-room='settings'] .site-settings-page {
+  max-width: none;
+  color: var(--ink);
+}
+.station-room-root[data-room='settings'] .admin-breadcrumb {
+  display: none;
+}
+.station-room-root[data-room='settings'] .admin-page-hero {
+  margin: 0 0 18px;
+}
+.station-room-root[data-room='settings'] .hero-title {
+  font-family: 'ZCOOL KuaiLe', 'PingFang SC', sans-serif;
+  font-size: 32px;
+  letter-spacing: 1px;
+  color: var(--ink);
+}
+.station-room-root[data-room='settings'] .hero-subtitle {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+.station-room-root[data-room='settings'] .settings-group,
+.station-room-root[data-room='settings'] .settings-advanced,
+.station-room-root[data-room='settings'] .health-card {
+  background: rgba(255, 255, 255, 0.62);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  color: var(--ink);
+}
+.station-room-root[data-room='settings'] .group-title,
+.station-room-root[data-room='settings'] .health-title,
+.station-room-root[data-room='settings'] .module-title-row {
+  color: var(--ink);
+}
+.station-room-root[data-room='settings'] .group-tip,
+.station-room-root[data-room='settings'] .health-meta,
+.station-room-root[data-room='settings'] .health-message,
+.station-room-root[data-room='settings'] .sensitive-hint,
+.station-room-root[data-room='settings'] .diff-text {
+  color: var(--ink-soft);
+}
+.station-room-root[data-room='settings'] .ant-table,
+.station-room-root[data-room='settings'] .ant-table-thead > tr > th,
+.station-room-root[data-room='settings'] .ant-table-tbody > tr > td {
+  background: transparent !important;
+  color: var(--ink) !important;
+  border-color: color-mix(in srgb, var(--room) 16%, transparent) !important;
+}
+.station-room-root[data-room='settings'] .ant-table-wrapper,
+.station-room-root[data-room='settings'] .ant-table-container {
+  background: transparent !important;
+}
+.station-room-root[data-room='settings'] .ant-collapse-header {
+  color: var(--ink) !important;
+}
+.station-room-root[data-room='settings'] .settings-nav {
+  background: var(--craft-glass);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-1);
+  position: sticky;
+  top: 0;
+}
+.station-room-root[data-room='settings'] .nav-section-title {
+  color: var(--ink-faint);
+}
+.station-room-root[data-room='settings'] .nav-item {
+  color: var(--ink-soft);
+}
+.station-room-root[data-room='settings'] .nav-item:hover:not(.disabled) {
+  background: color-mix(in srgb, var(--room) 12%, white);
+  color: var(--ink);
+}
+.station-room-root[data-room='settings'] .nav-item.active {
+  background: color-mix(in srgb, var(--room) 18%, white);
+  border-color: color-mix(in srgb, var(--room) 28%, white);
+  color: var(--ink);
+}
+.station-room-root[data-room='settings'] .health-card.ok {
+  border-color: color-mix(in srgb, #5fc4a5 45%, white);
+}
+.station-room-root[data-room='settings'] .admin-theme-page :deep(.ant-form),
+.station-room-root[data-room='settings'] .admin-theme-page .ant-form {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.station-room-root[data-room='settings'] .admin-theme-page .ant-input,
+.station-room-root[data-room='settings'] .admin-theme-page .ant-input-affix-wrapper,
+.station-room-root[data-room='settings'] .admin-theme-page .ant-select-selector,
+.station-room-root[data-room='settings'] .admin-theme-page .ant-input-number,
+.station-room-root[data-room='settings'] .admin-theme-page .ant-input-number-input,
+.station-room-root[data-room='settings'] .admin-theme-page textarea.ant-input {
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: var(--ink) !important;
+  border-color: color-mix(in srgb, var(--room) 28%, transparent) !important;
+}
+.station-room-root[data-room='settings'] .admin-theme-page .ant-form-item-label > label {
+  color: var(--ink-soft) !important;
+}
+.station-room-root[data-room='settings'] .admin-theme-page .ant-pagination-item,
+.station-room-root[data-room='settings'] .admin-theme-page .ant-pagination-prev .ant-pagination-item-link,
+.station-room-root[data-room='settings'] .admin-theme-page .ant-pagination-next .ant-pagination-item-link {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border-color: color-mix(in srgb, var(--room) 22%, transparent) !important;
+  color: var(--ink) !important;
+}
+.station-room-root[data-room='settings'] .admin-theme-page .ant-btn-primary {
+  background: var(--room) !important;
+  border: none !important;
+  color: #fff !important;
+}
+
+@media (max-width: 1100px) {
+  .station-room-root .auth-stage {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 8px 0 24px;
+  }
+}

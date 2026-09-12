@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
  * SVG 领域树图：根在上，L1 水平展开，L2 挂父下；鼠标微摆
+ * 紫罗兰玻璃节点 · 单击选中 · 点空白区由父层关闭
  */
 import { computed, onMounted, ref } from 'vue'
 import type { LearningBranchTreeNode } from '@/api/learning.types'
@@ -10,14 +11,18 @@ type Props = {
   branches: LearningBranchTreeNode[]
   selectedBranchId: number | string | null
   loading?: boolean
+  /** 隐藏内置缩放条（外层 Overlay 已有） */
+  hideToolbar?: boolean
 }
 
 type Emits = {
   'update:selected-branch-id': [branchId: number | string | null]
   'learn-empty': [payload: { branchId: number | string; branchTitle: string }]
+  /** 点击画布空白 */
+  'blank-click': []
 }
 
-const props = withDefaults(defineProps<Props>(), { loading: false })
+const props = withDefaults(defineProps<Props>(), { loading: false, hideToolbar: false })
 const emit = defineEmits<Emits>()
 
 const wrapRef = ref<HTMLElement | null>(null)
@@ -46,7 +51,6 @@ const W = 900
 const H = 560
 const ROOT = { x: W / 2, y: 56 }
 
-/** 枝过多时自动缩小，防止节点重叠 */
 const autoScale = computed(() => {
   const n = props.branches.filter((b) => b.depth === 1).length
   if (n <= 6) return 1
@@ -78,7 +82,6 @@ const layoutNodes = computed(() => {
     const kids = props.branches.filter(
       (c) => c.depth === 2 && String(c.parentBranchId) === String(b.id),
     )
-    // 非选中路径默认少展示：若父未选中且非选中子，最多显示 2 个 L2
     const selected = String(props.selectedBranchId)
     const parentSelected = selected === String(b.id)
     const showKids = parentSelected
@@ -168,7 +171,6 @@ function onLearn(node: LayoutNode) {
 onMounted(() => {
   reduceMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 })
-
 </script>
 
 <template>
@@ -177,88 +179,287 @@ onMounted(() => {
     class="domain-tree-viz"
     @pointermove="onPointer"
   >
-    <div class="domain-tree-viz__toolbar">
-      <button type="button" class="ld-icon-btn ld-icon-btn--ghost" title="缩小" @click="zoomOut">−</button>
+    <div v-if="!hideToolbar" class="domain-tree-viz__toolbar">
+      <button type="button" class="domain-tree-viz__zoom-btn" title="缩小" @click="zoomOut">−</button>
       <span class="domain-tree-viz__zoom-label">{{ Math.round(scale * 100) }}%</span>
-      <button type="button" class="ld-icon-btn ld-icon-btn--ghost" title="放大" @click="zoomIn">+</button>
+      <button type="button" class="domain-tree-viz__zoom-btn" title="放大" @click="zoomIn">+</button>
     </div>
     <div v-if="loading" class="domain-tree-viz__loading">加载树图…</div>
     <div v-else class="domain-tree-viz__canvas" :style="{ transform: `scale(${(scale * autoScale).toFixed(2)})` }">
-    <svg
-      class="domain-tree-viz__svg"
-      :viewBox="`0 0 ${W} ${H}`"
-      role="img"
-      :aria-label="`${domainName} 知识树图`"
-    >
-      <defs>
-        <linearGradient id="ld-trunk" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#8db3cf" stop-opacity="0.9" />
-          <stop offset="100%" stop-color="#2b5b84" stop-opacity="0.5" />
-        </linearGradient>
-      </defs>
-
-      <!-- edges -->
-      <path
-        v-for="e in edges"
-        :key="e.key"
-        class="domain-tree-viz__edge"
-        :d="`M ${e.x1} ${e.y1} C ${e.x1} ${(e.y1 + e.y2) / 2}, ${e.x2} ${(e.y1 + e.y2) / 2}, ${e.x2} ${e.y2}`"
-        fill="none"
-        stroke="url(#ld-trunk)"
-        stroke-width="2.5"
-      />
-
-      <!-- root -->
-      <g class="domain-tree-viz__root" :style="swayAt(ROOT.x, ROOT.y)">
-        <circle :cx="ROOT.x" :cy="ROOT.y" r="28" class="domain-tree-viz__root-circle" />
-        <text :x="ROOT.x" :y="ROOT.y + 5" text-anchor="middle" class="domain-tree-viz__root-label">
-          {{ domainName || 'Domain' }}
-        </text>
-      </g>
-
-      <!-- nodes -->
-      <g
-        v-for="node in layoutNodes"
-        :key="node.id"
-        class="domain-tree-viz__node"
-        :class="{
-          'is-active': String(selectedBranchId) === node.id,
-          'is-empty': node.leafCount === 0,
-        }"
-        :style="sway(node)"
-        @click="onSelect(node)"
-        @dblclick="onLearn(node)"
+      <svg
+        class="domain-tree-viz__svg"
+        :viewBox="`0 0 ${W} ${H}`"
+        role="img"
+        :aria-label="`${domainName} 知识树图`"
       >
-        <circle
-          :cx="node.x"
-          :cy="node.y"
-          :r="node.depth === 1 ? 22 : 16"
-          class="domain-tree-viz__circle"
+        <defs>
+          <linearGradient id="ld-trunk" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#b8a8f0" stop-opacity="0.95" />
+            <stop offset="100%" stop-color="#9b8ce8" stop-opacity="0.45" />
+          </linearGradient>
+          <filter id="ld-glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="3" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        <!-- 空白命中区：点空白返回 -->
+        <rect
+          class="domain-tree-viz__blank"
+          x="0"
+          y="0"
+          :width="W"
+          :height="H"
+          fill="transparent"
+          @click="emit('blank-click')"
         />
-        <text :x="node.x" :y="node.y + 4" text-anchor="middle" class="domain-tree-viz__label">
-          {{ node.title.length > 6 ? node.title.slice(0, 5) + '…' : node.title }}
-        </text>
-        <text
-          v-if="node.leafCount > 0"
-          :x="node.x + (node.depth === 1 ? 18 : 14)"
-          :y="node.y - (node.depth === 1 ? 14 : 10)"
-          class="domain-tree-viz__badge"
+
+        <path
+          v-for="e in edges"
+          :key="e.key"
+          class="domain-tree-viz__edge"
+          :d="`M ${e.x1} ${e.y1} C ${e.x1} ${(e.y1 + e.y2) / 2}, ${e.x2} ${(e.y1 + e.y2) / 2}, ${e.x2} ${e.y2}`"
+          fill="none"
+          stroke="url(#ld-trunk)"
+          stroke-width="2.5"
+        />
+
+        <g class="domain-tree-viz__root" :style="swayAt(ROOT.x, ROOT.y)" @click.stop>
+          <circle :cx="ROOT.x" :cy="ROOT.y" r="28" class="domain-tree-viz__root-circle" />
+          <text :x="ROOT.x" :y="ROOT.y + 5" text-anchor="middle" class="domain-tree-viz__root-label">
+            {{ domainName || 'Domain' }}
+          </text>
+        </g>
+
+        <g
+          v-for="node in layoutNodes"
+          :key="node.id"
+          class="domain-tree-viz__node"
+          :class="{
+            'is-active': String(selectedBranchId) === node.id,
+            'is-empty': node.leafCount === 0,
+          }"
+          :style="sway(node)"
+          @click.stop="onSelect(node)"
+          @dblclick.stop="onLearn(node)"
         >
-          {{ node.leafCount }}
-        </text>
-        <text
-          v-else
-          :x="node.x"
-          :y="node.y + (node.depth === 1 ? 30 : 24)"
-          text-anchor="middle"
-          class="domain-tree-viz__hint"
-          @click.stop="onLearn(node)"
-        >
-          补学
-        </text>
-      </g>
-    </svg>
+          <circle
+            :cx="node.x"
+            :cy="node.y"
+            :r="node.depth === 1 ? 22 : 16"
+            class="domain-tree-viz__circle"
+          />
+          <text :x="node.x" :y="node.y + 4" text-anchor="middle" class="domain-tree-viz__label">
+            {{ node.title.length > 6 ? node.title.slice(0, 5) + '…' : node.title }}
+          </text>
+          <circle
+            v-if="node.leafCount > 0"
+            class="domain-tree-viz__badge-bg"
+            :cx="node.x + (node.depth === 1 ? 18 : 14)"
+            :cy="node.y - (node.depth === 1 ? 14 : 10)"
+            r="9"
+          />
+          <text
+            v-if="node.leafCount > 0"
+            :x="node.x + (node.depth === 1 ? 18 : 14)"
+            :y="node.y - (node.depth === 1 ? 10.5 : 6.5)"
+            text-anchor="middle"
+            class="domain-tree-viz__badge"
+          >
+            {{ node.leafCount }}
+          </text>
+          <text
+            v-else
+            :x="node.x"
+            :y="node.y + (node.depth === 1 ? 38 : 30)"
+            text-anchor="middle"
+            class="domain-tree-viz__hint"
+            @click.stop="onLearn(node)"
+          >
+            补学 →
+          </text>
+        </g>
+      </svg>
     </div>
-    <p class="domain-tree-viz__tip">拖动鼠标微摆 · 单击选中 · 空枝双击或点「补学」</p>
+    <p class="domain-tree-viz__tip">单击选中同步左树 · 空枝双击补学 · 点空白关闭</p>
   </div>
 </template>
+
+<style scoped>
+.domain-tree-viz {
+  --viz-ink: #4c5570;
+  --viz-ink-soft: #7a83a0;
+  --viz-ink-faint: #a5acc4;
+  --viz-room: #9b8ce8;
+  --viz-room-soft: #e4dffd;
+  --viz-mint: #5fc4a5;
+  --viz-blue: #6aaee8;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  color: var(--viz-ink);
+}
+
+.domain-tree-viz__toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.domain-tree-viz__zoom-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--viz-ink-soft);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.domain-tree-viz__zoom-btn:hover {
+  color: var(--viz-room);
+  background: var(--viz-room-soft);
+}
+
+.domain-tree-viz__zoom-label {
+  min-width: 40px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--viz-ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.domain-tree-viz__loading {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  color: var(--viz-ink-faint);
+  font-size: 13px;
+}
+
+.domain-tree-viz__canvas {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
+  transition: transform 0.2s cubic-bezier(0.22, 0.8, 0.32, 1);
+}
+
+.domain-tree-viz__svg {
+  width: 100%;
+  height: 100%;
+  max-height: 520px;
+  overflow: visible;
+  cursor: default;
+}
+
+.domain-tree-viz__blank {
+  cursor: pointer;
+}
+
+.domain-tree-viz__edge {
+  pointer-events: none;
+}
+
+.domain-tree-viz__root-circle {
+  fill: color-mix(in srgb, var(--viz-room) 55%, #fff);
+  stroke: #fff;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 4px 12px color-mix(in srgb, var(--viz-room) 35%, transparent));
+}
+
+.domain-tree-viz__root-label {
+  fill: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  pointer-events: none;
+}
+
+.domain-tree-viz__node {
+  cursor: pointer;
+}
+
+.domain-tree-viz__circle {
+  fill: color-mix(in srgb, var(--viz-room-soft) 88%, #fff);
+  stroke: color-mix(in srgb, var(--viz-room) 55%, #fff);
+  stroke-width: 2;
+  transition: fill 0.25s, stroke 0.25s, filter 0.25s;
+}
+
+.domain-tree-viz__node:hover .domain-tree-viz__circle {
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--viz-room) 45%, transparent));
+  stroke: var(--viz-room);
+}
+
+.domain-tree-viz__node.is-active .domain-tree-viz__circle {
+  fill: var(--viz-room);
+  stroke: #fff;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--viz-room) 55%, transparent));
+}
+
+.domain-tree-viz__node.is-empty .domain-tree-viz__circle {
+  fill: rgba(255, 255, 255, 0.72);
+  stroke: color-mix(in srgb, var(--viz-ink-faint) 55%, #fff);
+  stroke-dasharray: 4 3;
+}
+
+.domain-tree-viz__node.is-empty.is-active .domain-tree-viz__circle {
+  fill: color-mix(in srgb, var(--viz-room) 70%, #fff);
+  stroke: #fff;
+  stroke-dasharray: none;
+}
+
+.domain-tree-viz__label {
+  fill: var(--viz-ink-soft);
+  font-size: 11px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.domain-tree-viz__node.is-active .domain-tree-viz__label {
+  fill: #fff;
+}
+
+.domain-tree-viz__badge-bg {
+  fill: var(--viz-mint);
+  stroke: #fff;
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+.domain-tree-viz__badge {
+  fill: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.domain-tree-viz__hint {
+  fill: var(--viz-room);
+  font-size: 10px;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.domain-tree-viz__tip {
+  flex: none;
+  margin: 0;
+  padding: 8px 14px 12px;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--viz-ink-faint);
+}
+</style>

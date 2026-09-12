@@ -8,6 +8,8 @@
 import axios from 'axios'
 import { message } from 'ant-design-vue'
 import { parseSafeJson } from '@/utils/safeJson'
+import { capabilitySnapshot, snapshotEnabled } from '@/utils/capabilitySnapshot'
+import { decide40100Action, moduleForPath, moduleUnavailableLocation } from '@/utils/moduleGate'
 
 /**
  * 将 JSON 字符串中超过 15 位的纯整数字面量替换为字符串形式，
@@ -48,12 +50,23 @@ myAxios.interceptors.response.use(
   function (response) {
     const { data } = response
     if (data.code === 40100) {
-      if (
-        !response.request.responseURL.includes('user/get/login') &&
-        !window.location.pathname.includes('/user/login')
-      ) {
-        message.warning('请先登录')
-        window.location.href = `/user/login?redirect=${window.location.href}`
+      const pathname = window.location.pathname
+      const responseUrl = String(response.request?.responseURL || '')
+      const action = decide40100Action({
+        pathname,
+        responseUrl,
+        loaded: capabilitySnapshot.loaded,
+        enabled: snapshotEnabled,
+      })
+      if (action === 'unavailable') {
+        if (!pathname.includes('/module-unavailable')) {
+          window.location.replace(moduleUnavailableLocation(pathname, moduleForPath(pathname)))
+        }
+      } else if (action === 'login') {
+        if (!responseUrl.includes('user/get/login') && !pathname.includes('/user/login')) {
+          message.warning('请先登录')
+          window.location.href = `/user/login?redirect=${window.location.href}`
+        }
       }
     }
     if (data.code === 40301) {

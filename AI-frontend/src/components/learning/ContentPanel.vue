@@ -376,6 +376,7 @@ const viewState = computed<ViewState>(() => {
           :branch-title="branchTitle"
           :leaves="leaves"
           :branches="branches"
+          @open="(id) => $emit('open-note', id)"
           @move-to="(p) => $emit('move-leaf', p.noteId, p.targetBranchId)"
           @detach="(id) => $emit('detach-leaf', id)"
           @go-search="$emit('skip-gate', { branchId: branchId!, branchTitle: branchTitle || '' })"

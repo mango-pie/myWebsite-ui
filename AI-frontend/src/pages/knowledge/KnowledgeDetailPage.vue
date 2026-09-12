@@ -2,7 +2,6 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
-import type { UploadProps } from 'ant-design-vue'
 import { getKnowledgeBase } from '@/api/knowledge'
 import {
   deleteKnowledgeDocument,
@@ -20,58 +19,88 @@ import {
   isAllowedKbUploadFile,
   isParsedDocument,
   isParsingDocument,
-  kbParseStatusColor,
-  kbParseStatusLabel,
 } from '@/utils/knowledgeFormat'
-import '@/assets/admin-theme.css'
-import { FolderOpen, MessagesSquare, ArrowLeft, Search, RotateCcw, Sparkles, Boxes, Download, Trash2 } from 'lucide-vue-next'
-import IconAction from '@/components/ui/IconAction.vue'
+import KnowledgeRoomShell from '@/components/knowledge/KnowledgeRoomShell.vue'
 
 const route = useRoute()
 const router = useRouter()
 const kbId = computed(() => String(route.params.kbId ?? ''))
+const showUpload = computed(() => route.query.upload === '1' || route.query.upload === 'true')
 
 const kbLoading = ref(false)
 const kb = ref<API.KnowledgeBaseVO | null>(null)
-
 const loading = ref(false)
 const dataSource = ref<API.KnowledgeDocumentVO[]>([])
 const total = ref(0)
-const uploadPercent = ref<number | null>(null)
+const selectedId = ref<string | number | null>(null)
+const uploading = ref(false)
+const pendingFile = ref<File | null>(null)
+const fileInputRef = ref<HTMLInputElement | null>(null)
 
 const query = reactive<API.KnowledgeDocumentQueryRequest>({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 50,
   fileName: undefined,
   fileType: undefined,
   parseStatus: undefined,
 })
 
 const pollTimers = new Map<string, ReturnType<typeof setInterval>>()
-
 const chunkOpen = ref(false)
 const chunkLoading = ref(false)
 const chunks = ref<API.KnowledgeChunkVO[]>([])
 const chunkDocName = ref('')
 const parsingIds = ref<Set<string>>(new Set())
 
-const columns = [
-  { title: '文件名', dataIndex: 'fileName', ellipsis: true },
-  { title: '类型', dataIndex: 'fileType', width: 90 },
-  { title: '大小', dataIndex: 'fileSize', width: 100 },
-  { title: '解析状态', dataIndex: 'parseStatus', width: 120 },
-  { title: 'Chunk', dataIndex: 'chunkCount', width: 80 },
-  { title: '上传时间', dataIndex: 'createTime', width: 180 },
-  { title: '操作', key: 'action', width: 220, fixed: 'right' as const },
-]
-
-/* 文件类型图标与颜色映射 */
-const fileTypeMeta: Record<string, { icon: string; color: string }> = {
-  pdf: { icon: 'PDF', color: 'error' },
-  docx: { icon: 'DOCX', color: 'processing' },
-  txt: { icon: 'TXT', color: 'default' },
-  md: { icon: 'MD', color: 'purple' },
+const pillStatus = (status?: string) => {
+  const u = String(status || '').toUpperCase()
+  if (u === 'PARSED' || u === 'SUCCESS') return 'SUCCESS'
+  if (u === 'PARSING') return 'PARSING'
+  if (u === 'FAILED') return 'FAILED'
+  return 'PENDING'
 }
+
+const parseBarWidth = (status?: string) => {
+  const p = pillStatus(status)
+  if (p === 'SUCCESS') return '100%'
+  if (p === 'PARSING') return '62%'
+  return '0%'
+}
+
+const docIco = (fileType?: string, fileName?: string) => {
+  const t = (fileType || fileName || '').toLowerCase()
+  if (t.includes('pdf')) return 'pdf'
+  if (t.includes('md') || t.includes('markdown')) return 'md'
+  if (t.includes('doc')) return 'md'
+  return 'bin'
+}
+
+const selected = computed(() => {
+  if (selectedId.value == null) return dataSource.value[0] ?? null
+  return dataSource.value.find((d) => String(d.id) === String(selectedId.value)) ?? dataSource.value[0] ?? null
+})
+
+const counts = computed(() => {
+  const c = { ok: 0, parsing: 0, pending: 0, failed: 0 }
+  for (const d of dataSource.value) {
+    const p = pillStatus(d.parseStatus)
+    if (p === 'SUCCESS') c.ok += 1
+    else if (p === 'PARSING') c.parsing += 1
+    else if (p === 'FAILED') c.failed += 1
+    else c.pending += 1
+  }
+  return c
+})
+
+const healthPct = computed(() => {
+  const n = dataSource.value.length || 1
+  return {
+    ok: `${(counts.value.ok / n) * 100}%`,
+    parsing: `${(counts.value.parsing / n) * 100}%`,
+    pending: `${(counts.value.pending / n) * 100}%`,
+    failed: `${(counts.value.failed / n) * 100}%`,
+  }
+})
 
 const stopPoll = (id: string) => {
   const t = pollTimers.get(id)
@@ -101,9 +130,8 @@ const startPoll = (id: number | string) => {
         patchRow(doc)
         if (isParsedDocument(doc.parseStatus) || doc.parseStatus === 'FAILED') {
           stopPoll(key)
-          if (doc.parseStatus === 'FAILED') {
-            message.error(doc.errorMessage || '解析失败')
-          } else if (doc.parseStatus === 'PARSED' || doc.parseStatus === 'SUCCESS') {
+          if (doc.parseStatus === 'FAILED') message.error(doc.errorMessage || '解析失败')
+          else {
             message.success('解析完成')
             fetchKb()
           }
@@ -120,9 +148,8 @@ const fetchKb = async () => {
   kbLoading.value = true
   try {
     const res = await getKnowledgeBase(kbId.value)
-    if (res.data.code === 0 && res.data.data) {
-      kb.value = res.data.data
-    } else {
+    if (res.data.code === 0 && res.data.data) kb.value = res.data.data
+    else {
       message.error(res.data.message || '知识库不存在')
       router.replace('/knowledge')
     }
@@ -138,12 +165,13 @@ const fetchDocs = async () => {
     if (res.data.code === 0 && res.data.data) {
       dataSource.value = res.data.data.records ?? []
       total.value = res.data.data.totalRow ?? 0
+      if (selectedId.value == null && dataSource.value[0]?.id != null) {
+        selectedId.value = dataSource.value[0].id
+      }
       for (const row of dataSource.value) {
         if (row.id != null && isParsingDocument(row.parseStatus)) startPoll(row.id)
       }
-    } else {
-      message.error(res.data.message || '文档列表加载失败')
-    }
+    } else message.error(res.data.message || '文档列表加载失败')
   } finally {
     loading.value = false
   }
@@ -153,99 +181,95 @@ const refreshAll = async () => {
   await Promise.all([fetchKb(), fetchDocs()])
 }
 
-const onSearch = () => {
-  query.pageNum = 1
-  fetchDocs()
+const selectDoc = (row: API.KnowledgeDocumentVO) => {
+  if (row.id != null) selectedId.value = row.id
 }
 
-const onReset = () => {
-  query.fileName = undefined
-  query.fileType = undefined
-  query.parseStatus = undefined
-  query.pageNum = 1
-  fetchDocs()
-}
+const goUpload = () => router.replace({ path: `/knowledge/${kbId.value}`, query: { upload: '1' } })
+const leaveUpload = () => router.replace(`/knowledge/${kbId.value}`)
 
-const onTableChange = (pag: { current?: number; pageSize?: number }) => {
-  if (pag.current != null) query.pageNum = pag.current
-  if (pag.pageSize != null) query.pageSize = pag.pageSize
-  fetchDocs()
-}
-
-const beforeUpload: UploadProps['beforeUpload'] = (file) => {
-  const check = isAllowedKbUploadFile(file as File)
+const onPickFile = (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  const check = isAllowedKbUploadFile(file)
   if (!check.ok) {
     message.error(check.message)
-    return false
+    input.value = ''
+    return
   }
-  return true
+  pendingFile.value = file
 }
 
-const customRequest: UploadProps['customRequest'] = async (options) => {
-  const { file, onError, onSuccess, onProgress } = options
-  const raw = file as File
-  uploadPercent.value = 0
+const onDrop = (e: DragEvent) => {
+  e.preventDefault()
+  const file = e.dataTransfer?.files?.[0]
+  if (!file) return
+  const check = isAllowedKbUploadFile(file)
+  if (!check.ok) {
+    message.error(check.message)
+    return
+  }
+  pendingFile.value = file
+}
+
+const submitUpload = async () => {
+  if (!pendingFile.value || uploading.value) return
+  uploading.value = true
   try {
-    const res = await uploadKnowledgeDocument(kbId.value, raw, (e) => {
-      if (e.total) {
-        const percent = Math.round((e.loaded / e.total) * 100)
-        uploadPercent.value = percent
-        onProgress?.({ percent })
-      }
-    })
+    const res = await uploadKnowledgeDocument(kbId.value, pendingFile.value)
     if (res.data.code === 0) {
-      message.success(`${raw.name} 上传成功`)
-      onSuccess?.(res.data)
-      uploadPercent.value = null
+      message.success(`${pendingFile.value.name} 上传成功`)
+      pendingFile.value = null
+      if (fileInputRef.value) fileInputRef.value.value = ''
       await refreshAll()
-    } else {
-      const err = new Error(res.data.message || '上传失败')
-      message.error(err.message)
-      onError?.(err)
-      uploadPercent.value = null
-    }
+      leaveUpload()
+    } else message.error(res.data.message || '上传失败')
   } catch (e) {
-    const err = e instanceof Error ? e : new Error('上传失败')
-    message.error(err.message)
-    onError?.(err)
-    uploadPercent.value = null
+    message.error(e instanceof Error ? e.message : '上传失败')
+  } finally {
+    uploading.value = false
   }
 }
 
-const handleParse = async (row: API.KnowledgeDocumentVO) => {
-  if (row.id == null) return
-  const id = String(row.id)
+const handleParse = async (row?: API.KnowledgeDocumentVO | null) => {
+  const target = row ?? selected.value
+  if (!target?.id || !canParseDocument(target.parseStatus)) {
+    message.info('当前文档无需解析或不可解析')
+    return
+  }
+  const id = String(target.id)
   parsingIds.value.add(id)
   try {
-    const res = await parseKnowledgeDocument(row.id)
+    const res = await parseKnowledgeDocument(target.id)
     if (res.data.code === 0 && res.data.data) {
       message.success('已开始解析')
       patchRow(res.data.data)
-      if (isParsingDocument(res.data.data.parseStatus)) {
-        startPoll(row.id)
-      } else if (isParsedDocument(res.data.data.parseStatus)) {
+      if (isParsingDocument(res.data.data.parseStatus)) startPoll(target.id)
+      else if (isParsedDocument(res.data.data.parseStatus)) {
         message.success('解析完成')
         await fetchKb()
       }
-    } else {
-      message.error(res.data.message || '触发解析失败')
-    }
+    } else message.error(res.data.message || '触发解析失败')
   } finally {
     parsingIds.value.delete(id)
   }
 }
 
-const isRowParsing = (row: API.KnowledgeDocumentVO) =>
-  (row.id != null && parsingIds.value.has(String(row.id))) || isParsingDocument(row.parseStatus)
+const retryFailed = async () => {
+  const failed = dataSource.value.filter((d) => pillStatus(d.parseStatus) === 'FAILED')
+  if (!failed.length) {
+    message.info('没有失败项')
+    return
+  }
+  for (const row of failed) await handleParse(row)
+}
 
 const handleDownload = async (row: API.KnowledgeDocumentVO) => {
   if (row.id == null) return
   const res = await getKnowledgeDocumentDownloadUrl(row.id)
-  if (res.data.code === 0 && res.data.data?.url) {
-    window.open(res.data.data.url, '_blank')
-  } else {
-    message.error(res.data.message || '获取下载链接失败')
-  }
+  if (res.data.code === 0 && res.data.data?.url) window.open(res.data.data.url, '_blank')
+  else message.error(res.data.message || '获取下载链接失败')
 }
 
 const handleDelete = (row: API.KnowledgeDocumentVO) => {
@@ -259,24 +283,25 @@ const handleDelete = (row: API.KnowledgeDocumentVO) => {
       const res = await deleteKnowledgeDocument(row.id)
       if (res.data.code === 0) {
         message.success('已删除')
+        if (String(selectedId.value) === String(row.id)) selectedId.value = null
         await refreshAll()
-      } else {
-        message.error(res.data.message || '删除失败')
-      }
+      } else message.error(res.data.message || '删除失败')
     },
   })
 }
 
 const openChunks = async (row: API.KnowledgeDocumentVO) => {
-  if (row.id == null) return
+  if (row.id == null || !isParsedDocument(row.parseStatus)) {
+    message.info('仅 SUCCESS 文档可预览切块')
+    return
+  }
   chunkDocName.value = row.fileName || ''
   chunkOpen.value = true
   chunkLoading.value = true
   try {
     const res = await listKnowledgeDocumentChunks(row.id, { pageNum: 1, pageSize: 50 })
-    if (res.data.code === 0) {
-      chunks.value = res.data.data ?? []
-    } else {
+    if (res.data.code === 0) chunks.value = res.data.data ?? []
+    else {
       message.error(res.data.message || '加载切块失败')
       chunks.value = []
     }
@@ -290,262 +315,294 @@ onBeforeUnmount(clearAllPolls)
 </script>
 
 <template>
-  <div class="kb-detail-page admin-theme-page">
-    <!-- 面包屑 -->
-    <a-breadcrumb class="admin-breadcrumb">
-      <a-breadcrumb-item>
-        <router-link to="/">首页</router-link>
-      </a-breadcrumb-item>
-      <a-breadcrumb-item>
-        <router-link to="/knowledge">知识库</router-link>
-      </a-breadcrumb-item>
-      <a-breadcrumb-item>{{ kb?.name || '详情' }}</a-breadcrumb-item>
-    </a-breadcrumb>
-
-    <!-- 页面头部 -->
-    <div class="admin-page-hero">
-      <div class="hero-left">
-        <div class="hero-title"><FolderOpen :size="22" /> {{ kb?.name || '知识库详情' }}</div>
-        <div class="hero-subtitle">
-          <span v-if="kb">
-            {{ kb.visibility === 'public' ? '公开' : '私有' }}
-            &nbsp;·&nbsp;
-            {{ kb.documentCount ?? 0 }} 个文档
-            &nbsp;·&nbsp;
-            {{ kb.description || '暂无描述' }}
-          </span>
-          <span v-else>加载中…</span>
+  <KnowledgeRoomShell :note-label="`Knowledge · ${kb?.name || '馆藏详情'}`">
+    <!-- Upload desk -->
+    <div v-if="showUpload" class="shell">
+      <aside class="side side-stack anim" style="animation-delay: 0.08s">
+        <button class="back-chip" type="button" @click="leaveUpload">← 返回馆藏 · Esc</button>
+        <div class="side-card glass">
+          <span class="tape" />
+          <h3 class="font-display">{{ kb?.name || '知识库' }}</h3>
+          <p class="about">multipart 字段 <b>file</b> · 上传后为 PENDING</p>
         </div>
-      </div>
-      <div class="hero-extra">
-        <a-space>
-          <IconAction :icon="MessagesSquare" label="去问答" variant="primary" motion="pop" @click="router.push(`/knowledge/${kbId}/chat`)" />
-          <IconAction :icon="ArrowLeft" label="返回列表" variant="soft" motion="slide" @click="router.push('/knowledge')" />
-        </a-space>
-      </div>
+        <div class="panel glass">
+          <div class="eyebrow">解析流水线</div>
+          <div class="pipeline">
+            <div class="step s1 on"><span class="dot" />PENDING · 待解析</div>
+            <div class="step s2"><span class="dot" />PARSING · 解析中</div>
+            <div class="step s3"><span class="dot" />SUCCESS · 可问答</div>
+            <div class="step s4"><span class="dot" />FAILED · 可重试</div>
+          </div>
+        </div>
+        <div class="panel glass" style="flex: 1; display: flex; flex-direction: column; min-height: 0">
+          <div class="eyebrow">本库已有</div>
+          <div class="intake">
+            <div v-for="d in dataSource.slice(0, 6)" :key="String(d.id)" class="intake-row">
+              <span class="t">{{ (d.createTime || '').slice(5, 16) || '—' }}</span>
+              <span class="n">{{ d.fileName }}</span>
+              <span class="d" :class="pillStatus(d.parseStatus)">{{ pillStatus(d.parseStatus) }}</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main room-col anim" style="animation-delay: 0.16s; justify-content: center">
+        <div class="room-head" style="max-width: 680px; width: 100%; margin: 0 auto 8px">
+          <div>
+            <div class="eyebrow">INTAKE DESK</div>
+            <h1 class="font-display">上传文档</h1>
+            <p class="sub">拖到桌面 · 再提交入库</p>
+          </div>
+        </div>
+        <div class="form-card">
+          <span class="fr-mount" aria-hidden="true" />
+          <span class="edge-fold" aria-hidden="true" />
+          <div class="eyebrow" style="margin-top: 4px">/knowledge/{{ kbId }} · upload</div>
+          <p class="h-sub" style="margin-top: 6px; color: var(--ink-soft); font-size: 13px">
+            支持 pdf / md 等
+          </p>
+          <button
+            type="button"
+            class="dropzone"
+            @click="fileInputRef?.click()"
+            @dragover.prevent
+            @drop="onDrop"
+          >
+            <div class="ph">FILE</div>
+            <div class="font-display" style="font-size: 18px; letter-spacing: 1px; color: var(--craft-c)">
+              拖放或点击选择
+            </div>
+            <div class="meta">点选文件</div>
+          </button>
+          <input
+            ref="fileInputRef"
+            type="file"
+            :accept="KB_UPLOAD_ACCEPT"
+            hidden
+            @change="onPickFile"
+          />
+          <div v-if="pendingFile" class="file-chip">
+            <span>{{ pendingFile.name }}</span>
+            <span class="status-pill PENDING"><i />待提交</span>
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 14px">
+            <button class="chip-btn primary" type="button" :disabled="!pendingFile || uploading" @click="submitUpload">
+              {{ uploading ? '上传中…' : '提交入库' }}
+            </button>
+            <button class="chip-btn" type="button" @click="leaveUpload">返回馆藏</button>
+          </div>
+        </div>
+      </main>
+
+      <aside class="deck anim" style="animation-delay: 0.24s">
+        <div class="panel glass">
+          <span class="tape sun" />
+          <div class="eyebrow">当前库</div>
+          <div class="kb-badge" style="margin-top: 8px"><span class="dot" /><span>{{ kb?.name }}</span></div>
+        </div>
+        <div class="panel glass" style="flex: 1; display: flex; flex-direction: column">
+          <div class="eyebrow">入库提示</div>
+          <div class="hint-box">
+            上传后为 PENDING。<br />
+            触发 parse 直至终态。<br />
+            失败看 errorMessage，可重试。
+          </div>
+          <div class="blotter" style="margin-top: auto">
+            <div class="k">馆员便签</div>
+            <div class="v">新文件排在队首。至少 1 篇 SUCCESS 再进问答。</div>
+          </div>
+        </div>
+      </aside>
     </div>
 
-    <!-- 上传文档 -->
-    <a-card title="上传文档" :bordered="false" style="margin-bottom: 16px">
-      <a-upload-dragger
-        name="file"
-        :multiple="false"
-        :accept="KB_UPLOAD_ACCEPT"
-        :show-upload-list="false"
-        :before-upload="beforeUpload"
-        :custom-request="customRequest"
-        class="admin-upload-dragger"
-      >
-        <div style="padding: 16px 0">
-          <div style="font-size: 40px; margin-bottom: 8px"></div>
-          <p style="color: var(--color-text-secondary); margin: 0">
-            将文件拖到此处，或点击选择
-          </p>
-          <p style="color: var(--color-text-muted); font-size: 12px; margin-top: 6px">
-            支持 PDF / DOCX / TXT / Markdown，单文件不超过 50MB
-          </p>
+    <!-- Detail archive -->
+    <div v-else class="shell" :aria-busy="kbLoading || loading">
+      <aside class="side side-stack anim" style="animation-delay: 0.08s">
+        <button class="back-chip" type="button" @click="router.push('/knowledge')">← 返回列表 · Esc</button>
+        <div class="side-card glass">
+          <span class="tape" />
+          <h3 class="font-display">{{ kb?.name || '知识库' }}</h3>
+          <p class="about">馆藏文档与解析态。上传后 PENDING → parse。</p>
+          <button class="chip-btn primary block" type="button" style="margin-top: 10px" @click="goUpload">
+            上传文档
+          </button>
         </div>
-      </a-upload-dragger>
-      <a-progress v-if="uploadPercent != null" :percent="uploadPercent" style="margin-top: 12px" size="small" />
-    </a-card>
+        <div class="panel glass">
+          <div class="eyebrow">契约四态</div>
+          <div class="state-legend">
+            <span class="ok"><i />SUCCESS</span>
+            <span class="parsing"><i />PARSING</span>
+            <span class="pending"><i />PENDING</span>
+            <span class="failed"><i />FAILED</span>
+          </div>
+        </div>
+        <div class="panel glass" style="flex: 1; display: flex; flex-direction: column; min-height: 0">
+          <div class="eyebrow">入库流水</div>
+          <div class="intake">
+            <div v-for="d in dataSource.slice(0, 8)" :key="String(d.id)" class="intake-row">
+              <span class="t">{{ (d.createTime || '').slice(5, 16) || '—' }}</span>
+              <span class="n">{{ d.fileName }}</span>
+              <span class="d" :class="pillStatus(d.parseStatus)">{{ pillStatus(d.parseStatus) }}</span>
+            </div>
+            <div v-if="!dataSource.length" class="intake-row">
+              <span class="t">—</span>
+              <span class="n">暂无文档</span>
+              <span class="d PENDING">空</span>
+            </div>
+          </div>
+        </div>
+      </aside>
 
-    <!-- 文档列表 -->
-    <a-card title="文档列表" :bordered="false">
-      <!-- 筛选栏 -->
-      <div class="admin-filter-bar" style="margin-bottom: 16px">
-        <a-input
-          v-model:value="query.fileName"
-          allow-clear
-          placeholder="搜索文件名…"
-          style="width: 180px"
-          @pressEnter="onSearch"
-        />
-        <a-select
-          v-model:value="query.fileType"
-          allow-clear
-          placeholder="文件类型"
-          style="width: 120px"
-        >
-          <a-select-option value="pdf">pdf</a-select-option>
-          <a-select-option value="docx">docx</a-select-option>
-          <a-select-option value="txt">txt</a-select-option>
-          <a-select-option value="md">md</a-select-option>
-        </a-select>
-        <a-select
-          v-model:value="query.parseStatus"
-          allow-clear
-          placeholder="解析状态"
-          style="width: 130px"
-        >
-          <a-select-option value="UPLOADED">待解析</a-select-option>
-          <a-select-option value="PENDING">待解析</a-select-option>
-          <a-select-option value="PARSING">解析中</a-select-option>
-          <a-select-option value="PARSED">已完成</a-select-option>
-          <a-select-option value="FAILED">失败</a-select-option>
-        </a-select>
-        <a-button type="primary" class="kb-search-btn" @click="onSearch">
-          <template #icon><Search :size="15" /></template>
-          搜索
-        </a-button>
-        <a-button class="kb-reset-btn" @click="onReset">
-          <template #icon><RotateCcw :size="15" /></template>
-          重置
-        </a-button>
-      </div>
+      <main class="main room-col anim" style="animation-delay: 0.16s">
+        <div class="room-head">
+          <div>
+            <div class="eyebrow">ARCHIVE ROOM</div>
+            <h1 class="font-display">馆藏文档</h1>
+            <p class="sub">点行选中 · SUCCESS 可进问答</p>
+          </div>
+          <div class="tools">
+            <button class="chip-btn sm" type="button" @click="goUpload">再上传</button>
+            <button class="chip-btn sm primary" type="button" @click="router.push(`/knowledge/${kbId}/chat`)">
+              进入问答
+            </button>
+          </div>
+        </div>
 
-      <a-table
-        row-key="id"
-        :columns="columns"
-        :data-source="dataSource"
-        :loading="loading"
-        :pagination="{
-          current: query.pageNum,
-          pageSize: query.pageSize,
-          total,
-          showSizeChanger: true,
-          showTotal: (t: number) => `共 ${t} 条`,
-        }"
-        :scroll="{ x: 1000 }"
-        @change="onTableChange"
-      >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.dataIndex === 'fileName'">
-            <span>
-              {{ record.fileName }}
-            </span>
-          </template>
-          <template v-else-if="column.dataIndex === 'fileType'">
-            <a-tag :color="fileTypeMeta[record.fileType ?? '']?.color || 'default'">
-              {{ fileTypeMeta[record.fileType ?? '']?.icon  }}
-              {{ record.fileType?.toUpperCase() || '-' }}
-            </a-tag>
-          </template>
-          <template v-else-if="column.dataIndex === 'fileSize'">
-            {{ formatFileSize(record.fileSize) }}
-          </template>
-          <template v-else-if="column.dataIndex === 'parseStatus'">
-            <a-tooltip v-if="record.parseStatus === 'FAILED' && record.errorMessage" :title="record.errorMessage">
-              <a-tag :color="kbParseStatusColor(record.parseStatus)">
-                {{ kbParseStatusLabel(record.parseStatus) }}
-              </a-tag>
-            </a-tooltip>
-            <a-tag v-else :color="kbParseStatusColor(record.parseStatus)">
-              {{ kbParseStatusLabel(record.parseStatus) }}
-            </a-tag>
-          </template>
-          <template v-else-if="column.dataIndex === 'chunkCount'">
-            <span style="font-weight: 500">{{ record.chunkCount ?? '-' }}</span>
-          </template>
-          <template v-else-if="column.key === 'action'">
-            <a-space :size="4" wrap>
-              <a-button
-                v-if="canParseDocument(record.parseStatus)"
-                type="link"
-                size="small"
-                class="kb-row-btn"
-                :loading="isRowParsing(record)"
-                :disabled="isRowParsing(record)"
-                @click="handleParse(record)"
+        <div class="detail-main folio-room glass">
+          <span class="fr-mount" aria-hidden="true" />
+          <div class="detail-hero">
+            <div class="left">
+              <div class="eyebrow">文档与解析</div>
+              <h1 class="font-display">本库书架</h1>
+              <p class="h-sub">轮询至终态 · chunk 预览仅 SUCCESS</p>
+            </div>
+            <div
+              class="period-chip"
+              style="
+                padding: 6px 10px;
+                border-radius: 12px;
+                background: rgba(255, 255, 255, 0.7);
+                border: 1px dashed color-mix(in srgb, var(--craft-c) 28%, transparent);
+              "
+            >
+              <div class="n font-display" style="font-size: 13px; color: var(--craft-c)">
+                <span class="p-dot" />馆藏
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-body">
+            <div class="doc-list">
+              <button
+                v-for="row in dataSource"
+                :key="String(row.id)"
+                type="button"
+                class="doc-row"
+                :class="{ 'is-on': String(row.id) === String(selected?.id) }"
+                @click="selectDoc(row)"
+                @dblclick="openChunks(row)"
               >
-                <template #icon><Sparkles :size="14" /></template>
-                {{ record.parseStatus === 'FAILED' ? '重试' : '解析' }}
-              </a-button>
-              <a-button
-                v-if="isParsedDocument(record.parseStatus)"
-                type="link"
-                size="small"
-                class="kb-row-btn"
-                @click="openChunks(record)"
-              >
-                <template #icon><Boxes :size="14" /></template>
-                切块
-              </a-button>
-              <a-button type="link" size="small" class="kb-row-btn" @click="handleDownload(record)">
-                <template #icon><Download :size="14" /></template>
-                下载
-              </a-button>
-              <a-button type="link" danger size="small" class="kb-row-btn kb-row-btn--del" @click="handleDelete(record)">
-                <template #icon><Trash2 :size="14" /></template>
-                删除
-              </a-button>
-            </a-space>
-          </template>
-        </template>
-        <template #emptyText>
-          <a-empty description="还没有上传文档">
-            <template #children>
-              <span style="color: var(--color-text-muted)">拖拽文件到上方上传区开始构建知识库</span>
-            </template>
-          </a-empty>
-        </template>
-      </a-table>
-    </a-card>
+                <span class="doc-ico" :class="docIco(row.fileType, row.fileName)" aria-hidden="true" />
+                <div>
+                  <div class="name">{{ row.fileName }}</div>
+                  <div class="path">
+                    {{ row.fileType || 'file' }} · {{ formatFileSize(row.fileSize) }}
+                    <template v-if="row.createTime"> · {{ row.createTime }}</template>
+                  </div>
+                  <div class="parse-bar"><i :style="{ width: parseBarWidth(row.parseStatus) }" /></div>
+                  <div
+                    v-if="isParsedDocument(row.parseStatus) && (row.chunkCount ?? 0) > 0"
+                    class="chunk-preview"
+                  >
+                    <div class="cap">CHUNK 预览</div>
+                    切块 · chunkCount={{ row.chunkCount }} · 双击打开
+                  </div>
+                  <div
+                    v-else-if="pillStatus(row.parseStatus) === 'FAILED'"
+                    class="chunk-preview"
+                    style="border-color: color-mix(in srgb, var(--c-sakura) 40%, transparent)"
+                  >
+                    <div class="cap">FAILED</div>
+                    {{ row.errorMessage || '解析失败，可重试' }}
+                  </div>
+                </div>
+                <span class="status-pill" :class="pillStatus(row.parseStatus)">
+                  <i />
+                  {{ pillStatus(row.parseStatus) }}
+                  <template v-if="isParsedDocument(row.parseStatus)"> · {{ row.chunkCount ?? 0 }}</template>
+                </span>
+              </button>
+              <div v-if="!dataSource.length && !loading" class="doc-row" style="cursor: default; opacity: 0.7">
+                <span class="doc-ico bin" />
+                <div>
+                  <div class="name">还没有文档</div>
+                  <div class="path">点左栏或底部上传</div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-    <!-- 切块预览抽屉 -->
-    <a-drawer
-      v-model:open="chunkOpen"
-      :title="`切块预览 · ${chunkDocName}`"
-      width="560"
-      :destroy-on-close="true"
-    >
+          <div class="detail-foot">
+            <button class="chip-btn sm" type="button" @click="handleParse()">开始解析</button>
+            <button class="chip-btn sm" type="button" @click="retryFailed">重试失败项</button>
+            <span style="flex: 1" />
+            <button class="chip-btn sm primary" type="button" @click="router.push(`/knowledge/${kbId}/chat`)">
+              进入问答
+            </button>
+          </div>
+        </div>
+      </main>
+
+      <aside class="deck anim" style="animation-delay: 0.24s">
+        <div class="panel glass parse-summary">
+          <span class="tape sun" />
+          <div class="eyebrow">解析进度</div>
+          <div class="parse-ring">
+            <div class="pr-top">
+              <span class="n font-display">{{ counts.ok }}</span>
+              <span class="l">篇 SUCCESS</span>
+            </div>
+            <div class="health-bar" role="img" aria-label="解析占比">
+              <i class="ok" :style="{ width: healthPct.ok }" />
+              <i class="parsing" :style="{ width: healthPct.parsing }" />
+              <i class="pending" :style="{ width: healthPct.pending }" />
+              <i class="failed" :style="{ width: healthPct.failed }" />
+            </div>
+          </div>
+          <div class="rowline"><span>PARSING</span><b>{{ counts.parsing }}</b></div>
+          <div class="rowline"><span>PENDING</span><b>{{ counts.pending }}</b></div>
+          <div class="rowline"><span>FAILED</span><b>{{ counts.failed }}</b></div>
+        </div>
+        <div class="panel glass" style="flex: 1; display: flex; flex-direction: column">
+          <div class="eyebrow">下一步</div>
+          <div class="blotter" style="margin-top: 4px">
+            <div class="k">馆员便签</div>
+            <div class="v">上传 → 解析 SUCCESS → 快捷问答。失败先看 errorMessage。</div>
+          </div>
+          <button
+            class="chip-btn primary block"
+            type="button"
+            style="margin-top: auto"
+            @click="router.push(`/knowledge/${kbId}/chat`)"
+          >
+            进入问答
+          </button>
+          <button class="chip-btn block" type="button" style="margin-top: 8px" @click="goUpload">继续上传</button>
+        </div>
+      </aside>
+    </div>
+
+    <a-drawer v-model:open="chunkOpen" :title="`切块 · ${chunkDocName}`" width="480" placement="right">
       <a-spin :spinning="chunkLoading">
-        <a-empty v-if="!chunks.length" description="暂无切块" />
-        <a-list v-else :data-source="chunks" item-layout="vertical">
-          <template #renderItem="{ item }">
+        <a-list :data-source="chunks" item-layout="vertical">
+          <template #renderItem="{ item, index }">
             <a-list-item>
-              <a-list-item-meta
-                :title="item.heading || `Chunk #${item.chunkIndex}`"
-                :description="`token≈${item.tokenCount ?? '-'}`"
-              />
-              <div class="chunk-content">{{ item.content }}</div>
+              <div style="font-size: 12px; opacity: 0.65; margin-bottom: 4px">#{{ index + 1 }}</div>
+              <div style="white-space: pre-wrap; font-size: 13px; line-height: 1.55">{{ item.content }}</div>
             </a-list-item>
           </template>
         </a-list>
       </a-spin>
     </a-drawer>
-  </div>
+  </KnowledgeRoomShell>
 </template>
-
-<style scoped>
-.chunk-content {
-  white-space: pre-wrap;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.hero-title :deep(svg) {
-  vertical-align: -0.18em;
-}
-.kb-search-btn :deep(svg),
-.kb-reset-btn :deep(svg),
-.kb-row-btn :deep(svg) {
-  transition: transform var(--transition-fast);
-  vertical-align: -0.14em;
-}
-.kb-search-btn:hover :deep(svg) {
-  transform: translateX(2px);
-}
-.kb-reset-btn:hover :deep(svg) {
-  transform: rotate(-180deg);
-}
-.kb-row-btn:hover :deep(svg) {
-  transform: scale(1.18);
-}
-.kb-row-btn--del:hover :deep(svg) {
-  animation: kbRowShake 0.4s ease;
-}
-@keyframes kbRowShake {
-  0%, 100% { transform: rotate(0); }
-  25% { transform: rotate(-12deg); }
-  75% { transform: rotate(12deg); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .kb-search-btn:hover :deep(svg),
-  .kb-reset-btn:hover :deep(svg),
-  .kb-row-btn:hover :deep(svg) {
-    animation: none;
-    transform: none;
-  }
-}
-</style>

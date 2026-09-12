@@ -8,6 +8,9 @@ const backgroundModules = import.meta.glob<string>(
 
 const backgroundUrls = Object.values(backgroundModules)
 
+/** 是否至少有一张背景图（供设置面板禁用「轮播」选项） */
+export const hasBackgroundImages = backgroundUrls.length > 0
+
 function pickRandomIndex(exclude?: number): number {
   if (backgroundUrls.length === 0) return -1
   if (backgroundUrls.length === 1) return 0
@@ -24,7 +27,13 @@ function preloadImage(url: string) {
   img.src = url
 }
 
-export function useBackgroundSlideshow() {
+export interface BackgroundSlideshowOptions {
+  /** 挂载后是否立即开始轮换，默认 true（公开壳沿用旧行为）；轮播图模式组件传 false 手动 start/stop */
+  autoRun?: boolean
+}
+
+export function useBackgroundSlideshow(options: BackgroundSlideshowOptions = {}) {
+  const { autoRun = true } = options
   const { intervalMs, fadeMs, enabled } = siteConfig.backgroundSlideshow
   const hasImages = backgroundUrls.length > 0
   const canRotate = enabled && backgroundUrls.length > 1
@@ -33,6 +42,7 @@ export function useBackgroundSlideshow() {
   const activeLayer = ref<'a' | 'b'>('a')
   const layerA = ref(hasImages && currentIndex.value >= 0 ? backgroundUrls[currentIndex.value] : '')
   const layerB = ref('')
+  const running = ref(false)
 
   let timer: ReturnType<typeof setInterval> | null = null
 
@@ -57,29 +67,40 @@ export function useBackgroundSlideshow() {
     currentIndex.value = nextIndex
   }
 
-  onMounted(() => {
-    if (!hasImages) return
+  const start = () => {
+    if (!canRotate || running.value) return
 
-    if (canRotate) {
-      const nextIndex = pickRandomIndex(currentIndex.value)
-      const nextUrl = backgroundUrls[nextIndex]
-      if (nextUrl) preloadImage(nextUrl)
-      timer = setInterval(switchToNext, intervalMs)
-    }
-  })
+    const nextIndex = pickRandomIndex(currentIndex.value)
+    const nextUrl = backgroundUrls[nextIndex]
+    if (nextUrl) preloadImage(nextUrl)
 
-  onUnmounted(() => {
+    running.value = true
+    timer = setInterval(switchToNext, intervalMs)
+  }
+
+  const stop = () => {
+    running.value = false
     if (timer) {
       clearInterval(timer)
       timer = null
     }
+  }
+
+  onMounted(() => {
+    if (!hasImages) return
+    if (autoRun && canRotate) start()
   })
+
+  onUnmounted(stop)
 
   return {
     layerA,
     layerB,
     activeLayer,
     hasImages,
+    running,
+    start,
+    stop,
     fadeDuration,
   }
 }

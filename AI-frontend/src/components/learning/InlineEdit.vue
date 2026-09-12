@@ -25,6 +25,8 @@ const emit = defineEmits<{
 
 const inputRef = ref<HTMLInputElement | null>(null)
 const text = ref(props.modelValue)
+/** 防止 Enter 确认后紧接着 blur 再触发一次 */
+const settled = ref(false)
 
 function focusIt() {
   void nextTick(() => {
@@ -44,21 +46,33 @@ onMounted(() => {
   if (props.autofocus) focusIt()
 })
 
+function finishConfirm(v: string) {
+  if (settled.value) return
+  settled.value = true
+  emit('confirm', v)
+}
+
+function finishCancel() {
+  if (settled.value) return
+  settled.value = true
+  emit('cancel')
+}
+
 function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Enter') {
     e.preventDefault()
     const v = text.value.trim()
-    if (v) emit('confirm', v)
+    if (v) finishConfirm(v)
   } else if (e.key === 'Escape') {
     e.preventDefault()
-    emit('cancel')
+    finishCancel()
   }
 }
 
 function onBlur() {
   const v = text.value.trim()
-  if (v) emit('confirm', v)
-  else emit('cancel')
+  if (v) finishConfirm(v)
+  else finishCancel()
 }
 </script>
 
@@ -77,21 +91,21 @@ function onBlur() {
 <style scoped>
 .ld-inline-edit {
   width: 100%;
-  border: 1px solid var(--ld-color-primary-muted);
-  border-radius: var(--ld-radius-sm);
-  background: var(--ld-color-bg-elevated);
-  color: var(--ld-color-text-primary);
+  border: 1.5px solid color-mix(in srgb, var(--room, #9b8ce8) 35%, transparent);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink, #4c5570);
   font-family: inherit;
-  font-size: var(--ld-font-size-sm);
-  font-weight: var(--ld-font-weight-semibold);
-  line-height: var(--ld-line-height-tight);
-  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  padding: 6px 10px;
   outline: none;
-  transition: border-color var(--ld-duration-fast) var(--ld-ease-out);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .ld-inline-edit:focus {
-  border-color: var(--ld-color-primary);
-  box-shadow: 0 0 0 2px var(--ld-color-primary-subtle);
+  border-color: var(--room, #9b8ce8);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--room-soft, #e4dffd) 80%, transparent);
 }
 </style>

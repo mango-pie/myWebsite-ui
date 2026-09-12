@@ -8,13 +8,14 @@ import { message } from 'ant-design-vue'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
 import { getSiteSettingValues } from '@/api/siteSettings'
-import { getOpsUsageSummary, pageOpsUsageLogs } from '@/api/opsObservability'
+import { getOpsUsageMonthly, getOpsUsageSummary, pageOpsUsageLogs } from '@/api/opsObservability'
 import OpsCenterNav from '@/components/admin/OpsCenterNav.vue'
 import {
   formatOpsUsageScene,
   isOpsSwitchOn,
   OPS_USAGE_SCENE_OPTIONS,
 } from '@/utils/opsLabels'
+import { estimateModelCost, formatCostYuan } from '@/utils/modelCost'
 import '@/assets/admin-theme.css'
 
 type UsageRow = API.OpsUsageLogVO
@@ -22,19 +23,25 @@ type UsageRow = API.OpsUsageLogVO
 const switchLoading = ref(false)
 const summaryLoading = ref(false)
 const tableLoading = ref(false)
+const monthlyLoading = ref(false)
 const usageLogEnabled = ref(false)
 
 const dateRange = ref<[Dayjs, Dayjs]>([dayjs().subtract(6, 'day'), dayjs()])
 const summary = ref<API.OpsUsageSummaryVO | null>(null)
+const viewMode = ref<'week' | 'month'>('week')
+const monthValue = ref<Dayjs>(dayjs())
+const monthly = ref<API.OpsUsageMonthlyVO | null>(null)
 
 const searchParams = reactive<{
   scene?: string
   userId?: string
+  jobId?: string
   pageNum: number
   pageSize: number
 }>({
   scene: undefined,
   userId: undefined,
+  jobId: undefined,
   pageNum: 1,
   pageSize: 20,
 })
@@ -51,16 +58,55 @@ const bySceneEntries = computed(() =>
 const byModelEntries = computed(() =>
   Object.entries(summary.value?.byModel || {}).sort((a, b) => b[1] - a[1]),
 )
+const monthStr = computed(() => monthValue.value.format('YYYY-MM'))
+const monthlyBySceneEntries = computed(() =>
+  Object.entries(monthly.value?.byScene || {}).sort((a, b) => b[1] - a[1]),
+)
+const monthlyByModelRows = computed(() =>
+  Object.entries(monthly.value?.byModel || {})
+    .map(([model, stat]) => ({
+      model,
+      requestCount: stat?.requestCount ?? 0,
+      totalTokens: stat?.totalTokens ?? 0,
+      cost: estimateModelCost(model, stat?.totalTokens ?? null),
+    }))
+    .sort((a, b) => b.requestCount - a.requestCount),
+)
+const monthlyDayRows = computed(() =>
+  (monthly.value?.days || []).map((d) => ({
+    ...d,
+    max: Math.max(
+      ...(monthly.value?.days || []).map((x) => x.requestCount ?? 0),
+      1,
+    ),
+  })),
+)
+const monthlyTotalCost = computed(() => {
+  let sum = 0
+  for (const row of monthlyByModelRows.value) {
+    if (row.cost != null) sum += row.cost
+  }
+  return sum
+})
 
 const columns = [
   { title: '时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
   { title: '场景', dataIndex: 'scene', key: 'scene', width: 120 },
   { title: '模型', dataIndex: 'modelName', key: 'modelName', width: 140, ellipsis: true },
+  { title: '任务', dataIndex: 'jobId', key: 'jobId', width: 100 },
   { title: 'Tokens', key: 'tokens', width: 100 },
+  { title: '成本估算', key: 'cost', width: 100 },
   { title: '耗时', key: 'latency', width: 100 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 90 },
   { title: '用户', dataIndex: 'userId', key: 'userId', width: 90 },
   { title: '摘要 / 错误', key: 'detail', ellipsis: true },
+]
+
+const modelCostColumns = [
+  { title: '模型', dataIndex: 'model', key: 'model' },
+  { title: '调用', dataIndex: 'requestCount', key: 'requestCount', width: 80 },
+  { title: 'Tokens', dataIndex: 'totalTokens', key: 'totalTokens', width: 110 },
+  { title: '成本估算', dataIndex: 'cost', key: 'cost', width: 110 },
 ]
 
 function formatTime(str: string | undefined): string {
@@ -128,13 +174,31 @@ async function fetchSummary() {
   }
 }
 
+async function fetchMonthly() {
+  monthlyLoading.value = true
+  try {
+    const res = await getOpsUsageMonthly({ month: monthStr.value })
+    if (res.data.code === 0 && res.data.data) {
+      monthly.value = res.data.data
+    } else {
+      message.error(res.data.message || '加载月度用量失败')
+    }
+  } catch {
+    message.error('加载月度用量失败')
+  } finally {
+    monthlyLoading.value = false
+  }
+}
+
 async function fetchLogs() {
   tableLoading.value = true
   try {
     const userIdRaw = searchParams.userId?.trim()
+    const jobIdRaw = searchParams.jobId?.trim()
     const res = await pageOpsUsageLogs({
       scene: searchParams.scene || undefined,
       userId: userIdRaw ? userIdRaw : undefined,
+      jobId: jobIdRaw ? Number(jobIdRaw) : undefined,
       from: fromStr.value,
       to: toStr.value,
       pageNum: searchParams.pageNum,
@@ -154,7 +218,11 @@ async function fetchLogs() {
 }
 
 async function reloadAll() {
-  await Promise.all([fetchSummary(), fetchLogs()])
+  if (viewMode.value === 'month') {
+    await Promise.all([fetchMonthly(), fetchLogs()])
+  } else {
+    await Promise.all([fetchSummary(), fetchLogs()])
+  }
 }
 
 function doSearch() {
@@ -166,6 +234,29 @@ function onTableChange(pag: { current?: number; pageSize?: number }) {
   if (pag.current != null) searchParams.pageNum = pag.current
   if (pag.pageSize != null) searchParams.pageSize = Math.min(pag.pageSize, 100)
   fetchLogs()
+}
+
+function switchViewMode(mode: 'week' | 'month') {
+  viewMode.value = mode
+  searchParams.pageNum = 1
+  if (mode === 'month') {
+    monthValue.value = dayjs()
+    dateRange.value = [dayjs().startOf('month'), dayjs().endOf('month')]
+    reloadAll()
+  } else {
+    dateRange.value = [dayjs().subtract(6, 'day'), dayjs()]
+    reloadAll()
+  }
+}
+
+function onViewModeChange(v: string | number) {
+  switchViewMode(v === 'month' ? 'month' : 'week')
+}
+
+function onMonthChange() {
+  searchParams.pageNum = 1
+  dateRange.value = [monthValue.value.startOf('month'), monthValue.value.endOf('month')]
+  reloadAll()
 }
 
 onMounted(async () => {
@@ -215,7 +306,25 @@ onMounted(async () => {
 
         <a-card :bordered="false" title="筛选">
           <div class="filter-row">
-            <a-range-picker v-model:value="dateRange" :allow-clear="false" />
+            <a-segmented
+              :value="viewMode"
+              :options="[
+                { label: '近 7 天', value: 'week' },
+                { label: '月度', value: 'month' },
+              ]"
+              @change="onViewModeChange"
+            />
+            <a-range-picker
+              v-if="viewMode === 'week'"
+              v-model:value="dateRange"
+              :allow-clear="false"
+            />
+            <a-month-picker
+              v-else
+              v-model:value="monthValue"
+              :allow-clear="false"
+              @change="onMonthChange"
+            />
             <a-select
               v-model:value="searchParams.scene"
               allow-clear
@@ -229,11 +338,17 @@ onMounted(async () => {
               placeholder="用户 ID"
               style="width: 140px"
             />
+            <a-input
+              v-model:value="searchParams.jobId"
+              allow-clear
+              placeholder="任务 ID"
+              style="width: 130px"
+            />
             <a-button type="primary" @click="doSearch">查询</a-button>
           </div>
         </a-card>
 
-        <a-spin :spinning="summaryLoading">
+        <a-spin v-if="viewMode === 'week'" :spinning="summaryLoading">
           <div class="summary-grid">
             <a-card :bordered="false" class="stat-card">
               <a-statistic title="调用次数" :value="summary?.requestCount ?? 0" />
@@ -274,6 +389,80 @@ onMounted(async () => {
           </div>
         </a-spin>
 
+        <a-spin v-else :spinning="monthlyLoading">
+          <div class="summary-grid">
+            <a-card :bordered="false" class="stat-card">
+              <a-statistic title="调用次数" :value="monthly?.requestCount ?? 0" />
+            </a-card>
+            <a-card :bordered="false" class="stat-card">
+              <a-statistic title="成功" :value="monthly?.successCount ?? 0" />
+            </a-card>
+            <a-card :bordered="false" class="stat-card">
+              <a-statistic title="失败" :value="monthly?.errorCount ?? 0" />
+            </a-card>
+            <a-card :bordered="false" class="stat-card">
+              <div class="stat-label">总 Tokens</div>
+              <div class="stat-value">{{ formatNullableNumber(monthly?.totalTokens) }}</div>
+            </a-card>
+            <a-card :bordered="false" class="stat-card">
+              <div class="stat-label">估算成本</div>
+              <div class="stat-value" style="color: var(--color-primary-light)">
+                {{ formatCostYuan(monthlyTotalCost) }}
+              </div>
+            </a-card>
+          </div>
+
+          <a-card :bordered="false" title="按天分布" class="month-card">
+            <div v-if="monthlyDayRows.length === 0" class="empty-hint">本月暂无用量数据</div>
+            <div v-else class="day-bars">
+              <div
+                v-for="day in monthlyDayRows"
+                :key="day.date"
+                class="day-bar-col"
+                :title="`${day.date} · ${day.requestCount ?? 0} 次 · ${formatNullableNumber(day.totalTokens)} tokens`"
+              >
+                <div
+                  class="day-bar"
+                  :style="{ height: `${Math.max(4, Math.round(((day.requestCount ?? 0) / day.max) * 120))}px` }"
+                />
+                <span class="day-label">{{ String(day.date || '').slice(8) }}</span>
+              </div>
+            </div>
+          </a-card>
+
+          <div class="breakdown-row">
+            <a-card :bordered="false" title="按场景" class="breakdown-card">
+              <div v-if="monthlyBySceneEntries.length === 0" class="empty-hint">暂无数据</div>
+              <div v-else class="tag-list">
+                <a-tag v-for="[scene, count] in monthlyBySceneEntries" :key="scene">
+                  {{ formatOpsUsageScene(scene) }} · {{ count }}
+                </a-tag>
+              </div>
+            </a-card>
+            <a-card :bordered="false" title="按模型 · 成本估算" class="breakdown-card">
+              <div v-if="monthlyByModelRows.length === 0" class="empty-hint">暂无数据</div>
+              <a-table
+                v-else
+                :columns="modelCostColumns"
+                :data-source="monthlyByModelRows"
+                :pagination="false"
+                size="small"
+                row-key="model"
+              >
+                <template #bodyCell="{ column, record }">
+                  <template v-if="column.key === 'cost'">
+                    {{ formatCostYuan(record.cost) }}
+                  </template>
+                  <template v-else-if="column.key === 'totalTokens'">
+                    {{ formatNullableNumber(record.totalTokens) }}
+                  </template>
+                </template>
+              </a-table>
+              <div class="cost-hint">单价为输入/输出混合估算（元 / 1M tokens），仅作参考。</div>
+            </a-card>
+          </div>
+        </a-spin>
+
         <a-card :bordered="false" title="调用明细">
           <a-table
             row-key="id"
@@ -300,8 +489,14 @@ onMounted(async () => {
               <template v-else-if="column.key === 'tokens'">
                 {{ formatNullableNumber(record.totalTokens) }}
               </template>
+              <template v-else-if="column.key === 'cost'">
+                {{ formatCostYuan(estimateModelCost(record.modelName, record.totalTokens)) }}
+              </template>
               <template v-else-if="column.key === 'latency'">
                 {{ formatNullableNumber(record.responseTimeMs, ' ms') }}
+              </template>
+              <template v-else-if="column.key === 'jobId'">
+                {{ record.jobId ?? '-' }}
               </template>
               <template v-else-if="column.key === 'status'">
                 <a-tag :color="statusColor(record.status)">{{ record.status || '-' }}</a-tag>
@@ -388,6 +583,46 @@ onMounted(async () => {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-bottom: 4px;
+}
+
+.month-card {
+  margin-bottom: 12px;
+}
+
+.day-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  min-height: 150px;
+  overflow-x: auto;
+  padding-top: 8px;
+}
+
+.day-bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 20px;
+  flex: 1;
+}
+
+.day-bar {
+  width: 16px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, var(--color-primary-light), var(--color-primary));
+  transition: height 0.2s ease;
+}
+
+.day-label {
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.cost-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-text-muted);
 }
 
 .tag-list {

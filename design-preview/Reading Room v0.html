@@ -1,0 +1,1806 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="morning">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>某某の小站 · 精读房间 v0</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/zcool-kuaile@5/index.css">
+<link rel="stylesheet" href="shared/period-atmosphere.css">
+<style>
+/* ============================================================
+   精读房间 v0 — 五页：采集 · 任务 · 列表 · 详情 · 领域树
+   1920×1080 · violet #9b8ce8 · 3 栏 248|mid|280
+   ============================================================ */
+:root{
+  --ink:#4c5570;--ink-soft:#7a83a0;--ink-faint:#a5acc4;
+  --c-violet:#9b8ce8;--c-violet-soft:#e4dffd;
+  --c-lilac:#c79ae0;--c-blue:#6aaee8;--c-mint:#5fc4a5;--c-mint-soft:#d6f2e8;
+  --c-sun:#ffcf6e;--c-sakura:#f490ad;
+  --room:#9b8ce8;--room-soft:#e4dffd;
+  --shadow-1:0 2px 6px rgba(96,116,168,.10),0 10px 28px rgba(96,116,168,.12);
+  --shadow-2:0 4px 10px rgba(96,116,168,.14),0 20px 48px rgba(96,116,168,.18);
+  --r-md:20px;--r-sm:14px;
+  --ease-spring:cubic-bezier(.34,1.56,.5,1);
+  --ease-out:cubic-bezier(.22,.8,.32,1);
+  --col-side:248px;--col-deck:280px;--mid-input-w:680px;
+}
+:root[data-theme="morning"]{
+  --craft-a:#b8a8f0;--craft-b:#f490ad;--craft-c:#9b8ce8;
+  --craft-mist:rgba(184,168,240,.4);--craft-blush:rgba(228,223,253,.5);
+  --craft-glass:rgba(255,255,255,.86);
+}
+:root[data-theme="noon"]{
+  --craft-a:#ffcf6e;--craft-b:#9b8ce8;--craft-c:#6aaee8;
+  --craft-mist:rgba(255,207,110,.35);--craft-blush:rgba(228,223,253,.4);
+  --craft-glass:rgba(255,255,255,.88);
+}
+:root[data-theme="dusk"]{
+  --craft-a:#e0699b;--craft-b:#ffb45e;--craft-c:#9b8ce8;
+  --craft-mist:rgba(255,180,94,.4);--craft-blush:rgba(155,140,232,.28);
+  --craft-glass:rgba(255,250,246,.86);
+}
+:root[data-theme="night"]{
+  --craft-a:#9b8ce8;--craft-b:#6aaee8;--craft-c:#c79ae0;
+  --craft-mist:rgba(61,63,122,.18);--craft-blush:rgba(155,140,232,.28);
+  --craft-glass:rgba(244,246,255,.88);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%;overflow:hidden}
+body{
+  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Source Han Sans SC",sans-serif;
+  color:var(--ink);display:flex;justify-content:center;align-items:flex-start;
+  -webkit-font-smoothing:antialiased;
+}
+.font-display{font-family:"ZCOOL KuaiLe","PingFang SC",sans-serif}
+button,input,textarea{font-family:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+input,textarea{border:none;outline:none;background:transparent}
+.text-pretty{text-wrap:pretty}
+
+/* ── stage ── */
+#stageWrap{position:relative;flex:none}
+#stage{
+  position:absolute;top:0;left:0;width:1920px;height:1080px;
+  transform-origin:top left;border-radius:36px;overflow:hidden;background:transparent;
+  box-shadow:0 40px 120px rgba(70,80,130,.28);
+}
+@keyframes riseIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes pageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes inkPulse{0%,100%{opacity:.55}50%{opacity:1}}
+.anim{opacity:0;animation:riseIn .65s var(--ease-out) forwards}
+
+/* ── topbar ── */
+#topbar{position:relative;z-index:5;height:84px;padding:0 48px;display:flex;align-items:center;gap:28px}
+.brand{display:flex;align-items:center;gap:12px;padding:0;text-align:left;font:inherit;color:inherit}
+.brand-mark{
+  width:46px;height:46px;border-radius:16px;
+  background:linear-gradient(140deg,var(--craft-c),var(--craft-b));
+  box-shadow:var(--shadow-1),inset 0 2px 4px rgba(255,255,255,.5);
+  display:grid;place-items:center;transform:rotate(-6deg);
+  transition:transform .4s var(--ease-spring);
+}
+.brand:hover .brand-mark{transform:rotate(6deg) scale(1.06)}
+.brand-mark svg{width:24px;height:24px}
+.brand-name{font-size:22px;letter-spacing:1px}
+.brand-sub{font-size:11px;color:var(--ink-faint);letter-spacing:3px;margin-top:2px}
+#mainnav{
+  display:flex;gap:4px;margin:0 auto;position:relative;
+  background:rgba(255,255,255,.72);backdrop-filter:blur(10px);
+  padding:6px;border-radius:999px;box-shadow:var(--shadow-1);border:1.5px solid rgba(255,255,255,.9);
+}
+#mainnav button{
+  padding:9px 18px;border-radius:999px;font-size:15px;color:var(--ink-soft);
+  letter-spacing:2px;position:relative;z-index:1;transition:color .3s,transform .3s var(--ease-spring);
+}
+#mainnav button:hover{color:var(--ink);transform:translateY(-2px)}
+#mainnav button.active{color:#fff}
+#navPill{
+  position:absolute;top:6px;left:0;height:calc(100% - 12px);border-radius:999px;z-index:0;
+  background:linear-gradient(135deg,var(--c-violet),#b8a8f0);
+  box-shadow:0 6px 16px rgba(155,140,232,.45);
+  transition:left .45s var(--ease-spring),width .45s var(--ease-spring),opacity .3s;opacity:0;
+}
+.top-right{display:flex;align-items:center;gap:14px}
+.clock-chip{
+  background:rgba(255,255,255,.72);backdrop-filter:blur(10px);
+  border:1.5px solid rgba(255,255,255,.9);border-radius:16px;
+  padding:6px 14px;box-shadow:var(--shadow-1);text-align:right;line-height:1.2;
+}
+.clock-time{font-size:18px;font-weight:700;letter-spacing:2px;font-variant-numeric:tabular-nums}
+.clock-time .sec{font-size:12px;color:var(--ink-faint)}
+.clock-time .colon{animation:blink 2s steps(1) infinite}
+@keyframes blink{50%{opacity:.25}}
+.clock-date{font-size:10px;color:var(--ink-faint);letter-spacing:1px}
+.avatar{
+  width:46px;height:46px;border-radius:50%;
+  background:linear-gradient(140deg,var(--c-violet-soft),#f2e2fa);
+  border:3px solid #fff;box-shadow:var(--shadow-1);
+  display:grid;place-items:center;font-size:18px;color:var(--c-violet);
+  font-family:"ZCOOL KuaiLe",sans-serif;
+}
+
+/* ── note chip ── */
+.note-chip{
+  position:absolute;z-index:6;top:90px;left:48px;right:48px;max-width:920px;
+  font-size:11px;letter-spacing:1.2px;color:var(--ink-faint);
+  background:rgba(255,255,255,.55);border:1.5px dashed color-mix(in srgb,var(--room) 45%,transparent);
+  border-radius:999px;padding:5px 14px;
+}
+
+/* ── pages ── */
+.page{
+  position:absolute;top:84px;left:0;right:0;bottom:0;
+  z-index:4;padding:8px 48px 28px;overflow:hidden;
+}
+.page[hidden]{display:none!important}
+
+/* ── glass & shell ── */
+.glass{
+  background:var(--craft-glass);backdrop-filter:blur(10px);
+  border:1.5px solid rgba(255,255,255,.95);border-radius:var(--r-md);box-shadow:var(--shadow-1);
+}
+.shell{
+  display:grid;grid-template-columns:var(--col-side) minmax(0,1fr) var(--col-deck);
+  gap:22px;height:100%;padding-top:36px;min-height:0;overflow:hidden;
+}
+.side,.deck{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0;overflow:hidden}
+.side-card,.deck-panel{padding:14px 16px;position:relative}
+.side-card h3,.deck-panel h3{font-size:14px;letter-spacing:2px;margin-bottom:8px}
+.about{font-size:12px;line-height:1.65;color:var(--ink-soft)}
+.tape{
+  position:absolute;top:-8px;left:20px;width:48px;height:14px;
+  background:color-mix(in srgb,var(--craft-c) 55%,transparent);border-radius:2px;transform:rotate(-4deg);
+}
+.tape.alt{left:auto;right:22px;transform:rotate(6deg);background:color-mix(in srgb,var(--craft-a) 55%,transparent)}
+:focus{outline:none}
+:focus-visible{outline:2.5px solid rgba(155,140,232,.7);outline-offset:3px}
+
+/* ── chip buttons ── */
+.chip-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:36px;padding:0 14px;border-radius:999px;font-size:13px;letter-spacing:1px;
+  background:rgba(255,255,255,.9);border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:var(--shadow-1);color:var(--ink-soft);
+  transition:transform .3s var(--ease-spring),color .2s,background .2s;
+}
+.chip-btn:hover{transform:translateY(-2px);color:var(--ink)}
+.chip-btn.primary{
+  background:linear-gradient(135deg,var(--c-violet),#b8a8f0);color:#fff;border-color:transparent;
+  box-shadow:0 6px 14px rgba(155,140,232,.4);
+}
+.chip-btn.sm{height:32px;padding:0 12px;font-size:12px}
+.chip-btn.on{background:var(--room-soft);color:var(--room)}
+.chip-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.chip-btn.danger{background:#fff5f7;color:#c45a72;border-color:rgba(196,90,114,.2)}
+.col-stack{display:flex;flex-direction:column;gap:8px}
+
+/* ── mid-bay ── */
+.mid-bay{
+  display:flex;flex-direction:column;gap:10px;min-height:0;height:100%;
+  align-items:stretch;overflow:hidden;
+}
+.band{flex:none;align-self:flex-start;width:100%;max-width:100%}
+
+/* ── mode bar ── */
+.mode-bar{
+  display:inline-flex;align-self:flex-start;gap:3px;padding:4px;
+  background:rgba(255,255,255,.72);border-radius:999px;
+  border:1.5px solid rgba(255,255,255,.95);box-shadow:var(--shadow-1);
+}
+.mode-bar button{padding:9px 18px;border-radius:999px;font-size:14px;letter-spacing:1px;color:var(--ink-soft)}
+.mode-bar button.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(90,100,160,.16);font-weight:600}
+
+/* ── input card ── */
+.input-card.glass{
+  width:fit-content;max-width:min(var(--mid-input-w),100%);padding:14px 16px;
+  flex:none;max-height:42%;overflow:auto;
+}
+.input-card .head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px}
+.input-card .head h2{font-size:20px;letter-spacing:2px}
+.input-card .cap{font-size:11px;letter-spacing:2px;color:var(--ink-faint)}
+.field{display:none;flex-direction:column;gap:8px}
+.field.on{display:flex}
+.field label{font-size:12px;letter-spacing:1px;color:var(--ink-faint)}
+.field .inp,.field .area{
+  width:100%;max-width:640px;padding:10px 14px;border-radius:14px;
+  background:rgba(255,255,255,.92);border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:inset 0 1px 2px rgba(90,100,150,.06);font-size:14px;
+}
+.field .area{min-height:64px;max-height:88px;resize:none;line-height:1.5}
+.field .row{display:flex;gap:10px;max-width:640px}
+.field .row .inp{flex:1;min-width:0}
+.field .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:2px}
+.dropzone{
+  max-width:640px;padding:22px 18px;border-radius:16px;text-align:center;
+  border:1.5px dashed color-mix(in srgb,var(--room) 40%,transparent);
+  background:color-mix(in srgb,var(--room-soft) 35%,transparent);
+  font-size:13px;color:var(--ink-soft);letter-spacing:1px;
+}
+.dropzone strong{display:block;font-size:15px;color:var(--ink);margin-bottom:6px;letter-spacing:1px}
+
+/* ── work bar ── */
+.work-bar.glass{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  width:fit-content;max-width:100%;padding:10px 14px;flex:none;
+}
+.work-bar .meta{font-size:13px;color:var(--ink-soft);letter-spacing:1px}
+.work-bar .meta b{color:var(--room);font-weight:600}
+.work-bar .warn{font-size:12px;color:#c45a72;letter-spacing:1px}
+.job-chip{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:5px 11px;border-radius:999px;font-size:12px;letter-spacing:1px;
+  background:var(--room-soft);color:var(--room);
+}
+.job-chip i{width:9px;height:9px;border-radius:50%;background:var(--room);animation:inkPulse 1.6s ease-in-out infinite}
+
+/* ── feedback ── */
+.feedback.glass{
+  width:100%;max-width:min(1080px,100%);padding:0;overflow:hidden;
+  display:flex;flex-direction:column;flex:1;min-height:0;align-self:stretch;
+}
+.feedback .fb-head{
+  flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:12px 16px;border-bottom:1px dashed rgba(165,172,196,.3);
+}
+.feedback .fb-head h3{font-size:15px;letter-spacing:2px}
+.feedback .fb-head .hint{font-size:11px;color:var(--ink-faint);letter-spacing:1px}
+.feedback .fb-body{flex:1;min-height:0;overflow:hidden;padding:12px 16px 16px;display:flex;flex-direction:column}
+.fb-panel{display:none}
+.fb-panel.on{display:flex;flex-direction:column;min-height:0;flex:1;overflow:auto}
+.idle-box{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.idle-box .step{padding:14px 16px;border-radius:14px;background:rgba(255,255,255,.7);border:1.5px solid rgba(255,255,255,.95)}
+.idle-box .n{font-size:11px;letter-spacing:2px;color:var(--room);margin-bottom:6px}
+.idle-box .t{font-size:14px;color:var(--ink-soft);line-height:1.5}
+.idle-deco{
+  margin-top:12px;height:72px;border-radius:14px;position:relative;overflow:hidden;flex:none;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--craft-blush) 70%,transparent),color-mix(in srgb,var(--craft-mist) 60%,transparent));
+  border:1.5px dashed color-mix(in srgb,var(--room) 22%,transparent);
+}
+.idle-deco span{position:absolute;left:14px;bottom:12px;font-size:11px;letter-spacing:2px;color:var(--ink-faint)}
+.file-preview{
+  display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;
+  background:rgba(255,255,255,.75);border:1.5px solid rgba(255,255,255,.95);
+}
+.file-preview .ico{
+  width:48px;height:48px;border-radius:12px;display:grid;place-items:center;
+  background:var(--room-soft);color:var(--room);font-size:12px;font-weight:700;
+}
+.file-preview .t{font-size:16px;letter-spacing:1px}
+.file-preview .m{font-size:13px;color:var(--ink-faint);margin-top:3px}
+.cand-list{display:flex;flex-direction:column;gap:10px}
+.cand{
+  display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:start;
+  padding:14px 16px;border-radius:16px;text-align:left;width:100%;
+  background:rgba(255,255,255,.78);border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:var(--shadow-1);transition:border-color .2s,transform .25s var(--ease-spring);
+}
+.cand:hover{transform:translateX(2px)}
+.cand.on{border-color:color-mix(in srgb,var(--room) 50%,transparent);background:#fff}
+.cand.risk{border-color:color-mix(in srgb,#e8a0b0 55%,transparent)}
+.cand .ck{
+  width:22px;height:22px;margin-top:2px;border-radius:6px;
+  border:1.5px solid color-mix(in srgb,var(--room) 45%,transparent);background:#fff;
+}
+.cand.on .ck{background:var(--room);border-color:var(--room);box-shadow:inset 0 0 0 3px #fff}
+.cand .title{font-size:16px;letter-spacing:.5px;margin-bottom:6px;line-height:1.35}
+.cand .sum{font-size:13px;color:var(--ink-soft);line-height:1.55;margin-bottom:8px}
+.cand .meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cand .tag{
+  font-size:11px;padding:3px 9px;border-radius:999px;letter-spacing:1px;
+  background:rgba(255,255,255,.9);color:var(--ink-faint);border:1px solid rgba(165,172,196,.25);
+}
+.cand .tag.src{color:var(--c-blue);background:#d8ebfb}
+.cand .tag.risk{color:#c45a72;background:#ffe8ee}
+.cand .reason{font-size:12px;color:var(--ink-faint);margin-top:8px;line-height:1.45}
+.cand .url{
+  font-size:12px;color:var(--room);letter-spacing:0;max-width:260px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;
+}
+.outline-box{
+  margin-bottom:12px;padding:12px 14px;border-radius:12px;flex:none;
+  background:rgba(255,255,255,.65);font-size:13px;line-height:1.55;color:var(--ink-soft);white-space:pre-wrap;
+}
+.manual-row{
+  margin-top:12px;padding-top:12px;border-top:1px dashed rgba(165,172,196,.3);
+  display:flex;gap:10px;align-items:flex-start;flex:none;
+}
+.manual-row .area{
+  flex:1;min-height:64px;font-size:14px;padding:10px 12px;border-radius:12px;
+  background:rgba(255,255,255,.9);border:1.5px solid rgba(255,255,255,.95);
+}
+.progress-steps{display:flex;gap:10px;margin-bottom:14px;flex:none}
+.progress-steps .s{flex:1;padding:12px 8px;border-radius:14px;text-align:center;background:rgba(255,255,255,.7);border:1.5px solid rgba(255,255,255,.95)}
+.progress-steps .s .n{font-size:11px;letter-spacing:1px;color:var(--ink-faint)}
+.progress-steps .s .v{font-size:14px;margin-top:4px;color:var(--ink-soft)}
+.progress-steps .s.done{background:var(--c-mint-soft)}.progress-steps .s.done .v{color:#2a8a6e}
+.progress-steps .s.on{background:var(--room-soft);box-shadow:0 0 0 2px color-mix(in srgb,var(--room) 30%,transparent)}
+.progress-steps .s.on .v{color:var(--room);font-weight:600}
+.result-card{padding:12px 14px;border-radius:14px;flex:none;background:rgba(255,255,255,.8);border:1.5px solid rgba(255,255,255,.95)}
+.result-card .t{font-size:18px;letter-spacing:1px;margin-bottom:6px}
+.result-card .m{font-size:13px;color:var(--ink-soft);line-height:1.5;margin-bottom:10px}
+.result-card .actions{display:flex;flex-wrap:wrap;gap:8px}
+.fail-list{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.fail-list .f{padding:10px 12px;border-radius:12px;font-size:13px;line-height:1.45;background:#fff5f7;border:1px solid #ffd6de;color:#c45a72}
+
+/* ── md preview (detail page) ── */
+.md-preview{
+  display:flex;flex-direction:column;overflow:hidden;
+  border-radius:14px;background:rgba(255,255,255,.88);
+  border:1.5px solid rgba(255,255,255,.95);box-shadow:var(--shadow-1);
+}
+.md-preview .md-toolbar{
+  flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:8px 12px;border-bottom:1px dashed rgba(165,172,196,.3);
+  background:color-mix(in srgb,var(--room-soft) 40%,transparent);
+}
+.md-preview .md-toolbar .lab{font-size:11px;letter-spacing:2px;color:var(--room)}
+.md-preview .md-seg{display:inline-flex;gap:2px;padding:2px;border-radius:999px;background:rgba(255,255,255,.7)}
+.md-preview .md-seg button{padding:4px 10px;border-radius:999px;font-size:11px;letter-spacing:1px;color:var(--ink-soft)}
+.md-preview .md-seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(90,100,160,.14)}
+.md-preview .md-body{flex:1;min-height:0;overflow:auto;padding:14px 16px 18px;font-size:13px;line-height:1.7;color:var(--ink)}
+.md-preview .md-body.raw{
+  font-family:ui-monospace,"SF Mono",Consolas,monospace;font-size:12px;line-height:1.6;
+  white-space:pre-wrap;color:var(--ink-soft);background:rgba(248,246,255,.6);
+}
+.md-preview .md-body h1{font-size:20px;letter-spacing:1px;margin:0 0 10px;font-family:"ZCOOL KuaiLe","PingFang SC",sans-serif}
+.md-preview .md-body h2{font-size:15px;letter-spacing:1px;margin:16px 0 8px;color:var(--room)}
+.md-preview .md-body p{margin:0 0 10px;text-wrap:pretty}
+.md-preview .md-body ul{margin:0 0 10px;padding-left:1.2em}
+.md-preview .md-body li{margin:4px 0}
+.md-preview .md-body code{font-size:12px;padding:1px 5px;border-radius:4px;background:var(--room-soft);color:var(--room)}
+.md-preview .md-body pre{margin:0 0 12px;padding:10px 12px;border-radius:10px;overflow:auto;background:#f4f2fb;font-size:12px;line-height:1.55;color:var(--ink-soft)}
+.md-preview .md-body blockquote{margin:0 0 12px;padding:8px 12px;border-left:3px solid var(--room);background:color-mix(in srgb,var(--room-soft) 45%,transparent);color:var(--ink-soft)}
+
+/* ── stat / recent / cta ── */
+.stat-row{display:flex;gap:8px}
+.stat-pill{flex:1;padding:8px 10px;border-radius:12px;text-align:center;background:rgba(255,255,255,.75);border:1.5px solid rgba(255,255,255,.95)}
+.stat-pill .n{font-size:18px;font-family:"ZCOOL KuaiLe",sans-serif;color:var(--room)}
+.stat-pill .l{font-size:9px;letter-spacing:2px;color:var(--ink-faint);margin-top:2px}
+.recent-line{padding:8px 10px;border-radius:12px;margin-bottom:6px;background:rgba(255,255,255,.7);border:1.5px solid rgba(255,255,255,.95);font-size:11px;color:var(--ink-soft);line-height:1.4}
+.recent-line .k{font-size:9px;letter-spacing:2px;color:var(--ink-faint);margin-bottom:2px}
+.cta-foot{
+  margin-top:auto;padding:12px 14px;border-radius:var(--r-md);
+  background:linear-gradient(135deg,color-mix(in srgb,var(--room) 18%,#fff),rgba(255,255,255,.9));
+  border:1.5px solid rgba(255,255,255,.95);box-shadow:var(--shadow-1);
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+.cta-foot .lbl{font-size:13px;letter-spacing:1px}
+.cta-foot .sub{font-size:10px;color:var(--ink-faint);margin-top:2px}
+
+/* ── deco fill ── */
+.side-deco,.deck-deco{
+  flex:1;min-height:80px;position:relative;overflow:hidden;border-radius:var(--r-md);
+  border:1.5px solid rgba(255,255,255,.9);box-shadow:var(--shadow-1);
+  background:
+    radial-gradient(180px 100px at 20% 30%,color-mix(in srgb,var(--craft-blush) 80%,transparent),transparent 70%),
+    radial-gradient(160px 90px at 80% 70%,color-mix(in srgb,var(--craft-mist) 70%,transparent),transparent 65%),
+    linear-gradient(165deg,rgba(255,255,255,.45),rgba(255,255,255,.15));
+}
+.side-deco .tag,.deck-deco .tag{
+  position:absolute;top:10px;left:12px;font-size:9px;letter-spacing:2px;color:var(--ink-faint);
+  background:rgba(255,255,255,.7);padding:3px 8px;border-radius:999px;
+}
+.slip-mini{
+  position:absolute;width:120px;padding:7px 9px;border-radius:8px;
+  background:rgba(255,255,255,.88);box-shadow:var(--shadow-1);
+  border-left:3px solid var(--room);font-size:10px;line-height:1.4;color:var(--ink-soft);
+}
+.slip-mini .k{font-size:8px;letter-spacing:1px;color:var(--ink-faint);margin-bottom:2px}
+.slip-mini.a{left:14px;top:36px;transform:rotate(-3deg)}
+.slip-mini.b{left:28px;top:88px;transform:rotate(2deg);border-left-color:var(--c-mint)}
+.bead{position:absolute;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff8,var(--room))}
+.bead.a{width:12px;height:12px;right:20px;bottom:24px}
+.bead.b{width:18px;height:18px;right:36px;bottom:36px;background:radial-gradient(circle at 35% 30%,#fff8,var(--c-mint))}
+.funnel-mini{position:absolute;right:16px;top:40px;width:56px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.funnel-mini .m{width:48px;height:14px;border-radius:5px;background:var(--room-soft);border:1px solid #fff}
+.funnel-mini .n{width:10px;height:16px;background:color-mix(in srgb,var(--room) 35%,transparent);border-radius:0 0 3px 3px}
+.funnel-mini .d{width:36px;height:28px;border-radius:6px;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-1);font-size:9px;color:var(--room);font-family:"ZCOOL KuaiLe",sans-serif}
+
+/* ── toast ── */
+.toast{
+  position:fixed;left:50%;bottom:32px;transform:translateX(-50%) translateY(12px);
+  background:rgba(50,55,80,.92);color:#fff;padding:10px 18px;border-radius:999px;
+  font-size:13px;letter-spacing:1px;opacity:0;transition:.35s var(--ease-out);z-index:100;pointer-events:none;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── tweaks ── */
+#tweaks{position:fixed;right:24px;bottom:24px;z-index:99;font-size:13px}
+#tweaks .panel{
+  display:none;width:320px;padding:16px 18px;margin-bottom:10px;
+  background:rgba(255,255,255,.94);backdrop-filter:blur(12px);
+  border-radius:20px;box-shadow:var(--shadow-2);border:1.5px solid rgba(255,255,255,.95);
+}
+#tweaks.open .panel{display:block}
+#tweaks h4{font-size:12px;letter-spacing:3px;color:var(--ink-faint);margin-bottom:12px;font-weight:600}
+#tweaks .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
+#tweaks .row:last-child{margin-bottom:0}
+#tweaks label{color:var(--ink-soft);letter-spacing:1px;flex:none;font-size:12px}
+.seg{display:flex;background:#f0ecf8;border-radius:999px;padding:3px;gap:2px;flex-wrap:wrap;justify-content:flex-end}
+.seg button{padding:5px 8px;border-radius:999px;font-size:10px;color:var(--ink-soft);letter-spacing:1px}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(90,100,160,.18)}
+#tweaks .fab{
+  display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;border-radius:999px;
+  background:rgba(255,255,255,.92);border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:var(--shadow-2);color:var(--ink);letter-spacing:1px;font-size:13px;
+}
+#tweaks.open .fab{display:none}
+#tweaks .fab svg{width:15px;height:15px}
+
+/* ══════════ JOBS PAGE ══════════ */
+.job-list-panel{display:flex;flex-direction:column;gap:8px;flex:none}
+.job-row{
+  display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;
+  background:rgba(255,255,255,.82);border:1.5px solid rgba(255,255,255,.95);box-shadow:var(--shadow-1);
+}
+.status-dot{width:10px;height:10px;border-radius:50%;flex:none}
+.status-dot.distilling{background:var(--room);animation:inkPulse 1.6s ease-in-out infinite}
+.status-dot.queued{background:var(--c-sun)}
+.status-dot.done{background:var(--c-mint)}
+.j-title{font-size:14px;letter-spacing:.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.j-status{font-size:11px;letter-spacing:1px;color:var(--ink-faint);white-space:nowrap}
+.j-status.distilling{color:var(--room)}.j-status.queued{color:#b08040}.j-status.done{color:#2a8a6e}
+.j-meta{font-size:11px;color:var(--ink-faint);white-space:nowrap}
+
+/* job craft blotter */
+.job-craft{
+  flex:1;min-height:0;overflow:hidden;border-radius:var(--r-md);position:relative;
+  background:
+    radial-gradient(300px 200px at 15% 30%,color-mix(in srgb,var(--craft-blush) 70%,transparent),transparent),
+    radial-gradient(260px 180px at 85% 70%,color-mix(in srgb,var(--craft-mist) 60%,transparent),transparent),
+    linear-gradient(165deg,rgba(255,255,255,.4),rgba(255,255,255,.15));
+  border:1.5px solid rgba(255,255,255,.9);box-shadow:var(--shadow-1);
+  padding:14px 16px;display:flex;flex-direction:column;gap:10px;
+}
+.blotter-label{font-size:9px;letter-spacing:3px;color:var(--ink-faint);flex:none}
+.blotter-pipe{display:flex;gap:10px;flex:1;min-height:0}
+.blotter-col{
+  flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;
+  padding:8px 10px;border-radius:14px;
+  background:rgba(255,255,255,.55);border:1px dashed rgba(165,172,196,.28);
+}
+.blotter-col .col-h{
+  font-size:9px;letter-spacing:2px;color:var(--ink-faint);margin-bottom:4px;
+  display:flex;align-items:center;gap:6px;flex:none;
+}
+.blotter-col .col-h .dot{width:8px;height:8px;border-radius:50%}
+.ticket{
+  padding:8px 10px;border-radius:10px;font-size:10px;line-height:1.4;color:var(--ink-soft);
+  background:rgba(255,255,255,.92);box-shadow:var(--shadow-1);
+  border-left:3px solid var(--room);flex:none;
+}
+.ticket.q{border-left-color:var(--c-sun)}.ticket.r{border-left-color:var(--c-blue)}.ticket.done{border-left-color:var(--c-mint)}
+.ticket .t-id{font-size:8px;color:var(--ink-faint);letter-spacing:1px;margin-bottom:2px}
+.ticket .t-title{font-size:10px;color:var(--ink);font-weight:600;margin-bottom:3px}
+.blotter-seal{
+  position:absolute;font-size:9px;letter-spacing:2px;padding:4px 9px;border-radius:4px;
+  border:1.5px solid;font-weight:700;
+}
+.blotter-seal.v{color:var(--room);border-color:var(--room);right:22px;bottom:28px;transform:rotate(-8deg);background:color-mix(in srgb,var(--room-soft) 55%,transparent)}
+.blotter-seal.g{color:#2a8a6e;border-color:#2a8a6e;right:90px;bottom:20px;transform:rotate(6deg);background:color-mix(in srgb,var(--c-mint-soft) 55%,transparent)}
+.blotter-bead{position:absolute;border-radius:50%}
+.blotter-bead.a{width:14px;height:14px;left:20px;bottom:22px;background:radial-gradient(circle at 35% 30%,#fff8,var(--room))}
+.blotter-bead.b{width:10px;height:10px;left:38px;bottom:34px;background:radial-gradient(circle at 35% 30%,#fff8,var(--c-mint))}
+.legend{display:flex;flex-direction:column;gap:8px}
+.legend .l-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);letter-spacing:1px}
+.legend .dot{width:10px;height:10px;border-radius:50%;flex:none}
+
+/* ══════════ NOTES PAGE ══════════ */
+.filter-row{display:flex;flex-wrap:wrap;gap:6px}
+.filter-row .f-btn{
+  padding:6px 12px;border-radius:999px;font-size:12px;letter-spacing:1px;
+  background:rgba(255,255,255,.8);border:1.5px solid rgba(255,255,255,.95);
+  color:var(--ink-soft);box-shadow:var(--shadow-1);transition:color .2s,background .2s;
+}
+.filter-row .f-btn.on{background:var(--room-soft);color:var(--room);border-color:color-mix(in srgb,var(--room) 30%,transparent)}
+.note-list-panel{display:flex;flex-direction:column;gap:8px;max-width:680px;flex:none}
+.note-card{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;cursor:pointer;
+  background:rgba(255,255,255,.82);border:1.5px solid rgba(255,255,255,.95);box-shadow:var(--shadow-1);
+  transition:border-color .2s,transform .2s var(--ease-spring);
+}
+.note-card:hover{transform:translateX(2px)}
+.note-card.selected{border-color:color-mix(in srgb,var(--room) 55%,transparent);background:#fff}
+.note-card .nc-icon{
+  width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;
+  background:var(--room-soft);color:var(--room);font-size:11px;font-weight:700;letter-spacing:.5px;
+}
+.note-card .nc-body{flex:1;min-width:0}
+.note-card .nc-title{font-size:14px;letter-spacing:.5px;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.note-card .nc-meta{font-size:11px;color:var(--ink-faint);display:flex;gap:8px;align-items:center}
+.note-card .nc-tag{font-size:10px;padding:2px 8px;border-radius:999px;letter-spacing:1px;background:var(--room-soft);color:var(--room)}
+.note-card .nc-tag.pub{background:var(--c-mint-soft);color:#2a8a6e}
+.notes-deco{
+  flex:1;min-height:60px;border-radius:var(--r-md);overflow:hidden;position:relative;
+  background:
+    radial-gradient(260px 180px at 20% 35%,color-mix(in srgb,var(--craft-blush) 65%,transparent),transparent),
+    radial-gradient(220px 160px at 80% 65%,color-mix(in srgb,var(--craft-mist) 55%,transparent),transparent),
+    linear-gradient(165deg,rgba(255,255,255,.4),rgba(255,255,255,.15));
+  border:1.5px solid rgba(255,255,255,.9);box-shadow:var(--shadow-1);
+}
+
+/* ══════════ DETAIL PAGE ══════════ */
+.detail-title{font-size:22px;letter-spacing:1.5px;margin-bottom:8px}
+.folio-meta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--ink-faint);letter-spacing:1px}
+.folio-tag{padding:3px 10px;border-radius:999px;font-size:11px;letter-spacing:1px;background:var(--room-soft);color:var(--room)}
+.status-mini{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.status-mini .s{
+  display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;
+  font-size:11px;letter-spacing:1px;color:var(--ink-faint);
+  background:rgba(255,255,255,.7);border:1px solid rgba(165,172,196,.2);
+}
+.status-mini .s.done{color:#2a8a6e;background:var(--c-mint-soft);border-color:transparent}
+.status-mini .s.on{color:var(--room);background:var(--room-soft);border-color:color-mix(in srgb,var(--room) 30%,transparent);font-weight:600}
+.status-mini .s svg{width:12px;height:12px}
+.status-mini .arrow{color:var(--ink-faint);font-size:12px}
+.quote-deco{
+  padding:12px 14px;border-radius:14px;border-left:3px solid var(--room);
+  background:color-mix(in srgb,var(--room-soft) 40%,transparent);
+  font-size:12px;line-height:1.7;color:var(--ink-soft);
+}
+#page-detail .mid-bay .md-preview{flex:1;min-height:0;align-self:stretch;width:100%}
+
+/* ══════════ LEARNING PAGE ══════════ */
+.domain-chips{display:flex;flex-wrap:wrap;gap:6px}
+.domain-chips .chip-btn.on{background:var(--room);color:#fff;border-color:transparent}
+.learn-toolbar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:8px 12px;border-radius:14px;width:fit-content;max-width:100%;
+  background:rgba(255,255,255,.78);border:1.5px solid rgba(255,255,255,.95);box-shadow:var(--shadow-1);
+}
+.learn-toolbar .hint{font-size:11px;color:var(--ink-faint);letter-spacing:1px;margin-left:4px}
+.learn-row{
+  display:grid;grid-template-columns:220px minmax(260px,340px);gap:12px;
+  width:fit-content;max-width:100%;flex:none;align-self:flex-start;
+}
+.tree-box.glass,.leaf-box.glass{padding:12px;max-height:360px;overflow:auto}
+.tree-box .dom{font-size:11px;letter-spacing:2px;color:var(--ink-faint);margin-bottom:8px}
+.tree-node{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  width:100%;text-align:left;padding:7px 9px;border-radius:10px;
+  font-size:12px;color:var(--ink-soft);margin-bottom:3px;
+}
+.tree-node:hover{background:rgba(255,255,255,.75)}
+.tree-node.on{background:#fff;color:var(--ink);box-shadow:var(--shadow-1)}
+.tree-node.l2{padding-left:20px;font-size:11px}
+.tree-node .n{color:var(--ink-faint);font-size:10px;flex:none}
+.tree-node.stub{border:1.5px dashed color-mix(in srgb,var(--room) 35%,transparent);color:var(--ink-faint)}
+.leaf-box h2{font-size:15px;letter-spacing:1px;margin-bottom:4px}
+.leaf-box .meta{font-size:10px;color:var(--ink-faint);margin-bottom:10px;letter-spacing:1px}
+.leaf-chip{
+  display:block;width:100%;text-align:left;padding:8px 10px;border-radius:12px;margin-bottom:6px;
+  background:rgba(255,255,255,.72);border:1.5px solid rgba(255,255,255,.95);font-size:12px;
+  transition:transform .2s var(--ease-spring),background .2s;
+}
+.leaf-chip:hover{background:#fff;transform:translateX(2px)}
+.leaf-chip .m{font-size:10px;color:var(--ink-faint);margin-top:3px}
+.learn-deco{
+  flex:1;min-height:0;border-radius:var(--r-md);overflow:hidden;position:relative;
+  background:
+    radial-gradient(280px 200px at 18% 30%,color-mix(in srgb,var(--craft-blush) 70%,transparent),transparent),
+    radial-gradient(240px 180px at 82% 70%,color-mix(in srgb,var(--craft-mist) 55%,transparent),transparent),
+    linear-gradient(165deg,rgba(255,255,255,.42),rgba(255,255,255,.14));
+  border:1.5px solid rgba(255,255,255,.9);box-shadow:var(--shadow-1);
+}
+.learn-deco .tag{
+  position:absolute;top:12px;left:14px;z-index:2;
+  font-size:10px;letter-spacing:2px;color:var(--ink-faint);
+  padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.7);
+}
+.vein-svg{position:absolute;inset:18px 20px 16px;width:calc(100% - 40px);height:calc(100% - 34px)}
+.vein-svg .edge{stroke:color-mix(in srgb,var(--room) 45%,#c8c4e0);stroke-width:1.6;fill:none}
+.vein-svg .node{fill:#fff;stroke:var(--room);stroke-width:1.8}
+.vein-svg .node.root{fill:var(--room)}
+.vein-svg .lab{font-size:11px;fill:var(--ink-soft);font-family:"ZCOOL KuaiLe","PingFang SC",sans-serif}
+.vein-svg .lab.root{fill:#fff;font-size:12px}
+.vein-svg .badge{fill:var(--c-mint-soft);stroke:none}
+.vein-svg .badge-t{font-size:9px;fill:#2a8a6e}
+.learn-path{
+  position:absolute;right:16px;top:40px;display:flex;flex-direction:column;gap:6px;z-index:2;
+}
+.learn-path .slip-mini{position:relative;transform:none}
+#page-learning .mid-bay{gap:12px}
+
+/* ── reduced motion ── */
+@media(prefers-reduced-motion:reduce){
+  .anim,.job-chip i,.bead,.blotter-bead,.status-dot.distilling{animation:none!important;opacity:1}
+  .clock-time .colon{animation:none}
+}
+</style>
+</head>
+<body class="period-page-bg">
+<div id="stageWrap">
+<div id="stage">
+
+  <div class="period-atm" aria-hidden="true">
+    <div class="atm-wash"></div><div class="atm-dots"></div><div class="atm-glow"></div><div class="atm-mist"></div>
+    <div class="atm-sun"></div>
+    <div class="atm-rays"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="atm-dusk"></div><div class="atm-moon"></div>
+    <div class="atm-stars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="atm-birds"><i></i><i></i><i></i></div>
+  </div>
+
+  <header id="topbar">
+    <button type="button" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+          <path d="M5 19V6.5A2.5 2.5 0 0 1 7.5 4H19v13"/>
+          <path d="M9 8h6M9 12h4"/><path d="M5 19h12a2 2 0 0 0 2-2V8"/>
+        </svg>
+      </span>
+      <span>
+        <div class="brand-name font-display">某某の小站</div>
+        <div class="brand-sub" id="brandSub">READING ROOM V0</div>
+      </span>
+    </button>
+    <nav id="mainnav">
+      <span id="navPill" aria-hidden="true"></span>
+      <button type="button">博客</button>
+      <button type="button">日记</button>
+      <button type="button">知识库</button>
+      <button type="button" class="active">精读</button>
+      <button type="button">实验室</button>
+    </nav>
+    <div class="top-right">
+      <div class="clock-chip">
+        <div class="clock-time" id="clockTime">00:00<span class="sec"> 00</span></div>
+        <div class="clock-date" id="clockDate">—</div>
+      </div>
+      <div class="avatar" aria-hidden="true">某</div>
+    </div>
+  </header>
+
+  <div class="note-chip">v0 · 精读五页 · 键盘 1–5 切页 · Tweaks 可调时段 / 反馈态</div>
+
+  <!-- ═══════════════════ PAGE 1: INGEST ═══════════════════ -->
+  <section id="page-ingest" class="page" aria-label="内容采集">
+    <div class="shell">
+
+      <!-- LEFT -->
+      <aside class="side anim" style="animation-delay:.06s">
+        <div class="side-card glass">
+          <span class="tape"></span>
+          <h3 class="font-display">内容采集</h3>
+          <p class="about text-pretty">学什么 → 找页 / 贴链 / 上传 → AI 合蒸 1 篇精读。对应 /admin/knowledge/ingest。</p>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">房间页</h3>
+          <div class="col-stack" data-room-nav="ingest"></div>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">当前模式</h3>
+          <p class="about" id="modeHint">AI 搜索合蒸：主题 → 候选勾选 → 合蒸 1 篇</p>
+        </div>
+        <div class="side-deco" aria-hidden="true">
+          <span class="tag">LEFT · 托底</span>
+          <div class="slip-mini a"><div class="k">MODE</div><span id="decoMode">搜索</span></div>
+          <div class="slip-mini b"><div class="k">HINT</div>2～5 源</div>
+          <div class="bead a"></div><div class="bead b"></div>
+        </div>
+      </aside>
+
+      <!-- MID -->
+      <div class="mid-bay anim" style="animation-delay:.14s">
+
+        <div class="band mode-bar" id="modeBar" role="tablist">
+          <button type="button" data-mode="url">URL</button>
+          <button type="button" data-mode="file">文件</button>
+          <button type="button" data-mode="agent" class="on">搜索合蒸</button>
+        </div>
+
+        <div class="band input-card glass">
+          <div class="head">
+            <h2 class="font-display" id="inputTitle">告诉 AI</h2>
+            <span class="cap">INPUT · MAX 680</span>
+          </div>
+          <div class="field" data-field="url">
+            <label>文章 URL</label>
+            <input class="inp" type="text" value="https://docs.spring.io/spring-security/reference/">
+            <div class="row">
+              <input class="inp" type="text" placeholder="标题（可选）">
+              <input class="inp" type="text" placeholder="标签（可选）">
+            </div>
+            <div class="actions">
+              <button type="button" class="chip-btn primary font-display" data-fb="progress">开始精炼</button>
+            </div>
+          </div>
+          <div class="field" data-field="file">
+            <label>本地文件</label>
+            <div class="dropzone"><strong>点击或拖拽上传</strong>PDF / DOCX / TXT / Markdown</div>
+            <div class="row">
+              <input class="inp" type="text" value="notes-draft.md" placeholder="标题（可选）">
+              <input class="inp" type="text" placeholder="标签（可选）">
+            </div>
+            <div class="actions">
+              <button type="button" class="chip-btn primary font-display" data-fb="progress">上传并精炼</button>
+            </div>
+          </div>
+          <div class="field on" data-field="agent">
+            <label>学习目标</label>
+            <input class="inp" type="text" value="我想学 Spring Security 6">
+            <div class="row">
+              <input class="inp" type="text" value="官方文档优先" placeholder="偏好">
+              <input class="inp" type="text" value="security, spring" placeholder="标签">
+            </div>
+            <label>精读 Prompt（可选）</label>
+            <textarea class="area" placeholder="留空用站点 distill.system_prompt"></textarea>
+            <div class="actions">
+              <button type="button" class="chip-btn primary font-display" data-fb="candidates">搜索候选</button>
+              <button type="button" class="chip-btn" id="btnMerge" data-fb="progress">合蒸一篇</button>
+              <button type="button" class="chip-btn sm" data-toast="已清空草稿">清空草稿</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="band work-bar glass" id="workBar">
+          <span class="meta" id="workMeta">已选 <b>2</b> / 建议 2～5 · 上限 8</span>
+          <span class="warn" id="workWarn">1 条风险未勾选</span>
+          <span class="job-chip" id="jobChip" hidden><i></i> JOB-17 · 蒸馏中</span>
+          <button type="button" class="chip-btn sm primary" id="workCta" data-fb="progress">合蒸 → 1 篇</button>
+        </div>
+
+        <div class="band feedback glass">
+          <div class="fb-head">
+            <h3 class="font-display" id="fbTitle">搜索候选</h3>
+            <span class="hint" id="fbHint">建议 2～5 条 · 限高滚动</span>
+          </div>
+          <div class="fb-body">
+
+            <div class="fb-panel" data-fb="idle">
+              <div class="idle-box" id="idleSteps"></div>
+              <div class="idle-deco"><span>空闲托底 · 不拉高卡片</span></div>
+            </div>
+
+            <div class="fb-panel" data-fb="file-ready">
+              <div class="file-preview">
+                <div class="ico">MD</div>
+                <div>
+                  <div class="t">notes-draft.md</div>
+                  <div class="m">24 KB · Markdown · 可移除后重选</div>
+                </div>
+                <button type="button" class="chip-btn sm" style="margin-left:auto">移除</button>
+              </div>
+              <div class="idle-deco" style="margin-top:10px"><span>文件模式 · 待提交</span></div>
+            </div>
+
+            <div class="fb-panel on" data-fb="candidates">
+              <div class="outline-box text-pretty">大纲（不落库）
+1. FilterChain 与 SecurityFilterChain
+2. JWT + 会话失效
+3. 方法级鉴权实践</div>
+              <div class="cand-list" id="candList"></div>
+              <div class="manual-row">
+                <textarea class="area" placeholder="手动追加 URL（每行一个）"></textarea>
+                <button type="button" class="chip-btn sm">追加并勾选</button>
+              </div>
+            </div>
+
+            <div class="fb-panel" data-fb="progress">
+              <div class="progress-steps">
+                <div class="s done"><div class="n">01</div><div class="v">排队</div></div>
+                <div class="s done"><div class="n">02</div><div class="v">读取</div></div>
+                <div class="s on"><div class="n">03</div><div class="v">蒸馏</div></div>
+                <div class="s"><div class="n">04</div><div class="v">完成</div></div>
+              </div>
+              <p class="about text-pretty">AI 正在精读内容，预计 20–40 秒。可同时在任务页跟踪进度。</p>
+            </div>
+
+            <!-- SUCCESS: ONLY result card, NO md-preview here -->
+            <div class="fb-panel" data-fb="success">
+              <div class="result-card">
+                <div class="t font-display">Spring Security 6 合蒸笔记</div>
+                <div class="m text-pretty">已采用 3 源合蒸 1 篇 · Markdown 全文预览在精读详情页</div>
+                <div class="actions">
+                  <button type="button" class="chip-btn primary sm" data-go="detail">打开详情</button>
+                  <button type="button" class="chip-btn sm" data-fb="idle">再采一篇</button>
+                </div>
+              </div>
+              <div class="idle-deco" style="margin-top:12px"><span>采集完成 · Markdown 预览 → 精读详情页</span></div>
+            </div>
+
+            <div class="fb-panel" data-fb="fail">
+              <div class="result-card">
+                <div class="t font-display">合蒸部分失败</div>
+                <div class="m">2 源成功 · 1 源失败。可去掉失败源重试。</div>
+                <div class="fail-list">
+                  <div class="f">[可能需登录] example.com/course — CAPTCHA 拦截</div>
+                </div>
+                <div class="actions" style="margin-top:10px">
+                  <button type="button" class="chip-btn primary sm" data-fb="progress">去掉失败源重试</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <aside class="deck anim" style="animation-delay:.22s">
+        <div class="deck-panel glass">
+          <span class="tape alt"></span>
+          <h3 class="font-display">概览</h3>
+          <div class="stat-row">
+            <div class="stat-pill"><div class="n">24</div><div class="l">总精读</div></div>
+            <div class="stat-pill"><div class="n">3</div><div class="l">进行中</div></div>
+          </div>
+        </div>
+        <div class="deck-panel glass">
+          <h3 class="font-display">快捷</h3>
+          <div class="col-stack">
+            <button type="button" class="chip-btn sm" data-go="notes">精读列表</button>
+            <button type="button" class="chip-btn sm" data-go="jobs">任务流水</button>
+            <button type="button" class="chip-btn sm" data-toast="精读设置 · 下轮">精读设置</button>
+          </div>
+        </div>
+        <div class="deck-panel glass">
+          <h3 class="font-display">最近源</h3>
+          <div class="recent-line"><div class="k">URL</div>docs.spring.io/…/security</div>
+          <div class="recent-line"><div class="k">SEARCH</div>JWT Redis · 4 候选</div>
+          <div class="recent-line"><div class="k">FILE</div>notes-draft.md</div>
+        </div>
+        <div class="deck-deco" aria-hidden="true">
+          <span class="tag">RIGHT · 托底</span>
+          <div class="funnel-mini"><div class="m"></div><div class="n"></div><div class="d">1</div></div>
+          <div class="bead a"></div><div class="bead b"></div>
+        </div>
+        <div class="cta-foot">
+          <div><div class="lbl font-display">任务流水</div><div class="sub">跟踪全部进度</div></div>
+          <button type="button" class="chip-btn primary sm" data-go="jobs">→</button>
+        </div>
+      </aside>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════ PAGE 2: JOBS ═══════════════════ -->
+  <section id="page-jobs" class="page" hidden aria-label="精读任务">
+    <div class="shell">
+
+      <!-- LEFT -->
+      <aside class="side">
+        <div class="side-card glass">
+          <span class="tape"></span>
+          <div style="margin-bottom:8px">
+            <button type="button" class="chip-btn sm" data-go="ingest">← 采集台</button>
+          </div>
+          <h3 class="font-display">精读任务</h3>
+          <p class="about text-pretty">后台蒸馏任务流水。蒸馏中实时更新，已完成可打开详情。</p>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">房间页</h3>
+          <div class="col-stack" data-room-nav="jobs"></div>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">轮询提示</h3>
+          <p class="about">任务轮询每 5 s 拉取。进行中不自动刷新界面，点"刷新列表"查最新状态。</p>
+        </div>
+        <div class="side-deco" aria-hidden="true">
+          <span class="tag">LEFT · 托底</span>
+          <div class="slip-mini a"><div class="k">RUNNING</div>JOB-017</div>
+          <div class="slip-mini b"><div class="k">QUEUE</div>1 待</div>
+          <div class="bead a"></div><div class="bead b"></div>
+        </div>
+      </aside>
+
+      <!-- MID -->
+      <div class="mid-bay">
+        <div class="band job-list-panel">
+          <div class="job-row">
+            <span class="status-dot distilling"></span>
+            <span class="j-title font-display">Spring Security 6 合蒸笔记</span>
+            <span class="j-status distilling">蒸馏中</span>
+            <span class="j-meta">JOB-017 · 3 源</span>
+          </div>
+          <div class="job-row">
+            <span class="status-dot queued"></span>
+            <span class="j-title font-display">React Hooks 最佳实践</span>
+            <span class="j-status queued">排队中</span>
+            <span class="j-meta">JOB-016 · 2 源</span>
+          </div>
+          <div class="job-row">
+            <span class="status-dot done"></span>
+            <span class="j-title font-display">Clean Architecture 实践笔记</span>
+            <span class="j-status done">已完成</span>
+            <span class="j-meta">JOB-015 · 4 源</span>
+            <button type="button" class="chip-btn sm primary" data-go="detail">打开</button>
+          </div>
+        </div>
+
+        <!-- craft blotter: fills flex:1 -->
+        <div class="job-craft">
+          <div class="blotter-label">DISTILL PIPELINE · QUEUED → READING → DISTILLING → DONE</div>
+          <div class="blotter-pipe">
+            <div class="blotter-col">
+              <div class="col-h"><span class="dot" style="background:var(--c-sun)"></span>QUEUED</div>
+              <div class="ticket q">
+                <div class="t-id">JOB-016</div>
+                <div class="t-title">React Hooks 最佳实践</div>
+                <div style="font-size:9px;color:#b08040;margin-top:2px">2 源 · 等待中</div>
+              </div>
+              <div style="height:36px;border-radius:8px;background:rgba(255,255,255,.45);border:1px dashed rgba(165,172,196,.25);margin-top:4px;display:grid;place-items:center;font-size:9px;color:var(--ink-faint);letter-spacing:1px">+ 0</div>
+            </div>
+            <div class="blotter-col">
+              <div class="col-h"><span class="dot" style="background:var(--c-blue)"></span>READING</div>
+              <div style="height:48px;border-radius:8px;background:rgba(255,255,255,.45);border:1px dashed rgba(165,172,196,.25);display:grid;place-items:center;font-size:9px;color:var(--ink-faint);letter-spacing:1px">空闲</div>
+            </div>
+            <div class="blotter-col">
+              <div class="col-h"><span class="dot" style="background:var(--room)"></span>DISTILLING</div>
+              <div class="ticket">
+                <div class="t-id">JOB-017</div>
+                <div class="t-title">Spring Security 6 合蒸笔记</div>
+                <div style="font-size:9px;color:var(--room);margin-top:2px">3 源 · AI 蒸馏中…</div>
+              </div>
+              <div style="margin-top:6px;padding:6px 8px;border-radius:8px;background:color-mix(in srgb,var(--room-soft) 60%,transparent);font-size:9px;color:var(--room);letter-spacing:1px;text-align:center">⟳ 估计 20 s</div>
+            </div>
+            <div class="blotter-col">
+              <div class="col-h"><span class="dot" style="background:var(--c-mint)"></span>DONE</div>
+              <div class="ticket done">
+                <div class="t-id">JOB-015</div>
+                <div class="t-title">Clean Architecture 实践笔记</div>
+                <div style="font-size:9px;color:#2a8a6e;margin-top:2px">4 源 · 已完成</div>
+              </div>
+              <button type="button" class="chip-btn sm" data-go="detail" style="margin-top:6px;align-self:flex-start;font-size:10px;height:26px;padding:0 10px">打开详情</button>
+            </div>
+          </div>
+          <div class="blotter-seal v">精读中</div>
+          <div class="blotter-seal g">已完成</div>
+          <div class="blotter-bead a"></div>
+          <div class="blotter-bead b"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <aside class="deck">
+        <div class="deck-panel glass">
+          <span class="tape alt"></span>
+          <h3 class="font-display">状态说明</h3>
+          <div class="legend">
+            <div class="l-row"><span class="dot" style="background:var(--c-sun)"></span>排队中</div>
+            <div class="l-row"><span class="dot" style="background:var(--c-blue)"></span>读取中</div>
+            <div class="l-row"><span class="dot" style="background:var(--room)"></span>蒸馏中（闪烁）</div>
+            <div class="l-row"><span class="dot" style="background:var(--c-mint)"></span>已完成</div>
+          </div>
+        </div>
+        <div class="deck-panel glass">
+          <h3 class="font-display">操作</h3>
+          <div class="col-stack">
+            <button type="button" class="chip-btn sm" data-toast="已刷新任务列表">刷新列表</button>
+            <button type="button" class="chip-btn sm danger" data-toast="已清空已完成任务">清空已完成</button>
+            <button type="button" class="chip-btn sm" data-go="ingest">去采集</button>
+          </div>
+        </div>
+        <div class="deck-deco" aria-hidden="true">
+          <span class="tag">RIGHT · 托底</span>
+          <div class="funnel-mini"><div class="m"></div><div class="n"></div><div class="d">2</div></div>
+          <div class="bead a"></div><div class="bead b"></div>
+        </div>
+        <div class="cta-foot">
+          <div><div class="lbl font-display">精读列表</div><div class="sub">查看全部精读</div></div>
+          <button type="button" class="chip-btn primary sm" data-go="notes">→</button>
+        </div>
+      </aside>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════ PAGE 3: NOTES ═══════════════════ -->
+  <section id="page-notes" class="page" hidden aria-label="精读列表">
+    <div class="shell">
+
+      <!-- LEFT -->
+      <aside class="side">
+        <div class="side-card glass">
+          <span class="tape"></span>
+          <h3 class="font-display">精读列表</h3>
+          <div class="filter-row" id="notesFilter">
+            <button type="button" class="f-btn on" data-filter="all">全部</button>
+            <button type="button" class="f-btn" data-filter="published">已发布</button>
+            <button type="button" class="f-btn" data-filter="saved">已入库</button>
+          </div>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">房间页</h3>
+          <div class="col-stack" data-room-nav="notes"></div>
+        </div>
+        <div class="side-deco" aria-hidden="true">
+          <span class="tag">LEFT · 托底</span>
+          <div class="slip-mini a"><div class="k">TOTAL</div>24 篇</div>
+          <div class="slip-mini b"><div class="k">FILTER</div>全部</div>
+          <div class="bead a"></div><div class="bead b"></div>
+        </div>
+      </aside>
+
+      <!-- MID -->
+      <div class="mid-bay">
+        <div class="band note-list-panel" id="noteList">
+          <div class="note-card selected" data-note="0" ondblclick="setPage('detail')">
+            <div class="nc-icon">SS</div>
+            <div class="nc-body">
+              <div class="nc-title">Spring Security 6 合蒸笔记</div>
+              <div class="nc-meta">
+                <span>2026-07-26</span><span>3 源</span>
+                <span class="nc-tag pub">已发布</span>
+              </div>
+            </div>
+            <button type="button" class="chip-btn sm primary" data-go="detail">打开</button>
+          </div>
+          <div class="note-card" data-note="1" ondblclick="setPage('detail')">
+            <div class="nc-icon">CA</div>
+            <div class="nc-body">
+              <div class="nc-title">Clean Architecture 实践笔记</div>
+              <div class="nc-meta">
+                <span>2026-07-24</span><span>4 源</span>
+                <span class="nc-tag">已入库</span>
+              </div>
+            </div>
+            <button type="button" class="chip-btn sm" data-go="detail">打开</button>
+          </div>
+          <div class="note-card" data-note="2" ondblclick="setPage('detail')">
+            <div class="nc-icon">RH</div>
+            <div class="nc-body">
+              <div class="nc-title">React Hooks 最佳实践摘要</div>
+              <div class="nc-meta">
+                <span>2026-07-22</span><span>2 源</span>
+                <span class="nc-tag" style="background:#fff3e8;color:#b06020">草稿</span>
+              </div>
+            </div>
+            <button type="button" class="chip-btn sm" data-go="detail">打开</button>
+          </div>
+          <div class="note-card" data-note="3" ondblclick="setPage('detail')">
+            <div class="nc-icon">K8</div>
+            <div class="nc-body">
+              <div class="nc-title">Kubernetes 生产实践合蒸</div>
+              <div class="nc-meta">
+                <span>2026-07-20</span><span>5 源</span>
+                <span class="nc-tag pub">已发布</span>
+              </div>
+            </div>
+            <button type="button" class="chip-btn sm" data-go="detail">打开</button>
+          </div>
+        </div>
+
+        <!-- leftover deco fills flex:1 -->
+        <div class="notes-deco" style="flex:1;min-height:0" aria-hidden="true">
+          <div class="slip-mini" style="position:absolute;top:20px;left:20px;transform:rotate(-2deg)">
+            <div class="k">LIST</div>24 篇精读
+          </div>
+          <div class="slip-mini" style="position:absolute;top:80px;left:44px;transform:rotate(2.5deg);border-left-color:var(--c-mint)">
+            <div class="k">RECENT</div>Jul 26
+          </div>
+          <div class="bead a" style="right:28px;bottom:30px"></div>
+          <div class="bead b" style="right:48px;bottom:46px"></div>
+          <span style="position:absolute;bottom:14px;right:20px;font-size:9px;letter-spacing:2px;color:var(--ink-faint)">双击 / 打开按钮 → 精读详情</span>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <aside class="deck">
+        <div class="deck-panel glass">
+          <span class="tape alt"></span>
+          <h3 class="font-display">统计</h3>
+          <div class="stat-row">
+            <div class="stat-pill"><div class="n">24</div><div class="l">总计</div></div>
+            <div class="stat-pill"><div class="n">18</div><div class="l">已发布</div></div>
+          </div>
+          <div class="stat-row" style="margin-top:8px">
+            <div class="stat-pill"><div class="n">12</div><div class="l">已入库</div></div>
+            <div class="stat-pill"><div class="n">3</div><div class="l">草稿</div></div>
+          </div>
+        </div>
+        <div class="deck-panel glass">
+          <h3 class="font-display">操作</h3>
+          <div class="col-stack">
+            <button type="button" class="chip-btn sm primary" data-go="ingest">去采集</button>
+            <button type="button" class="chip-btn sm" data-go="detail">打开详情</button>
+            <button type="button" class="chip-btn sm" data-go="jobs">任务流水</button>
+          </div>
+        </div>
+        <div class="deck-deco" aria-hidden="true">
+          <span class="tag">RIGHT · 托底</span>
+          <div class="funnel-mini"><div class="m"></div><div class="n"></div><div class="d">24</div></div>
+          <div class="bead a"></div><div class="bead b"></div>
+        </div>
+        <div class="cta-foot">
+          <div><div class="lbl font-display">精读详情</div><div class="sub">查看最近精读</div></div>
+          <button type="button" class="chip-btn primary sm" data-go="detail">→</button>
+        </div>
+      </aside>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════ PAGE 4: DETAIL ═══════════════════ -->
+  <section id="page-detail" class="page" hidden aria-label="精读详情">
+    <div class="shell">
+
+      <!-- LEFT -->
+      <aside class="side">
+        <div class="side-card glass">
+          <span class="tape"></span>
+          <div style="margin-bottom:8px">
+            <button type="button" class="chip-btn sm" data-go="notes">← 列表</button>
+          </div>
+          <h3 class="font-display">精读详情</h3>
+          <p class="about text-pretty">精读条目全文 · Markdown 预览 / 源码切换 · 状态流转 · 同步发布</p>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">房间页</h3>
+          <div class="col-stack" data-room-nav="detail"></div>
+        </div>
+        <div class="quote-deco">
+          无状态不等于不可失效——把失效放到可撤销的侧车存储里。
+        </div>
+        <div class="side-deco" aria-hidden="true">
+          <span class="tag">DETAIL · 托底</span>
+          <div class="slip-mini a"><div class="k">WORDS</div>1,240</div>
+          <div class="slip-mini b"><div class="k">SOURCES</div>3 源</div>
+          <div class="bead a"></div><div class="bead b"></div>
+        </div>
+      </aside>
+
+      <!-- MID -->
+      <div class="mid-bay">
+
+        <!-- title + folio meta -->
+        <div class="band glass" style="padding:14px 18px">
+          <div class="detail-title font-display">Spring Security 6 合蒸笔记</div>
+          <div class="folio-meta">
+            <span>2026-07-26</span>
+            <span class="folio-tag">security</span>
+            <span class="folio-tag">spring</span>
+            <span>3 源合蒸</span>
+            <span>约 1,240 字</span>
+          </div>
+        </div>
+
+        <!-- status step mini -->
+        <div class="band status-mini">
+          <span class="s done">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            采集
+          </span>
+          <span class="arrow">→</span>
+          <span class="s done">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            蒸馏
+          </span>
+          <span class="arrow">→</span>
+          <span class="s done">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            发布
+          </span>
+          <span class="arrow">→</span>
+          <span class="s on">入库</span>
+        </div>
+
+        <!-- md-preview: fills remaining mid height -->
+        <div class="md-preview" id="detailMdPreview">
+          <div class="md-toolbar">
+            <span class="lab font-display">MARKDOWN · 精读全文</span>
+            <div class="md-seg" id="detailMdSeg" role="tablist">
+              <button type="button" class="on" data-md="render">预览</button>
+              <button type="button" data-md="raw">源码</button>
+            </div>
+          </div>
+          <div class="md-body" id="detailMdRender">
+            <h1>Spring Security 6 合蒸笔记</h1>
+            <p>JWT 无状态签发结合 Redis 登录态，实现主动失效；过滤器链按路径挂载，避免全局过重。</p>
+            <h2>摘要</h2>
+            <p>本篇合并 3 个来源：官方架构文档、JWT+Redis 实践文、方法级鉴权章节。聚焦 FilterChain 组装与会话失效策略。</p>
+            <h2>要点</h2>
+            <ul>
+              <li>Token 与会话解耦，退出即删 Redis key</li>
+              <li><code>SecurityFilterChain</code> 按路径拆分，优于单一全局链</li>
+              <li>方法安全用 <code>@PreAuthorize</code> 补齐接口层</li>
+            </ul>
+            <h2>金句</h2>
+            <blockquote>无状态不等于不可失效——把失效放到可撤销的侧车存储里。</blockquote>
+            <h2>参考来源</h2>
+            <ul>
+              <li>Spring Security 官方文档 — 架构概览（<code>docs.spring.io</code>）</li>
+              <li>JWT + Redis 主动失效实践（<code>example.com/blog/jwt-redis-logout</code>）</li>
+              <li>方法级鉴权 @PreAuthorize 章节（<code>docs.spring.io</code>）</li>
+            </ul>
+            <h2>代码示例</h2>
+            <pre>http.authorizeHttpRequests(auth -> auth
+    .requestMatchers("/api/public/**").permitAll()
+    .anyRequest().authenticated())
+  .sessionManagement(s -> s.sessionCreationPolicy(STATELESS))
+  .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);</pre>
+            <h2>延伸阅读</h2>
+            <p>可进一步关注 Spring Authorization Server，结合 OAuth2 实现更完整的认证授权体系。建议配合 <code>spring-security-test</code> 做接口层单测覆盖。</p>
+          </div>
+          <div class="md-body raw" id="detailMdRaw" hidden># Spring Security 6 合蒸笔记
+
+JWT 无状态签发结合 Redis 登录态，实现主动失效；过滤器链按路径挂载，避免全局过重。
+
+## 摘要
+
+本篇合并 3 个来源：官方架构文档、JWT+Redis 实践文、方法级鉴权章节。
+
+## 要点
+
+- Token 与会话解耦，退出即删 Redis key
+- `SecurityFilterChain` 按路径拆分，优于单一全局链
+- 方法安全用 `@PreAuthorize` 补齐接口层
+
+## 金句
+
+> 无状态不等于不可失效——把失效放到可撤销的侧车存储里。
+
+## 参考来源
+
+- Spring Security 官方文档 — 架构概览 (docs.spring.io)
+- JWT + Redis 主动失效实践 (example.com/blog/jwt-redis-logout)
+- 方法级鉴权 @PreAuthorize 章节 (docs.spring.io)
+
+## 代码示例
+
+```java
+http.authorizeHttpRequests(auth -> auth
+    .requestMatchers("/api/public/**").permitAll()
+    .anyRequest().authenticated())
+  .sessionManagement(s -> s.sessionCreationPolicy(STATELESS))
+  .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+```
+
+## 延伸阅读
+
+可进一步关注 Spring Authorization Server，结合 OAuth2 实现更完整的认证授权体系。</div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT -->
+      <aside class="deck">
+        <div class="deck-panel glass">
+          <span class="tape alt"></span>
+          <h3 class="font-display">这篇</h3>
+          <div class="stat-row">
+            <div class="stat-pill"><div class="n">3</div><div class="l">来源</div></div>
+            <div class="stat-pill"><div class="n">1.2k</div><div class="l">字</div></div>
+          </div>
+          <div class="stat-row" style="margin-top:8px">
+            <div class="stat-pill"><div class="n font-display" style="font-size:13px">已发布</div><div class="l">状态</div></div>
+            <div class="stat-pill"><div class="n font-display" style="font-size:11px">07-26</div><div class="l">采集</div></div>
+          </div>
+        </div>
+        <div class="deck-panel glass">
+          <h3 class="font-display">操作</h3>
+          <div class="col-stack">
+            <button type="button" class="chip-btn sm" data-toast="已同步到博客草稿">同步博客</button>
+            <button type="button" class="chip-btn sm" data-toast="已入库知识库">入库知识库</button>
+            <button type="button" class="chip-btn sm" data-toast="重新蒸馏中…">再蒸馏</button>
+            <button type="button" class="chip-btn sm" data-go="learning">挂到领域树</button>
+          </div>
+        </div>
+        <div class="deck-deco" aria-hidden="true">
+          <span class="tag">RIGHT · 托底</span>
+          <div class="slip-mini" style="position:absolute;top:22px;left:14px;transform:rotate(-2deg)">
+            <div class="k">STATUS</div>已发布
+          </div>
+          <div class="bead a"></div><div class="bead b"></div>
+        </div>
+        <div class="cta-foot">
+          <div><div class="lbl font-display">再采一篇</div><div class="sub">返回采集台</div></div>
+          <button type="button" class="chip-btn primary sm" data-go="ingest">→</button>
+        </div>
+      </aside>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════ PAGE 5: LEARNING ═══════════════════ -->
+  <section id="page-learning" class="page" aria-label="领域知识树" hidden>
+    <div class="shell">
+
+      <aside class="side anim" style="animation-delay:.06s">
+        <button type="button" class="chip-btn sm" data-go="detail" style="align-self:flex-start">← 详情</button>
+        <div class="side-card glass">
+          <span class="tape"></span>
+          <h3 class="font-display">领域知识树</h3>
+          <p class="about text-pretty">选领域 → 枝 → 叶（精读）。对应 /admin/knowledge/learning。领域手动建，AI 不自动建域。</p>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">领域</h3>
+          <div class="domain-chips" id="domainChips">
+            <button type="button" class="chip-btn sm on" data-domain="Java">Java</button>
+            <button type="button" class="chip-btn sm" data-domain="前端">前端</button>
+            <button type="button" class="chip-btn sm" data-toast="创建领域 · stub">+ 新建</button>
+          </div>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">房间页</h3>
+          <div class="col-stack" data-room-nav="learning"></div>
+        </div>
+        <div class="quote-deco text-pretty">枝是目录，叶是精读。空枝可「补学」，挂载不解绑笔记本体。</div>
+      </aside>
+
+      <div class="mid-bay anim" style="animation-delay:.14s">
+        <div class="learn-toolbar">
+          <button type="button" class="chip-btn sm" data-toast="回挂未挂笔记 · stub">回挂笔记</button>
+          <button type="button" class="chip-btn sm" id="btnTreeEdit" data-toast="编辑树 · stub">编辑树</button>
+          <button type="button" class="chip-btn sm" data-toast="新建 L1 枝 · stub">新建 L1</button>
+          <button type="button" class="chip-btn sm" id="btnTreeViz" data-toast="树图叠层 · stub">树图</button>
+          <span class="hint">树面板自然宽 · 不拉满</span>
+        </div>
+
+        <div class="learn-row">
+          <div class="tree-box glass" id="learnTree">
+            <div class="dom font-display" id="learnDomLabel">DOMAIN · JAVA</div>
+            <button type="button" class="tree-node" data-branch="spring" data-title="Spring 生态" data-path="Java / Spring 生态" data-count="4">
+              Spring 生态 <span class="n">4</span>
+            </button>
+            <button type="button" class="tree-node l2 on" data-branch="security" data-title="Security" data-path="Java / Spring 生态 / Security" data-count="2">
+              Security <span class="n">2</span>
+            </button>
+            <button type="button" class="tree-node l2" data-branch="jpa" data-title="Data JPA" data-path="Java / Spring 生态 / Data JPA" data-count="1">
+              Data JPA <span class="n">1</span>
+            </button>
+            <button type="button" class="tree-node" data-branch="perf" data-title="并发与性能" data-path="Java / 并发与性能" data-count="3">
+              并发与性能 <span class="n">3</span>
+            </button>
+            <button type="button" class="tree-node stub" data-toast="空枝 stub · 可补学">[stub] 新枝…</button>
+          </div>
+          <div class="leaf-box glass" id="learnLeaves">
+            <h2 class="font-display" id="leafTitle">Security · 叶</h2>
+            <div class="meta" id="leafMeta">已挂载精读 · 可取消挂载 / 移叶</div>
+            <button type="button" class="leaf-chip" data-go="detail">
+              Spring 鉴权合蒸
+              <div class="m">已发布 · 点开详情</div>
+            </button>
+            <button type="button" class="leaf-chip" data-go="detail">
+              JWT + Redis 失效
+              <div class="m">已入库</div>
+            </button>
+            <button type="button" class="chip-btn sm" style="margin-top:8px" data-toast="挂载笔记 · stub">+ 挂载笔记</button>
+          </div>
+        </div>
+
+        <div class="learn-deco" aria-hidden="true">
+          <span class="tag">LEFTOVER · 树脉 / 不拉大树面板</span>
+          <svg class="vein-svg" viewBox="0 0 640 220" preserveAspectRatio="xMidYMid meet">
+            <path class="edge" d="M320 36 L180 100 M320 36 L320 100 M320 36 L460 100"/>
+            <path class="edge" d="M180 100 L120 168 M180 100 L230 168"/>
+            <path class="edge" d="M460 100 L410 168 M460 100 L520 168"/>
+            <circle class="node root" cx="320" cy="36" r="22"/>
+            <text class="lab root" x="320" y="40" text-anchor="middle">Java</text>
+            <circle class="node" cx="180" cy="100" r="16"/>
+            <text class="lab" x="180" y="104" text-anchor="middle">Spring</text>
+            <circle class="node" cx="320" cy="100" r="16"/>
+            <text class="lab" x="320" y="104" text-anchor="middle">并发</text>
+            <circle class="node" cx="460" cy="100" r="16"/>
+            <text class="lab" x="460" y="104" text-anchor="middle">JVM</text>
+            <circle class="node" cx="120" cy="168" r="13"/>
+            <text class="lab" x="120" y="172" text-anchor="middle">Sec</text>
+            <circle class="badge" cx="138" cy="156" r="8"/>
+            <text class="badge-t" x="138" y="159" text-anchor="middle">2</text>
+            <circle class="node" cx="230" cy="168" r="13"/>
+            <text class="lab" x="230" y="172" text-anchor="middle">JPA</text>
+            <circle class="node" cx="410" cy="168" r="13"/>
+            <text class="lab" x="410" y="172" text-anchor="middle">锁</text>
+            <circle class="node" cx="520" cy="168" r="13"/>
+            <text class="lab" x="520" y="172" text-anchor="middle">GC</text>
+          </svg>
+          <div class="learn-path">
+            <div class="slip-mini"><div class="k">PATH</div><span id="pathSlip">…/Security</span></div>
+            <div class="slip-mini" style="transform:rotate(2deg)"><div class="k">LEAF</div>挂载契约</div>
+            <div class="bead a" style="position:relative;margin-top:4px"></div>
+            <div class="bead b" style="position:relative"></div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="deck anim" style="animation-delay:.22s">
+        <div class="deck-panel glass">
+          <span class="tape alt"></span>
+          <h3 class="font-display">当前枝</h3>
+          <p class="about text-pretty" id="branchAbout" style="font-size:12px;line-height:1.65">Java / Spring 生态 / Security<br>叶 2 · 可学空枝 · 可合并</p>
+          <div class="stat-row" style="margin-top:10px">
+            <div class="stat-pill"><div class="n" id="branchLeafN">2</div><div class="l">叶</div></div>
+            <div class="stat-pill"><div class="n font-display" style="font-size:13px">L2</div><div class="l">层级</div></div>
+          </div>
+        </div>
+        <div class="deck-panel glass">
+          <h3 class="font-display">树操作</h3>
+          <div class="col-stack">
+            <button type="button" class="chip-btn sm" data-toast="重命名枝 · stub">重命名枝</button>
+            <button type="button" class="chip-btn sm" data-toast="合并枝 · stub">合并枝</button>
+            <button type="button" class="chip-btn sm" data-toast="取消挂载 · 不解绑笔记">取消挂载</button>
+            <button type="button" class="chip-btn sm" data-toast="树可视化 · stub">打开树图</button>
+          </div>
+        </div>
+        <div class="deck-deco" aria-hidden="true" style="min-height:72px">
+          <span class="tag">RIGHT · 托底</span>
+          <div class="slip-mini" style="position:absolute;top:20px;left:14px;transform:rotate(-3deg)">
+            <div class="k">GATE</div>AI 门闩
+          </div>
+          <div class="bead a"></div>
+        </div>
+        <div class="cta-foot">
+          <div><div class="lbl font-display">再采一篇</div><div class="sub">回采集台补叶</div></div>
+          <button type="button" class="chip-btn primary sm" data-go="ingest">→</button>
+        </div>
+      </aside>
+
+    </div>
+  </section>
+
+</div><!-- /stage -->
+</div><!-- /stageWrap -->
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div id="tweaks">
+  <div class="panel">
+    <h4>TWEAKS</h4>
+    <div class="row">
+      <label>页面</label>
+      <div class="seg" id="twPage">
+        <button type="button" class="on" data-page="ingest">采集</button>
+        <button type="button" data-page="jobs">任务</button>
+        <button type="button" data-page="notes">列表</button>
+        <button type="button" data-page="detail">详情</button>
+        <button type="button" data-page="learning">领域树</button>
+      </div>
+    </div>
+    <div class="row" id="twModeRow">
+      <label>模式</label>
+      <div class="seg" id="twMode">
+        <button type="button" data-mode="url">URL</button>
+        <button type="button" data-mode="file">文件</button>
+        <button type="button" data-mode="agent" class="on">搜索</button>
+      </div>
+    </div>
+    <div class="row" id="twFbRow">
+      <label>反馈态</label>
+      <div class="seg" id="twFb">
+        <button type="button" data-fb="idle">空闲</button>
+        <button type="button" data-fb="candidates" class="on">候选</button>
+        <button type="button" data-fb="progress">进度</button>
+        <button type="button" data-fb="success">成功</button>
+        <button type="button" data-fb="fail">失败</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>时段</label>
+      <div class="seg" id="twTheme">
+        <button type="button" class="on" data-theme="morning">晨</button>
+        <button type="button" data-theme="noon">午</button>
+        <button type="button" data-theme="dusk">昏</button>
+        <button type="button" data-theme="night">夜</button>
+      </div>
+    </div>
+  </div>
+  <button class="fab" id="tweaksFab" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2.4"/><circle cx="8" cy="16" r="2.4"/></svg>
+    Tweaks
+  </button>
+</div>
+
+<script>
+/* ══════════ constants & state ══════════ */
+const STAGE_W = 1920, STAGE_H = 1080;
+const stageWrap = document.getElementById('stageWrap');
+const stage = document.getElementById('stage');
+const WEEK = ['周日','周一','周二','周三','周四','周五','周六'];
+const PERIOD = {morning:'晨光',noon:'午间',dusk:'暮色',night:'星夜'};
+const PAGES = ['ingest','jobs','notes','detail','learning'];
+const PAGE_LABELS = {ingest:'采集台',jobs:'任务流水',notes:'精读列表',detail:'精读详情',learning:'领域知识树'};
+const PAGE_SUB = {ingest:'INGEST',jobs:'JOBS',notes:'NOTES',detail:'DETAIL',learning:'TREE'};
+let currentPage = 'ingest';
+
+const LEAF_BY_BRANCH = {
+  security:[
+    {t:'Spring 鉴权合蒸',m:'已发布 · 点开详情'},
+    {t:'JWT + Redis 失效',m:'已入库'},
+  ],
+  jpa:[{t:'JPA 懒加载陷阱',m:'草稿'}],
+  spring:[
+    {t:'Spring 鉴权合蒸',m:'已发布'},
+    {t:'JWT + Redis 失效',m:'已入库'},
+    {t:'FilterChain 合蒸',m:'已发布'},
+    {t:'方法级鉴权笔记',m:'草稿'},
+  ],
+  perf:[
+    {t:'线程池背压',m:'已发布'},
+    {t:'锁升级观察',m:'已入库'},
+    {t:'GC 日志精读',m:'草稿'},
+  ],
+};
+
+/* ══════════ stage fit ══════════ */
+function fit(){
+  const s = Math.min(innerWidth/STAGE_W, innerHeight/STAGE_H, 1.15);
+  stage.style.transform = `scale(${s})`;
+  stageWrap.style.width  = STAGE_W*s+'px';
+  stageWrap.style.height = STAGE_H*s+'px';
+}
+addEventListener('resize', fit);
+
+/* ══════════ utilities ══════════ */
+function pad(n){ return String(n).padStart(2,'0'); }
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), 1600);
+}
+
+/* ══════════ clock ══════════ */
+function tickClock(){
+  const now = new Date();
+  document.getElementById('clockTime').innerHTML =
+    `${pad(now.getHours())}<span class="colon">:</span>${pad(now.getMinutes())}<span class="sec"> ${pad(now.getSeconds())}</span>`;
+  document.getElementById('clockDate').textContent =
+    `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${WEEK[now.getDay()]}`;
+}
+
+/* ══════════ nav pill ══════════ */
+function placeNavPill(){
+  const nav  = document.getElementById('mainnav');
+  const pill = document.getElementById('navPill');
+  const active = nav.querySelector('button.active');
+  if(!active) return;
+  pill.style.opacity = '1';
+  pill.style.left  = active.offsetLeft+'px';
+  pill.style.width = active.offsetWidth+'px';
+}
+
+/* ══════════ room nav builder ══════════ */
+function buildAllRoomNavs(){
+  document.querySelectorAll('[data-room-nav]').forEach(container => {
+    container.innerHTML = PAGES.map(p => {
+      const active = p === currentPage;
+      return `<button type="button" class="chip-btn sm${active?' primary on':''}" data-go="${p}">${PAGE_LABELS[p]}</button>`;
+    }).join('');
+  });
+}
+
+/* ══════════ page navigation ══════════ */
+function setPage(name){
+  if(!PAGES.includes(name)) return;
+  currentPage = name;
+  PAGES.forEach(p => {
+    const el = document.getElementById('page-'+p);
+    if(el) el.hidden = (p !== name);
+  });
+  buildAllRoomNavs();
+  document.querySelectorAll('#twPage button').forEach(b =>
+    b.classList.toggle('on', b.dataset.page === name));
+  // show/hide ingest-only tweaks rows
+  const ingest = name === 'ingest';
+  document.getElementById('twModeRow').style.display = ingest ? '' : 'none';
+  document.getElementById('twFbRow').style.display   = ingest ? '' : 'none';
+  // update brand sub
+  document.getElementById('brandSub').textContent = 'READING · '+PAGE_SUB[name]+' · V0';
+}
+
+/* ══════════ theme ══════════ */
+function setTheme(t){
+  document.documentElement.dataset.theme = t;
+  document.querySelectorAll('#twTheme button').forEach(b =>
+    b.classList.toggle('on', b.dataset.theme === t));
+  toast('时段 · '+PERIOD[t]);
+}
+
+/* ══════════ ingest: mode / feedback ══════════ */
+const MODE_COPY = {
+  url:{
+    title:'贴链接',hint:'URL 采集：抓正文 → 出一篇精读',deco:'URL',showMerge:false,
+    work:'单源精炼 · 无候选勾选',warn:'',
+    idle:[['01','粘贴文章链接'],['02','可选标题/标签'],['03','开始精炼'],['04','打开详情']],
+  },
+  file:{
+    title:'上传文件',hint:'文件上传：PDF/Word/TXT/Markdown → 精炼',deco:'文件',showMerge:false,
+    work:'已选文件 · 可移除重选',warn:'',
+    idle:[['01','选择本地文件'],['02','确认文件条'],['03','上传并精炼'],['04','打开详情']],
+  },
+  agent:{
+    title:'告诉 AI',hint:'AI 搜索合蒸：主题 → 候选勾选 → 合蒸 1 篇',deco:'搜索',showMerge:true,
+    work:'已选 <b>2</b> / 建议 2～5 · 上限 8',warn:'1 条风险未勾选',
+    idle:[['01','填写学习目标'],['02','搜索候选页'],['03','勾选 2～5 源'],['04','合蒸成 1 篇']],
+  },
+};
+const CANDIDATES = [
+  {title:'Spring Security 过滤器链',
+   url:'https://docs.spring.io/spring-security/reference/servlet/architecture.html',
+   summary:'SecurityFilterChain 如何挂载、与 Servlet Filter 的关系，官方架构说明。',
+   source:'docs',risk:[],reason:'官方文档，结构完整，适合做主干源',on:true},
+  {title:'JWT + Redis 主动失效',
+   url:'https://example.com/blog/jwt-redis-logout',
+   summary:'无状态 JWT 结合 Redis 黑名单实现退出即失效，含代码示例。',
+   source:'blog',risk:[],reason:'实践向，与目标互补',on:true},
+  {title:'Spring Security 实战课落地页',
+   url:'https://example.com/course/security',
+   summary:'课程售卖页，正文薄，可能需登录后才见内容。',
+   source:'web',risk:['课程落地页','可能需登录'],reason:'相关但材料可能过薄',on:false},
+  {title:'方法级鉴权 @PreAuthorize',
+   url:'https://docs.spring.io/spring-security/reference/servlet/authorization/method-security.html',
+   summary:'方法安全注解与表达式，适合作为第三源补全实践细节。',
+   source:'docs',risk:[],reason:'官方方法安全章节',on:false},
+];
+
+function renderCands(){
+  document.getElementById('candList').innerHTML = CANDIDATES.map((c,i) => `
+    <button type="button" class="cand${c.on?' on':''}${c.risk.length?' risk':''}" data-i="${i}">
+      <span class="ck"></span>
+      <span>
+        <div class="title text-pretty">${c.title}</div>
+        <div class="sum text-pretty">${c.summary}</div>
+        <div class="meta">
+          <span class="tag src">${c.source}</span>
+          ${c.risk.map(r=>`<span class="tag risk">${r}</span>`).join('')}
+        </div>
+        <div class="reason">${c.reason}</div>
+      </span>
+      <a class="url" href="${c.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${c.url.replace(/^https?:\/\//,'')}</a>
+    </button>`).join('');
+  const n = CANDIDATES.filter(c=>c.on).length;
+  const bad = CANDIDATES.filter(c=>c.risk.length&&!c.on).length;
+  document.getElementById('workMeta').innerHTML = `已选 <b>${n}</b> / 建议 2～5 · 上限 8`;
+  document.getElementById('workWarn').textContent = bad ? `${bad} 条风险未勾选` : '';
+}
+
+function setIdleSteps(mode){
+  document.getElementById('idleSteps').innerHTML = MODE_COPY[mode].idle
+    .map(([n,t]) => `<div class="step"><div class="n">${n}</div><div class="t text-pretty">${t}</div></div>`)
+    .join('');
+}
+
+function setMode(mode){
+  const m = MODE_COPY[mode];
+  document.querySelectorAll('#modeBar button,#twMode button').forEach(b =>
+    b.classList.toggle('on', b.dataset.mode === mode));
+  document.querySelectorAll('.field').forEach(f =>
+    f.classList.toggle('on', f.dataset.field === mode));
+  document.getElementById('inputTitle').textContent = m.title;
+  document.getElementById('modeHint').textContent   = m.hint;
+  document.getElementById('decoMode').textContent   = m.deco;
+  document.getElementById('workMeta').innerHTML     = m.work;
+  document.getElementById('workWarn').textContent   = m.warn;
+  document.getElementById('btnMerge').style.display = m.showMerge ? '' : 'none';
+  document.getElementById('workCta').style.display  = m.showMerge ? '' : 'none';
+  setIdleSteps(mode);
+  if(mode==='agent') setFeedback('candidates');
+  else if(mode==='file') setFeedback('file-ready');
+  else setFeedback('idle');
+}
+
+function setFeedback(name){
+  const mode = document.querySelector('#modeBar button.on')?.dataset.mode || 'agent';
+  let key = name;
+  if(key==='file-ready' && mode!=='file') key='idle';
+  if(key==='candidates' && mode!=='agent') key='idle';
+  document.querySelectorAll('.fb-panel').forEach(p =>
+    p.classList.toggle('on', p.dataset.fb === key));
+  document.querySelectorAll('#twFb button').forEach(b =>
+    b.classList.toggle('on', b.dataset.fb === key));
+  const TITLES = {idle:'流程说明','file-ready':'已选文件',candidates:'搜索候选',progress:'蒸馏进度',success:'本次结果',fail:'失败与重试'};
+  const HINTS  = {idle:'短清单 · 轻托底','file-ready':'提交前展示',candidates:'标题·摘要·来源·风险·理由·URL',progress:'排队→读取→蒸馏→完成',success:'结果条 · 进详情查预览',fail:'失败源 + 重试'};
+  document.getElementById('fbTitle').textContent = TITLES[key] || '反馈';
+  document.getElementById('fbHint').textContent  = HINTS[key]  || '';
+  document.getElementById('jobChip').hidden = key !== 'progress';
+}
+
+/* ══════════ event wiring ══════════ */
+document.getElementById('modeBar').addEventListener('click', e => {
+  const b = e.target.closest('button[data-mode]'); if(b) setMode(b.dataset.mode);
+});
+document.getElementById('twMode').addEventListener('click', e => {
+  const b = e.target.closest('button[data-mode]'); if(b) setMode(b.dataset.mode);
+});
+document.getElementById('twFb').addEventListener('click', e => {
+  const b = e.target.closest('button[data-fb]'); if(b) setFeedback(b.dataset.fb);
+});
+document.getElementById('twTheme').addEventListener('click', e => {
+  const b = e.target.closest('button[data-theme]'); if(b) setTheme(b.dataset.theme);
+});
+document.getElementById('twPage').addEventListener('click', e => {
+  const b = e.target.closest('button[data-page]'); if(b) setPage(b.dataset.page);
+});
+document.getElementById('tweaksFab').addEventListener('click', () =>
+  document.getElementById('tweaks').classList.add('open'));
+document.addEventListener('click', e => {
+  const tw = document.getElementById('tweaks');
+  if(tw.classList.contains('open') && !tw.contains(e.target)) tw.classList.remove('open');
+});
+
+/* global click delegation */
+document.body.addEventListener('click', e => {
+  const t   = e.target.closest('[data-toast]');
+  if(t) toast(t.dataset.toast);
+
+  const go  = e.target.closest('[data-go]');
+  if(go) setPage(go.dataset.go);
+
+  const fb  = e.target.closest('[data-fb]');
+  if(fb && !fb.closest('#twFb')) setFeedback(fb.dataset.fb);
+
+  const cnd = e.target.closest('.cand[data-i]');
+  if(cnd){ const i=+cnd.dataset.i; CANDIDATES[i].on=!CANDIDATES[i].on; renderCands(); }
+});
+
+/* note card click → select */
+document.getElementById('noteList').addEventListener('click', e => {
+  const card = e.target.closest('.note-card'); if(!card) return;
+  document.querySelectorAll('.note-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+});
+
+/* notes filter */
+document.getElementById('notesFilter').addEventListener('click', e => {
+  const b = e.target.closest('.f-btn'); if(!b) return;
+  document.querySelectorAll('#notesFilter .f-btn').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  toast('筛选：'+b.textContent.trim());
+});
+
+/* detail md-seg toggle */
+document.getElementById('detailMdSeg').addEventListener('click', e => {
+  const b = e.target.closest('button[data-md]'); if(!b) return;
+  document.querySelectorAll('#detailMdSeg button').forEach(x => x.classList.toggle('on', x===b));
+  const raw = b.dataset.md === 'raw';
+  document.getElementById('detailMdRender').hidden = raw;
+  document.getElementById('detailMdRaw').hidden    = !raw;
+});
+
+/* learning: domain chips */
+document.getElementById('domainChips').addEventListener('click', e => {
+  const b = e.target.closest('[data-domain]'); if(!b) return;
+  document.querySelectorAll('#domainChips [data-domain]').forEach(x => x.classList.toggle('on', x===b));
+  document.getElementById('learnDomLabel').textContent = 'DOMAIN · '+b.dataset.domain.toUpperCase();
+  toast('领域 · '+b.dataset.domain);
+});
+
+/* learning: select branch → refresh leaves */
+document.getElementById('learnTree').addEventListener('click', e => {
+  const node = e.target.closest('.tree-node[data-branch]'); if(!node) return;
+  document.querySelectorAll('#learnTree .tree-node').forEach(n => n.classList.remove('on'));
+  node.classList.add('on');
+  const id = node.dataset.branch;
+  const title = node.dataset.title;
+  const path = node.dataset.path;
+  const count = node.dataset.count || '0';
+  document.getElementById('leafTitle').textContent = title+' · 叶';
+  document.getElementById('leafMeta').textContent = '已挂载精读 · 可取消挂载 / 移叶';
+  document.getElementById('branchAbout').innerHTML = path+'<br>叶 '+count+' · 可学空枝 · 可合并';
+  document.getElementById('branchLeafN').textContent = count;
+  document.getElementById('pathSlip').textContent = '…/'+title;
+  const leaves = LEAF_BY_BRANCH[id] || [];
+  const box = document.getElementById('learnLeaves');
+  box.querySelectorAll('.leaf-chip').forEach(el => el.remove());
+  const mountBtn = box.querySelector('.chip-btn');
+  leaves.forEach(L => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'leaf-chip';
+    btn.dataset.go = 'detail';
+    btn.innerHTML = `${L.t}<div class="m">${L.m}</div>`;
+    box.insertBefore(btn, mountBtn);
+  });
+});
+
+/* keyboard 1-5 to switch pages */
+document.addEventListener('keydown', e => {
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+  const map = {'1':'ingest','2':'jobs','3':'notes','4':'detail','5':'learning'};
+  if(map[e.key]) setPage(map[e.key]);
+});
+
+/* ══════════ init ══════════ */
+fit();
+placeNavPill();
+tickClock();
+setInterval(tickClock, 1000);
+renderCands();
+setMode('agent');
+setPage('ingest');
+addEventListener('load', placeNavPill);
+</script>
+</body>
+</html>

@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="morning" data-ink="day">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>某某の小站 · AI 精读设计预览 v0</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/zcool-kuaile@5/index.css">
+<link rel="stylesheet" href="shared/period-atmosphere.css">
+<style>
+/* ============================================================
+   Reading v0 — AI 精读三阶段壳
+   Mode: Redesign · Overhaul（视觉）+ Preserve（产品）
+   Room: violet #9b8ce8 · 蒸馏手稿语汇
+   Scope: 采集台 · 任务流水 · 笔记册（领域树下轮）
+   ============================================================ */
+:root{
+  --ink:#4c5570; --ink-soft:#7a83a0; --ink-faint:#a5acc4;
+  --paper:#fffdf8; --card:#ffffff;
+  --c-sakura:#f490ad; --c-sakura-soft:#ffd9e4;
+  --c-violet:#9b8ce8; --c-violet-soft:#e4dffd;
+  --c-lilac:#c79ae0; --c-lilac-soft:#f2e2fa;
+  --c-blue:#6aaee8; --c-blue-soft:#d8ebfb;
+  --c-mint:#5fc4a5; --c-mint-soft:#d6f2e8;
+  --c-sun:#ffcf6e;
+  --room:#9b8ce8; --room-soft:#e4dffd;
+  --shadow-1:0 2px 6px rgba(96,116,168,.10), 0 10px 28px rgba(96,116,168,.12);
+  --shadow-2:0 4px 10px rgba(96,116,168,.14), 0 20px 48px rgba(96,116,168,.18);
+  --r-lg:28px; --r-md:20px; --r-sm:14px;
+  --ease-spring:cubic-bezier(.34,1.56,.5,1);
+  --ease-out:cubic-bezier(.22,.8,.32,1);
+  --col-side:248px;
+  --col-deck:288px;
+}
+:root[data-theme="morning"]{
+  --page-1:var(--atm-1); --page-2:var(--atm-2); --page-3:var(--atm-3);
+  --craft-a:#b8a8f0; --craft-b:#f490ad; --craft-c:#9b8ce8;
+  --craft-mist:rgba(184,168,240,.4); --craft-blush:rgba(228,223,253,.5);
+  --craft-glass:rgba(255,255,255,.86); --craft-dot:var(--atm-dot);
+  --period-name:晨光;
+}
+:root[data-theme="noon"]{
+  --page-1:var(--atm-1); --page-2:var(--atm-2); --page-3:var(--atm-3);
+  --craft-a:#ffcf6e; --craft-b:#9b8ce8; --craft-c:#6aaee8;
+  --craft-mist:rgba(255,207,110,.35); --craft-blush:rgba(228,223,253,.4);
+  --craft-glass:rgba(255,255,255,.88); --craft-dot:var(--atm-dot);
+  --period-name:午间;
+}
+:root[data-theme="dusk"]{
+  --page-1:var(--atm-1); --page-2:var(--atm-2); --page-3:var(--atm-3);
+  --craft-a:#e0699b; --craft-b:#ffb45e; --craft-c:#9b8ce8;
+  --craft-mist:rgba(255,180,94,.4); --craft-blush:rgba(155,140,232,.28);
+  --craft-glass:rgba(255,250,246,.86); --craft-dot:var(--atm-dot);
+  --period-name:暮色;
+}
+:root[data-theme="night"]{
+  --page-1:var(--atm-1); --page-2:var(--atm-2); --page-3:var(--atm-3);
+  --craft-a:#9b8ce8; --craft-b:#6aaee8; --craft-c:#c79ae0;
+  --craft-mist:rgba(61,63,122,.18); --craft-blush:rgba(155,140,232,.28);
+  --craft-glass:rgba(244,246,255,.88); --craft-dot:var(--atm-dot);
+  --period-name:星夜;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%;overflow:hidden}
+body{
+  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Source Han Sans SC",sans-serif;
+  color:var(--ink);
+  display:flex;justify-content:center;align-items:flex-start;
+  -webkit-font-smoothing:antialiased;
+}
+.font-display{font-family:"ZCOOL KuaiLe","PingFang SC",sans-serif}
+button,input,textarea{font-family:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+input,textarea{border:none;outline:none;background:transparent}
+.text-pretty{text-wrap:pretty}
+.ph{
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:10px;letter-spacing:1px;color:var(--ink-faint);
+  border:1.5px dashed color-mix(in srgb, var(--room) 40%, transparent);
+  border-radius:8px;background:color-mix(in srgb, var(--room-soft) 45%, transparent);
+  padding:4px 8px;user-select:none;
+}
+
+#stageWrap{position:relative;flex:none}
+#stage{
+  position:absolute;top:0;left:0;width:1920px;height:1080px;
+  transform-origin:top left;border-radius:36px;overflow:hidden;
+  background:transparent;
+  box-shadow:0 40px 120px rgba(70,80,130,.28);
+}
+
+@keyframes riseIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pageIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes inkPulse{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+.anim{opacity:0;animation:riseIn .8s var(--ease-out) forwards}
+
+#topbar{position:relative;z-index:5;height:84px;padding:0 48px;display:flex;align-items:center;gap:28px}
+.brand{display:flex;align-items:center;gap:12px;cursor:pointer;padding:0;text-align:left;font:inherit;color:inherit}
+.brand-mark{
+  width:46px;height:46px;border-radius:16px;
+  background:linear-gradient(140deg,var(--craft-c),var(--craft-b));
+  box-shadow:var(--shadow-1), inset 0 2px 4px rgba(255,255,255,.5);
+  display:grid;place-items:center;transform:rotate(-6deg);
+  transition:background 1s var(--ease-out), transform .4s var(--ease-spring);
+}
+.brand:hover .brand-mark{transform:rotate(6deg) scale(1.06)}
+.brand-mark svg{width:24px;height:24px}
+.brand-name{font-size:22px;letter-spacing:1px}
+.brand-sub{font-size:11px;color:var(--ink-faint);letter-spacing:3px;margin-top:2px}
+#mainnav{
+  display:flex;gap:4px;margin:0 auto;position:relative;
+  background:rgba(255,255,255,.72);backdrop-filter:blur(10px);
+  padding:6px;border-radius:999px;box-shadow:var(--shadow-1);border:1.5px solid rgba(255,255,255,.9);
+}
+#mainnav button{
+  padding:9px 18px;border-radius:999px;font-size:15px;color:var(--ink-soft);
+  letter-spacing:2px;position:relative;z-index:1;transition:color .3s, transform .3s var(--ease-spring);
+}
+#mainnav button:hover{color:var(--ink);transform:translateY(-2px)}
+#mainnav button.active{color:#fff}
+#navPill{
+  position:absolute;top:6px;left:0;height:calc(100% - 12px);border-radius:999px;z-index:0;
+  background:linear-gradient(135deg,var(--c-violet),#b8a8f0);
+  box-shadow:0 6px 16px rgba(155,140,232,.45);
+  transition:left .45s var(--ease-spring), width .45s var(--ease-spring), opacity .3s;opacity:0;
+}
+.top-right{display:flex;align-items:center;gap:14px}
+.clock-chip{
+  background:rgba(255,255,255,.72);backdrop-filter:blur(10px);
+  border:1.5px solid rgba(255,255,255,.9);border-radius:16px;
+  padding:6px 14px;box-shadow:var(--shadow-1);text-align:right;line-height:1.2;
+}
+.clock-time{font-size:18px;font-weight:700;letter-spacing:2px;font-variant-numeric:tabular-nums}
+.clock-time .sec{font-size:12px;color:var(--ink-faint)}
+.clock-time .colon{animation:blink 2s steps(1) infinite}
+@keyframes blink{50%{opacity:.25}}
+.clock-date{font-size:10px;color:var(--ink-faint);letter-spacing:1px}
+.avatar{
+  width:46px;height:46px;border-radius:50%;
+  background:linear-gradient(140deg,var(--c-violet-soft),var(--c-lilac-soft));
+  border:3px solid #fff;box-shadow:var(--shadow-1);
+  display:grid;place-items:center;font-size:18px;color:var(--c-violet);
+  font-family:"ZCOOL KuaiLe",sans-serif;
+}
+
+.note-chip{
+  position:absolute;z-index:6;top:90px;left:48px;
+  font-size:11px;letter-spacing:1.5px;color:var(--ink-faint);
+  background:rgba(255,255,255,.55);border:1.5px dashed color-mix(in srgb, var(--room) 45%, transparent);
+  border-radius:999px;padding:5px 14px;max-width:920px;
+}
+
+.page{display:none;position:relative;z-index:4;height:996px;padding:8px 48px 28px}
+.page.on{display:block;animation:pageIn .42s var(--ease-out)}
+.glass{
+  background:var(--craft-glass);backdrop-filter:blur(10px);
+  border:1.5px solid rgba(255,255,255,.95);border-radius:var(--r-md);box-shadow:var(--shadow-1);
+  transition:background 1.2s var(--ease-out);
+}
+.shell{
+  display:grid;
+  grid-template-columns:var(--col-side) minmax(0,1fr) var(--col-deck);
+  gap:22px;height:calc(100% - 8px);padding-top:36px;
+}
+.side,.deck{display:flex;flex-direction:column;gap:14px;min-width:0;min-height:0}
+.side-card,.deck-panel{padding:16px 18px;position:relative}
+.side-card h3,.deck-panel h3{font-size:15px;letter-spacing:2px;margin-bottom:10px}
+.side-card .about{font-size:13px;line-height:1.7;color:var(--ink-soft)}
+.tape{
+  position:absolute;top:-8px;left:22px;width:54px;height:16px;
+  background:color-mix(in srgb, var(--craft-c) 55%, transparent);border-radius:2px;transform:rotate(-4deg);
+  box-shadow:0 1px 2px rgba(90,100,150,.12);
+}
+.tape.alt{left:auto;right:28px;transform:rotate(6deg);background:color-mix(in srgb, var(--craft-a) 55%, transparent)}
+
+:focus{outline:none}
+:focus-visible{outline:2.5px solid rgba(155,140,232,.7);outline-offset:3px}
+
+.chip-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:36px;padding:0 14px;border-radius:999px;font-size:13px;letter-spacing:1px;
+  background:rgba(255,255,255,.9);border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:var(--shadow-1);color:var(--ink-soft);
+  transition:transform .3s var(--ease-spring), color .2s, background .2s;
+}
+.chip-btn:hover{transform:translateY(-2px);color:var(--ink)}
+.chip-btn.primary{
+  background:linear-gradient(135deg,var(--c-violet),#b8a8f0);color:#fff;border-color:transparent;
+  box-shadow:0 6px 16px rgba(155,140,232,.4);
+}
+.chip-btn.sm{height:30px;padding:0 10px;font-size:12px}
+.grow{flex:1;min-height:0}
+
+/* —— 阶段进度条（自然宽，不拉通栏） —— */
+.stage-rail{
+  display:flex;align-items:center;gap:0;max-width:520px;margin-bottom:14px;
+}
+.stage-node{
+  display:flex;align-items:center;gap:8px;flex:none;
+}
+.stage-node .dot{
+  width:28px;height:28px;border-radius:50%;
+  display:grid;place-items:center;font-size:11px;font-weight:700;
+  background:rgba(255,255,255,.85);border:1.5px solid color-mix(in srgb, var(--room) 35%, transparent);
+  color:var(--ink-soft);
+}
+.stage-node.on .dot{
+  background:linear-gradient(135deg,var(--c-violet),#b8a8f0);color:#fff;border-color:transparent;
+  box-shadow:0 4px 12px rgba(155,140,232,.4);
+}
+.stage-node.done .dot{background:var(--c-mint);color:#fff;border-color:transparent}
+.stage-node .lbl{font-size:12px;letter-spacing:1px;color:var(--ink-soft)}
+.stage-node.on .lbl{color:var(--ink);font-weight:600}
+.stage-bar{
+  width:36px;height:3px;margin:0 8px;border-radius:2px;
+  background:color-mix(in srgb, var(--room) 22%, transparent);flex:none;
+}
+.stage-bar.done{background:var(--c-mint)}
+
+/* —— 主区：功能紧凑自然高 + leftover 装饰 —— */
+.mid-bay{
+  display:flex;flex-direction:column;gap:12px;min-height:0;height:100%;
+  align-items:stretch;
+}
+.focal.glass{
+  padding:12px 16px;flex:none;
+  max-width:520px;width:fit-content;align-self:flex-start;
+}
+.focal-head{
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:8px;
+}
+.focal-head h2{font-size:18px;letter-spacing:2px}
+.focal-head .cap{font-size:10px;letter-spacing:2px;color:var(--ink-faint)}
+.tab-seg{
+  display:inline-flex;background:rgba(255,255,255,.7);border-radius:999px;padding:2px;gap:2px;margin-bottom:10px;
+  border:1.5px solid rgba(255,255,255,.9);
+}
+.tab-seg button{
+  padding:5px 11px;border-radius:999px;font-size:12px;letter-spacing:1px;color:var(--ink-soft);
+}
+.tab-seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(90,100,160,.16)}
+.field-row{display:flex;gap:8px;align-items:stretch;max-width:440px}
+.field-row .field{
+  flex:1;min-width:0;height:36px;padding:0 12px;border-radius:12px;
+  background:rgba(255,255,255,.92);border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:inset 0 1px 2px rgba(90,100,150,.06);font-size:13px;
+}
+.field-row .field::placeholder{color:var(--ink-faint)}
+.hint-line{margin-top:8px;font-size:11px;color:var(--ink-faint);letter-spacing:1px;max-width:440px}
+
+/* leftover 装饰区 */
+.deco-bay{
+  flex:1;min-height:0;position:relative;overflow:hidden;
+  border-radius:var(--r-md);
+  border:1.5px dashed color-mix(in srgb, var(--room) 28%, transparent);
+  background:
+    radial-gradient(280px 160px at 12% 20%, color-mix(in srgb, var(--craft-blush) 80%, transparent), transparent 70%),
+    radial-gradient(320px 180px at 88% 70%, color-mix(in srgb, var(--craft-mist) 70%, transparent), transparent 65%),
+    linear-gradient(165deg, rgba(255,255,255,.35), rgba(255,255,255,.12));
+}
+.deco-bay .tag{
+  position:absolute;top:12px;left:16px;
+  font-size:10px;letter-spacing:2px;color:var(--ink-faint);
+  background:rgba(255,255,255,.65);padding:3px 10px;border-radius:999px;
+  border:1px dashed color-mix(in srgb, var(--room) 30%, transparent);
+}
+
+/* 精读装饰物件（非日记手账 / 非知识库书脊） */
+.slip{
+  position:absolute;width:160px;padding:10px 12px;border-radius:10px;
+  background:rgba(255,255,255,.88);box-shadow:var(--shadow-1);
+  border-left:4px solid var(--room);transform:rotate(-3deg);
+  font-size:11px;line-height:1.5;color:var(--ink-soft);
+}
+.slip .k{font-size:9px;letter-spacing:2px;color:var(--ink-faint);margin-bottom:4px}
+.slip.b{left:48px;top:48px;border-left-color:var(--c-mint);transform:rotate(2deg)}
+.slip.c{left:200px;top:110px;width:140px;border-left-color:var(--c-sun);transform:rotate(-5deg)}
+.funnel{
+  position:absolute;right:56px;top:40px;width:120px;height:140px;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+}
+.funnel .mouth{
+  width:100px;height:28px;border-radius:8px 8px 4px 4px;
+  background:linear-gradient(180deg, color-mix(in srgb, var(--room) 45%, #fff), var(--room-soft));
+  border:1.5px solid rgba(255,255,255,.9);
+}
+.funnel .neck{
+  width:18px;height:36px;
+  background:linear-gradient(180deg, var(--room-soft), color-mix(in srgb, var(--room) 40%, transparent));
+  border-radius:0 0 4px 4px;
+}
+.funnel .drop{
+  width:72px;height:56px;border-radius:8px;
+  background:rgba(255,255,255,.9);border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:var(--shadow-1);display:grid;place-items:center;
+  font-size:11px;letter-spacing:1px;color:var(--room);font-family:"ZCOOL KuaiLe",sans-serif;
+}
+.ink-beads{
+  position:absolute;left:40px;bottom:28px;display:flex;gap:10px;align-items:flex-end;
+}
+.ink-beads i{
+  display:block;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #fff8, var(--room));
+  box-shadow:0 4px 10px color-mix(in srgb, var(--room) 35%, transparent);
+  animation:inkPulse 2.8s ease-in-out infinite;
+}
+.ink-beads i:nth-child(1){width:14px;height:14px}
+.ink-beads i:nth-child(2){width:22px;height:22px;animation-delay:.4s;background:radial-gradient(circle at 35% 30%, #fff8, var(--c-mint))}
+.ink-beads i:nth-child(3){width:12px;height:12px;animation-delay:.8s;background:radial-gradient(circle at 35% 30%, #fff8, var(--c-sun))}
+.margin-notes{
+  position:absolute;right:28px;bottom:24px;width:150px;
+  display:flex;flex-direction:column;gap:8px;
+}
+.margin-notes span{
+  font-size:11px;padding:6px 10px;border-radius:8px;
+  background:rgba(255,255,255,.82);color:var(--ink-soft);
+  border:1px solid rgba(255,255,255,.95);box-shadow:var(--shadow-1);
+  transform:rotate(1.5deg);
+}
+.margin-notes span:nth-child(2){transform:rotate(-2deg);align-self:flex-end}
+.margin-notes span:nth-child(3){transform:rotate(3deg)}
+
+/* 候选源卡（自然宽，不拉满） */
+.cand-row{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap;max-width:720px}
+.cand{
+  width:210px;padding:12px 14px;border-radius:14px;
+  background:rgba(255,255,255,.9);border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:var(--shadow-1);flex:none;
+}
+.cand .t{font-size:13px;letter-spacing:1px;margin-bottom:6px;line-height:1.4}
+.cand .m{font-size:11px;color:var(--ink-faint);letter-spacing:1px}
+.cand.on{outline:2px solid color-mix(in srgb, var(--room) 55%, transparent)}
+
+/* —— 任务流水 —— */
+.job-list{display:flex;flex-direction:column;gap:10px;max-width:680px}
+.job-card{
+  display:grid;grid-template-columns:48px 1fr auto;gap:12px;align-items:center;
+  padding:12px 14px;border-radius:16px;
+  background:rgba(255,255,255,.9);border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:var(--shadow-1);
+}
+.job-card .ico{
+  width:40px;height:40px;border-radius:12px;display:grid;place-items:center;
+  background:var(--room-soft);color:var(--room);font-size:12px;font-weight:700;letter-spacing:1px;
+}
+.job-card .ttl{font-size:14px;letter-spacing:1px;margin-bottom:4px}
+.job-card .sub{font-size:11px;color:var(--ink-faint);letter-spacing:1px}
+.job-card .st{
+  font-size:11px;letter-spacing:1px;padding:4px 10px;border-radius:999px;
+  background:var(--c-mint-soft);color:#2a8a6e;
+}
+.job-card .st.run{background:var(--room-soft);color:var(--room);animation:inkPulse 2s ease-in-out infinite}
+.job-card .st.fail{background:#ffe4e8;color:#c45a72}
+.timeline{
+  display:flex;gap:8px;margin-top:8px;max-width:420px;
+}
+.timeline i{
+  flex:1;height:6px;border-radius:3px;
+  background:color-mix(in srgb, var(--room) 18%, transparent);
+}
+.timeline i.on{background:var(--room)}
+.timeline i.done{background:var(--c-mint)}
+
+/* —— 笔记册 —— */
+.note-split{
+  display:grid;grid-template-columns:minmax(280px,340px) minmax(0,1fr);gap:14px;
+  height:100%;min-height:0;
+}
+.note-list.glass{padding:14px;display:flex;flex-direction:column;gap:8px;min-height:0;overflow:auto}
+.note-item{
+  padding:12px 14px;border-radius:14px;text-align:left;
+  background:rgba(255,255,255,.55);border:1.5px solid transparent;
+  transition:background .2s, border-color .2s, transform .25s var(--ease-spring);
+}
+.note-item:hover{background:rgba(255,255,255,.9);transform:translateX(3px)}
+.note-item.on{background:#fff;border-color:color-mix(in srgb, var(--room) 40%, transparent);box-shadow:var(--shadow-1)}
+.note-item .t{font-size:14px;letter-spacing:1px;margin-bottom:4px}
+.note-item .m{font-size:11px;color:var(--ink-faint);letter-spacing:1px}
+.folio.glass{
+  padding:0;display:flex;flex-direction:column;min-height:0;overflow:hidden;position:relative;
+}
+.folio-bind{
+  position:absolute;left:0;top:0;bottom:0;width:18px;
+  background:linear-gradient(90deg, color-mix(in srgb, var(--room) 35%, #fff), transparent);
+  border-right:1px dashed color-mix(in srgb, var(--room) 30%, transparent);
+}
+.folio-body{padding:20px 24px 20px 36px;display:flex;flex-direction:column;gap:12px;min-height:0;height:100%}
+.folio-body h2{font-size:22px;letter-spacing:2px}
+.folio-meta{font-size:12px;color:var(--ink-faint);letter-spacing:1px}
+.folio-blocks{display:flex;flex-direction:column;gap:10px;max-width:560px}
+.fblock{
+  padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.7);
+  border:1.5px solid rgba(255,255,255,.95);font-size:13px;line-height:1.65;color:var(--ink-soft);
+}
+.fblock .cap{font-size:10px;letter-spacing:2px;color:var(--room);margin-bottom:6px}
+.folio-deco{
+  margin-top:auto;flex:1;min-height:80px;position:relative;
+  border-radius:12px;border:1.5px dashed color-mix(in srgb, var(--room) 25%, transparent);
+  background:linear-gradient(160deg, color-mix(in srgb, var(--craft-blush) 50%, transparent), transparent);
+}
+.hi-bar{
+  position:absolute;left:20px;top:18px;width:120px;height:10px;border-radius:4px;
+  background:color-mix(in srgb, var(--c-sun) 55%, transparent);transform:rotate(-2deg);
+}
+.hi-bar.b{left:40px;top:40px;width:90px;background:color-mix(in srgb, var(--c-mint) 45%, transparent);transform:rotate(1deg)}
+.anno{
+  position:absolute;right:16px;top:16px;width:110px;padding:8px 10px;border-radius:8px;
+  font-size:11px;line-height:1.45;color:var(--ink-soft);
+  background:rgba(255,255,255,.85);box-shadow:var(--shadow-1);transform:rotate(2deg);
+}
+
+/* 右栏统计 / CTA */
+.stat-row{display:flex;gap:10px}
+.stat-pill{
+  flex:1;padding:10px 12px;border-radius:14px;text-align:center;
+  background:rgba(255,255,255,.75);border:1.5px solid rgba(255,255,255,.95);
+}
+.stat-pill .n{font-size:22px;font-family:"ZCOOL KuaiLe",sans-serif;color:var(--room);letter-spacing:1px}
+.stat-pill .l{font-size:10px;letter-spacing:2px;color:var(--ink-faint);margin-top:2px}
+.cta-foot{
+  margin-top:auto;padding:14px 16px;border-radius:var(--r-md);
+  background:linear-gradient(135deg, color-mix(in srgb, var(--room) 18%, #fff), rgba(255,255,255,.9));
+  border:1.5px solid rgba(255,255,255,.95);box-shadow:var(--shadow-1);
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.cta-foot .lbl{font-size:13px;letter-spacing:1px}
+.cta-foot .sub{font-size:11px;color:var(--ink-faint);margin-top:3px}
+
+.side-quote{
+  padding:14px 16px;margin-top:auto;
+}
+.side-quote .q{font-size:28px;line-height:1;color:var(--room);opacity:.55;font-family:"ZCOOL KuaiLe",sans-serif}
+.side-quote p{font-size:13px;line-height:1.7;color:var(--ink-soft);margin-top:4px}
+
+.toast{
+  position:fixed;left:50%;bottom:32px;transform:translateX(-50%) translateY(12px);
+  background:rgba(50,55,80,.92);color:#fff;padding:10px 18px;border-radius:999px;
+  font-size:13px;letter-spacing:1px;opacity:0;transition:.35s var(--ease-out);z-index:100;pointer-events:none;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+#tweaks{position:fixed;right:24px;bottom:24px;z-index:99;font-size:13px}
+#tweaks .panel{
+  display:none;width:280px;padding:16px 18px;margin-bottom:10px;
+  background:rgba(255,255,255,.94);backdrop-filter:blur(12px);
+  border-radius:20px;box-shadow:var(--shadow-2);border:1.5px solid rgba(255,255,255,.95);
+}
+#tweaks.open .panel{display:block}
+#tweaks h4{font-size:12px;letter-spacing:3px;color:var(--ink-faint);margin-bottom:12px;font-weight:600}
+#tweaks .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px}
+#tweaks .row:last-child{margin-bottom:0}
+#tweaks label{color:var(--ink-soft);letter-spacing:1px;flex:none;font-size:12px}
+.seg{display:flex;background:#f0ecf8;border-radius:999px;padding:3px;gap:2px;flex-wrap:wrap;justify-content:flex-end}
+.seg button{padding:5px 9px;border-radius:999px;font-size:11px;color:var(--ink-soft);letter-spacing:1px}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(90,100,160,.18)}
+#tweaks .fab{
+  display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;border-radius:999px;
+  background:rgba(255,255,255,.92);border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:var(--shadow-2);color:var(--ink);letter-spacing:1px;font-size:13px;
+}
+#tweaks.open .fab{display:none}
+#tweaks .fab svg{width:15px;height:15px}
+
+@media (prefers-reduced-motion: reduce){
+  .anim,.page.on,.ink-beads i,.job-card .st.run{animation:none !important;opacity:1}
+  .clock-time .colon{animation:none}
+}
+</style>
+</head>
+<body class="period-page-bg">
+
+<div id="stageWrap">
+<div id="stage" data-page="ingest">
+
+  <div class="period-atm" aria-hidden="true">
+    <div class="atm-wash"></div>
+    <div class="atm-dots"></div>
+    <div class="atm-glow"></div>
+    <div class="atm-mist"></div>
+    <div class="atm-sun"></div>
+    <div class="atm-rays">
+      <i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
+    <div class="atm-dusk"></div>
+    <div class="atm-moon"></div>
+    <div class="atm-stars">
+      <i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
+    <div class="atm-birds"><i></i><i></i><i></i></div>
+  </div>
+
+  <header id="topbar">
+    <button type="button" class="brand" id="brandBtn" title="回主页占位">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+          <path d="M5 19V6.5A2.5 2.5 0 0 1 7.5 4H19v13"/>
+          <path d="M9 8h6M9 12h4"/>
+          <path d="M5 19h12a2 2 0 0 0 2-2V8"/>
+        </svg>
+      </span>
+      <span>
+        <div class="brand-name font-display">某某の小站</div>
+        <div class="brand-sub">READING · V0</div>
+      </span>
+    </button>
+    <nav id="mainnav" aria-label="主导航">
+      <span id="navPill" aria-hidden="true"></span>
+      <button type="button">博客</button>
+      <button type="button">日记</button>
+      <button type="button">知识库</button>
+      <button type="button" class="active">精读</button>
+      <button type="button">实验室</button>
+    </nav>
+    <div class="top-right">
+      <div class="clock-chip">
+        <div class="clock-time" id="clockTime">00:00<span class="sec"> 00</span></div>
+        <div class="clock-date" id="clockDate">—</div>
+      </div>
+      <div class="avatar" aria-hidden="true">某</div>
+    </div>
+  </header>
+
+  <div class="note-chip">
+    v0 假设：三栏壳 · violet 房间 · 控件自然宽 · leftover = 蒸馏装饰（源笺 / 漏斗 / 墨珠 / 批注）· 非日记手账 · 非知识库书脊 · 领域树下轮
+  </div>
+
+  <!-- ========== 01 采集台 ========== -->
+  <section class="page on" id="page-ingest" data-screen-label="01 Ingest" aria-label="采集台">
+    <div class="shell">
+      <aside class="side anim" style="animation-delay:.08s">
+        <div class="side-card glass">
+          <span class="tape"></span>
+          <h3 class="font-display">AI 精读</h3>
+          <p class="about text-pretty">学什么 → 找页 → 勾选合蒸成 1 篇。控件不拉满屏幕，空白交给蒸馏装饰。</p>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">入口</h3>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button type="button" class="chip-btn primary" data-go="ingest">采集台</button>
+            <button type="button" class="chip-btn" data-go="jobs">任务流水</button>
+            <button type="button" class="chip-btn" data-go="notes">笔记册</button>
+          </div>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">本轮范围</h3>
+          <p class="about text-pretty">✓ 采集 · 任务 · 笔记<br>◇ 领域知识树 → 下轮<br><span class="ph" style="margin-top:8px">[icon] 设置</span></p>
+        </div>
+        <div class="side-quote glass">
+          <div class="q">「</div>
+          <p class="text-pretty">把多源压成一篇，像蒸馏，而不是堆书架。</p>
+        </div>
+      </aside>
+
+      <div class="mid-bay anim" style="animation-delay:.16s">
+        <div class="stage-rail" aria-label="三阶段">
+          <div class="stage-node on"><span class="dot">1</span><span class="lbl">采集</span></div>
+          <span class="stage-bar"></span>
+          <div class="stage-node"><span class="dot">2</span><span class="lbl">蒸馏</span></div>
+          <span class="stage-bar"></span>
+          <div class="stage-node"><span class="dot">3</span><span class="lbl">笔记</span></div>
+        </div>
+
+        <div class="focal glass">
+          <div class="focal-head">
+            <h2 class="font-display">采集台</h2>
+            <span class="cap">INGEST · MAX-WIDTH 640</span>
+          </div>
+          <div class="tab-seg" id="ingestTabs">
+            <button type="button" class="on" data-tab="url">URL</button>
+            <button type="button" data-tab="search">搜索合蒸</button>
+            <button type="button" data-tab="file">上传</button>
+          </div>
+          <div class="field-row">
+            <input class="field" type="text" placeholder="https://example.com/article" aria-label="文章 URL">
+            <button type="button" class="chip-btn primary font-display" data-go="jobs">开始蒸馏</button>
+          </div>
+          <p class="hint-line text-pretty">建议勾选 2～5 条候选，合蒸为 1 篇精读。表单最大宽度锁定，禁止横向 stretch。</p>
+          <div class="cand-row">
+            <button type="button" class="cand on"><div class="t text-pretty">Spring Boot 3 鉴权笔记</div><div class="m">blog · 可信</div></button>
+            <button type="button" class="cand"><div class="t text-pretty">JWT + Redis 失效策略</div><div class="m">docs · 可信</div></button>
+            <button type="button" class="cand"><div class="t text-pretty">[stub] 第三条候选</div><div class="m">risk · 默认不勾</div></button>
+          </div>
+        </div>
+
+        <div class="deco-bay" aria-hidden="true">
+          <span class="tag">LEFTOVER · 源笺 / 漏斗 · 不拉控件</span>
+          <div class="slip b"><div class="k">SOURCE · A</div>Spring Security 过滤器链摘要…</div>
+          <div class="slip c"><div class="k">SOURCE · B</div>Token 主动失效笔记</div>
+          <div class="funnel">
+            <div class="mouth"></div>
+            <div class="neck"></div>
+            <div class="drop">合蒸 · 1</div>
+          </div>
+          <div class="ink-beads"><i></i><i></i><i></i></div>
+          <div class="margin-notes">
+            <span>批注 · 蒸馏点</span>
+            <span>标签签条</span>
+            <span class="ph">[deco]</span>
+          </div>
+        </div>
+      </div>
+
+      <aside class="deck anim" style="animation-delay:.24s">
+        <div class="deck-panel glass">
+          <span class="tape alt"></span>
+          <h3 class="font-display">概览</h3>
+          <div class="stat-row">
+            <div class="stat-pill"><div class="n">24</div><div class="l">总精读</div></div>
+            <div class="stat-pill"><div class="n">3</div><div class="l">进行中</div></div>
+          </div>
+        </div>
+        <div class="deck-panel glass grow">
+          <h3 class="font-display">最近源</h3>
+          <p class="about text-pretty" style="font-size:13px;line-height:1.7;color:var(--ink-soft)">
+            · docs.spring.io<br>
+            · 站内草稿 URL<br>
+            · <span class="ph">[list]</span>
+          </p>
+          <div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:6px">
+            <span class="ph">Spring</span>
+            <span class="ph">JWT</span>
+            <span class="ph">RAG</span>
+          </div>
+        </div>
+        <div class="cta-foot">
+          <div>
+            <div class="lbl font-display">去任务流水</div>
+            <div class="sub">看蒸馏进度</div>
+          </div>
+          <button type="button" class="chip-btn primary sm" data-go="jobs">进入 →</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ========== 02 任务流水 ========== -->
+  <section class="page" id="page-jobs" data-screen-label="02 Jobs" aria-label="任务流水">
+    <div class="shell">
+      <aside class="side anim" style="animation-delay:.08s">
+        <button type="button" class="chip-btn" data-go="ingest" style="align-self:flex-start">← 采集台</button>
+        <div class="side-card glass">
+          <span class="tape"></span>
+          <h3 class="font-display">任务流水</h3>
+          <p class="about text-pretty">QUEUED → READING → DISTILLING → DONE。进度条自然宽，不做成仪表盘通栏。</p>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">快捷</h3>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button type="button" class="chip-btn sm">刷新进度</button>
+            <button type="button" class="chip-btn sm">清理已完成</button>
+          </div>
+        </div>
+        <div class="side-quote glass">
+          <div class="q">「</div>
+          <p class="text-pretty">墨珠一滴一滴落，比假进度环更诚实。</p>
+        </div>
+      </aside>
+
+      <div class="mid-bay anim" style="animation-delay:.16s">
+        <div class="stage-rail">
+          <div class="stage-node done"><span class="dot">✓</span><span class="lbl">采集</span></div>
+          <span class="stage-bar done"></span>
+          <div class="stage-node on"><span class="dot">2</span><span class="lbl">蒸馏</span></div>
+          <span class="stage-bar"></span>
+          <div class="stage-node"><span class="dot">3</span><span class="lbl">笔记</span></div>
+        </div>
+
+        <div class="focal glass">
+          <div class="focal-head">
+            <h2 class="font-display">进行中</h2>
+            <span class="cap">JOB · NATURAL HEIGHT</span>
+          </div>
+          <div class="job-list">
+            <div class="job-card">
+              <div class="ico">AI</div>
+              <div>
+                <div class="ttl text-pretty">Spring 鉴权合蒸 · 3 源</div>
+                <div class="sub">DISTILLING · 约 20–40 秒</div>
+                <div class="timeline" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="on"></i><i></i></div>
+              </div>
+              <span class="st run">蒸馏中</span>
+            </div>
+            <div class="job-card">
+              <div class="ico">URL</div>
+              <div>
+                <div class="ttl text-pretty">pgvector 检索笔记</div>
+                <div class="sub">QUEUED · 等待</div>
+                <div class="timeline"><i class="on"></i><i></i><i></i><i></i></div>
+              </div>
+              <span class="st">排队</span>
+            </div>
+            <div class="job-card">
+              <div class="ico">OK</div>
+              <div>
+                <div class="ttl text-pretty">SSE 流式输出要点</div>
+                <div class="sub">DONE · 可开笔记</div>
+                <div class="timeline"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i></div>
+              </div>
+              <button type="button" class="chip-btn sm primary" data-go="notes">打开</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="deco-bay" aria-hidden="true">
+          <span class="tag">LEFTOVER · 进度墨迹 / 步骤票根</span>
+          <div class="slip b" style="top:36px"><div class="k">STEP · READING</div>抓取正文 · 清洗噪声</div>
+          <div class="slip c" style="top:100px;left:220px"><div class="k">STEP · DISTILL</div>结构：摘要 · 要点 · 金句</div>
+          <div class="ink-beads" style="left:auto;right:48px;bottom:40px"><i></i><i></i><i></i></div>
+          <div class="margin-notes" style="left:36px;right:auto;bottom:32px">
+            <span>票根 · JOB-17</span>
+            <span class="ph">[progress]</span>
+          </div>
+        </div>
+      </div>
+
+      <aside class="deck anim" style="animation-delay:.24s">
+        <div class="deck-panel glass">
+          <h3 class="font-display">态珠</h3>
+          <div style="display:flex;gap:10px;align-items:center;padding:6px 0">
+            <i style="width:16px;height:16px;border-radius:50%;background:var(--c-mint);display:block"></i>
+            <span style="font-size:12px;color:var(--ink-soft)">SUCCESS</span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;padding:6px 0">
+            <i style="width:16px;height:16px;border-radius:50%;background:var(--room);display:block;animation:inkPulse 2s ease-in-out infinite"></i>
+            <span style="font-size:12px;color:var(--ink-soft)">RUNNING</span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;padding:6px 0">
+            <i style="width:16px;height:16px;border-radius:50%;background:#e8a0b0;display:block"></i>
+            <span style="font-size:12px;color:var(--ink-soft)">FAILED</span>
+          </div>
+        </div>
+        <div class="deck-panel glass grow">
+          <h3 class="font-display">说明</h3>
+          <p class="about text-pretty">任务列表 max-width 约 680。下方空白不用拉高卡片填，用墨珠与步骤签。</p>
+        </div>
+        <div class="cta-foot">
+          <div>
+            <div class="lbl font-display">笔记册</div>
+            <div class="sub">看蒸馏结果</div>
+          </div>
+          <button type="button" class="chip-btn primary sm" data-go="notes">进入 →</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ========== 03 笔记册 ========== -->
+  <section class="page" id="page-notes" data-screen-label="03 Notes" aria-label="笔记册">
+    <div class="shell">
+      <aside class="side anim" style="animation-delay:.08s">
+        <button type="button" class="chip-btn" data-go="jobs" style="align-self:flex-start">← 任务</button>
+        <div class="side-card glass">
+          <span class="tape"></span>
+          <h3 class="font-display">笔记册</h3>
+          <p class="about text-pretty">左选笔记 · 右读结构化摘要。阅读区不做成卡片瀑布。</p>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">筛选占位</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <button type="button" class="chip-btn sm primary">全部</button>
+            <button type="button" class="chip-btn sm">已发布</button>
+            <button type="button" class="chip-btn sm">已入库</button>
+          </div>
+          <p class="about" style="margin-top:10px;font-size:12px;color:var(--ink-faint)">未验证过滤先轻量；勿占满左栏。</p>
+        </div>
+        <div class="side-quote glass">
+          <div class="q">「</div>
+          <p class="text-pretty">页边批注吃空白，正文保持可读行宽。</p>
+        </div>
+      </aside>
+
+      <div class="mid-bay anim" style="animation-delay:.16s">
+        <div class="stage-rail">
+          <div class="stage-node done"><span class="dot">✓</span><span class="lbl">采集</span></div>
+          <span class="stage-bar done"></span>
+          <div class="stage-node done"><span class="dot">✓</span><span class="lbl">蒸馏</span></div>
+          <span class="stage-bar done"></span>
+          <div class="stage-node on"><span class="dot">3</span><span class="lbl">笔记</span></div>
+        </div>
+
+        <div class="note-split grow">
+          <div class="note-list glass">
+            <button type="button" class="note-item on">
+              <div class="t text-pretty">Spring 鉴权合蒸</div>
+              <div class="m">07.26 · 已发布 · 3 源</div>
+            </button>
+            <button type="button" class="note-item">
+              <div class="t text-pretty">SSE 流式输出要点</div>
+              <div class="m">07.24 · 已入库</div>
+            </button>
+            <button type="button" class="note-item">
+              <div class="t text-pretty">pgvector TopK 笔记</div>
+              <div class="m">07.21 · 草稿</div>
+            </button>
+            <button type="button" class="note-item">
+              <div class="t text-pretty">[stub] 更多笔记…</div>
+              <div class="m">列表自然高 · 不 stretch</div>
+            </button>
+          </div>
+
+          <article class="folio glass">
+            <div class="folio-bind" aria-hidden="true"></div>
+            <div class="folio-body">
+              <h2 class="font-display">Spring 鉴权合蒸</h2>
+              <div class="folio-meta">蒸馏笔记 · 3 源 · 可发博客 / 入库</div>
+              <div class="folio-blocks">
+                <div class="fblock">
+                  <div class="cap">SUMMARY</div>
+                  <p class="text-pretty">JWT 无状态签发 + Redis 登录态，实现主动失效。过滤器链按路径挂载，避免全局过重。</p>
+                </div>
+                <div class="fblock">
+                  <div class="cap">KEY POINTS</div>
+                  <p class="text-pretty">· Token 与会话解耦<br>· 退出即删 Redis key<br>· <span class="ph">[more]</span></p>
+                </div>
+              </div>
+              <div class="folio-deco" aria-hidden="true">
+                <span class="tag" style="position:absolute;top:10px;left:14px;font-size:10px;letter-spacing:2px;color:var(--ink-faint)">LEFTOVER · 高亮条 / 批注</span>
+                <div class="hi-bar"></div>
+                <div class="hi-bar b"></div>
+                <div class="anno">页边 · 可链到领域树（下轮）</div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <aside class="deck anim" style="animation-delay:.24s">
+        <div class="deck-panel glass">
+          <span class="tape alt"></span>
+          <h3 class="font-display">这篇</h3>
+          <div class="stat-row">
+            <div class="stat-pill"><div class="n">3</div><div class="l">来源</div></div>
+            <div class="stat-pill"><div class="n">1</div><div class="l">合蒸</div></div>
+          </div>
+        </div>
+        <div class="deck-panel glass grow">
+          <h3 class="font-display">动作</h3>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button type="button" class="chip-btn">发博客</button>
+            <button type="button" class="chip-btn">入库知识库</button>
+            <button type="button" class="chip-btn">挂到领域树</button>
+            <p class="about" style="margin-top:8px;font-size:12px;color:var(--ink-faint)">领域树交互下轮再做完整页。</p>
+          </div>
+        </div>
+        <div class="cta-foot">
+          <div>
+            <div class="lbl font-display">再采一篇</div>
+            <div class="sub">回采集台</div>
+          </div>
+          <button type="button" class="chip-btn primary sm" data-go="ingest">采集 →</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+</div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<div id="tweaks">
+  <div class="panel">
+    <h4>TWEAKS</h4>
+    <div class="row">
+      <label>阶段</label>
+      <div class="seg" id="pageSeg">
+        <button type="button" data-page="ingest" class="on">采集</button>
+        <button type="button" data-page="jobs">任务</button>
+        <button type="button" data-page="notes">笔记</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>时段</label>
+      <div class="seg" id="themeSeg">
+        <button type="button" data-theme="morning" class="on">晨</button>
+        <button type="button" data-theme="noon">午</button>
+        <button type="button" data-theme="dusk">昏</button>
+        <button type="button" data-theme="night">夜</button>
+      </div>
+    </div>
+  </div>
+  <button class="fab" id="tweaksFab" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2.4"/><circle cx="8" cy="16" r="2.4"/></svg>
+    Tweaks
+  </button>
+</div>
+
+<script>
+const STAGE_W = 1920, STAGE_H = 1080;
+const stageWrap = document.getElementById('stageWrap');
+const stage = document.getElementById('stage');
+const WEEK = ['周日','周一','周二','周三','周四','周五','周六'];
+const PERIOD = {morning:'晨光', noon:'午间', dusk:'暮色', night:'星夜'};
+
+function fit(){
+  const s = Math.min(innerWidth / STAGE_W, innerHeight / STAGE_H, 1.15);
+  stage.style.transform = `scale(${s})`;
+  stageWrap.style.width = STAGE_W * s + 'px';
+  stageWrap.style.height = STAGE_H * s + 'px';
+}
+addEventListener('resize', fit);
+
+function pad(n){ return String(n).padStart(2,'0'); }
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), 1500);
+}
+
+function placeNavPill(){
+  const nav = document.getElementById('mainnav');
+  const pill = document.getElementById('navPill');
+  const active = nav.querySelector('button.active');
+  if(!active) return;
+  pill.style.opacity = '1';
+  pill.style.left = active.offsetLeft + 'px';
+  pill.style.width = active.offsetWidth + 'px';
+}
+
+function tickClock(){
+  const now = new Date();
+  document.getElementById('clockTime').innerHTML =
+    `${pad(now.getHours())}<span class="colon">:</span>${pad(now.getMinutes())}<span class="sec"> ${pad(now.getSeconds())}</span>`;
+  document.getElementById('clockDate').textContent =
+    `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${WEEK[now.getDay()]}`;
+}
+
+function setPage(name){
+  const prev = stage.dataset.page;
+  stage.dataset.page = name;
+  document.querySelectorAll('.page').forEach(p => {
+    const on = p.id === 'page-' + name;
+    if(on && prev !== name){ p.classList.remove('on'); void p.offsetWidth; p.classList.add('on'); }
+    else p.classList.toggle('on', on);
+  });
+  document.querySelectorAll('#pageSeg button').forEach(b => b.classList.toggle('on', b.dataset.page === name));
+}
+
+function setTheme(name){
+  document.documentElement.dataset.theme = name;
+  document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.theme === name));
+  toast('时段 · ' + (PERIOD[name] || name));
+}
+
+document.getElementById('pageSeg').addEventListener('click', e => {
+  const b = e.target.closest('button[data-page]'); if(!b) return;
+  setPage(b.dataset.page);
+});
+document.getElementById('themeSeg').addEventListener('click', e => {
+  const b = e.target.closest('button[data-theme]'); if(!b) return;
+  setTheme(b.dataset.theme);
+});
+document.getElementById('tweaksFab').addEventListener('click', () => {
+  document.getElementById('tweaks').classList.add('open');
+});
+document.addEventListener('click', e => {
+  const tw = document.getElementById('tweaks');
+  if(tw.classList.contains('open') && !tw.contains(e.target)) tw.classList.remove('open');
+});
+document.querySelectorAll('[data-go]').forEach(el => {
+  el.addEventListener('click', () => setPage(el.dataset.go));
+});
+document.getElementById('ingestTabs').addEventListener('click', e => {
+  const b = e.target.closest('button[data-tab]'); if(!b) return;
+  document.querySelectorAll('#ingestTabs button').forEach(x => x.classList.toggle('on', x === b));
+  toast('采集方式 · ' + b.textContent.trim() + '（v0 占位）');
+});
+document.querySelectorAll('.cand').forEach(c => {
+  c.addEventListener('click', () => {
+    c.classList.toggle('on');
+  });
+});
+document.querySelectorAll('.note-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.note-item').forEach(x => x.classList.toggle('on', x === item));
+  });
+});
+document.addEventListener('keydown', e => {
+  if(e.target.matches('input,textarea')) return;
+  if(e.key === '1') setPage('ingest');
+  if(e.key === '2') setPage('jobs');
+  if(e.key === '3') setPage('notes');
+  if(e.key === 'Escape'){
+    const tw = document.getElementById('tweaks');
+    if(tw.classList.contains('open')) tw.classList.remove('open');
+  }
+});
+
+fit();
+placeNavPill();
+tickClock();
+setInterval(tickClock, 1000);
+addEventListener('load', placeNavPill);
+</script>
+</body>
+</html>

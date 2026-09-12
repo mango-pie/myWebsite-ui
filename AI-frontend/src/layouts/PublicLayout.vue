@@ -11,7 +11,17 @@ const loginUserStore = useLoginUserStore()
 const isScrolled = ref(false)
 const { layerA, layerB, activeLayer, hasImages, fadeDuration } = useBackgroundSlideshow()
 
+const STATION_ROOMS = new Set(['blog', 'diary', 'knowledge', 'reading', 'worklog', 'lab', 'chat', 'auth', 'settings'])
+
 const room = computed(() => (route.meta.room as string) || 'public')
+/** 主页与各房间自管 chrome，跳过公开壳的顶栏/页脚/暗色背景 */
+const isStationChrome = computed(
+  () =>
+    route.path === '/' || (route.meta.shell === 'public' && STATION_ROOMS.has(String(route.meta.room))),
+)
+
+/** 音乐播放器：全屏自管，无公开顶栏/页脚 */
+const isMusicChrome = computed(() => route.path === '/music' || route.meta.room === 'music')
 
 const onScroll = () => {
   isScrolled.value = window.scrollY > 20
@@ -28,38 +38,50 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="public-layout" :data-room="room">
-    <div class="background-effects" :style="{ '--bg-fade-duration': fadeDuration }">
-      <img
-        v-if="hasImages && layerA"
-        class="background-effects__image"
-        :class="{ 'is-active': activeLayer === 'a' }"
-        :src="layerA"
-        alt=""
-      />
-      <img
-        v-if="hasImages && layerB"
-        class="background-effects__image"
-        :class="{ 'is-active': activeLayer === 'b' }"
-        :src="layerB"
-        alt=""
-      />
-      <div class="background-effects__overlay" />
-      <div class="background-effects__blob background-effects__blob--1" />
-      <div class="background-effects__blob background-effects__blob--2" />
-    </div>
+  <div
+    class="public-layout"
+    :class="{ 'public-layout--home': isStationChrome, 'public-layout--music': isMusicChrome }"
+    :data-room="room"
+  >
+    <template v-if="!isStationChrome && !isMusicChrome">
+      <div class="background-effects" :style="{ '--bg-fade-duration': fadeDuration }">
+        <img
+          v-if="hasImages && layerA"
+          class="background-effects__image"
+          :class="{ 'is-active': activeLayer === 'a' }"
+          :src="layerA"
+          alt=""
+        />
+        <img
+          v-if="hasImages && layerB"
+          class="background-effects__image"
+          :class="{ 'is-active': activeLayer === 'b' }"
+          :src="layerB"
+          alt=""
+        />
+      </div>
 
-    <header class="public-layout__header" :class="{ 'is-scrolled': isScrolled }">
-      <PublicHeader />
-    </header>
+      <header class="public-layout__header" :class="{ 'is-scrolled': isScrolled }">
+        <PublicHeader />
+      </header>
+    </template>
 
-    <main class="public-layout__content">
+    <main
+      class="public-layout__content"
+      :class="{
+        'public-layout__content--home': isStationChrome,
+        'public-layout__content--music': isMusicChrome,
+      }"
+    >
       <RouterView v-slot="{ Component, route: viewRoute }">
-        <component :is="Component" :key="viewRoute.fullPath" />
+        <KeepAlive include="ChatPage">
+          <component :is="Component" v-if="viewRoute.meta.keepAlive" :key="viewRoute.path" />
+        </KeepAlive>
+        <component :is="Component" v-if="!viewRoute.meta.keepAlive" :key="viewRoute.fullPath" />
       </RouterView>
     </main>
 
-    <footer class="public-layout__footer">
+    <footer v-if="!isStationChrome && !isMusicChrome" class="public-layout__footer">
       <GlobalFooter />
     </footer>
   </div>
@@ -71,6 +93,17 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   position: relative;
+}
+
+.public-layout--home {
+  display: block;
+  min-height: 0;
+}
+
+.public-layout--music {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .background-effects {
@@ -92,48 +125,7 @@ onUnmounted(() => {
 }
 
 .background-effects__image.is-active {
-  opacity: 0.28;
-}
-
-.background-effects__overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(160deg, rgba(26, 22, 37, 0.75) 0%, rgba(45, 36, 56, 0.6) 100%);
-}
-
-.background-effects__blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  opacity: 0.22;
-}
-
-.background-effects__blob--1 {
-  width: 420px;
-  height: 420px;
-  background: linear-gradient(135deg, #e879a9, #7c9ce0);
-  top: -140px;
-  left: -100px;
-  animation: blobFloat 22s ease-in-out infinite;
-}
-
-.background-effects__blob--2 {
-  width: 340px;
-  height: 340px;
-  background: linear-gradient(135deg, #f4b8c1, #7c9ce0);
-  bottom: -120px;
-  right: -60px;
-  animation: blobFloat 26s ease-in-out infinite reverse;
-}
-
-@keyframes blobFloat {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(40px, -30px) scale(1.08);
-  }
+  opacity: 1;
 }
 
 .public-layout__header {
@@ -150,6 +142,21 @@ onUnmounted(() => {
   padding: 24px;
 }
 
+.public-layout__content--home {
+  flex: none;
+  padding: 0;
+  z-index: auto;
+}
+
+.public-layout__content--music {
+  flex: 1;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .public-layout__footer {
   position: relative;
   z-index: 1;
@@ -161,7 +168,7 @@ onUnmounted(() => {
 }
 
 @media (max-width: 768px) {
-  .public-layout__content {
+  .public-layout__content:not(.public-layout__content--home) {
     padding: 12px;
   }
 }

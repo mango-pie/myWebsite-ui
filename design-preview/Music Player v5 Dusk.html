@@ -1,0 +1,2197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>黄昏电台 · 音乐播放器设计稿 v5（暮）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;700;900&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   黄昏电台 · v5（只排印「暮」）
+   ------------------------------------------------------------
+   设计语言：落日 + 霞光 + 归鸟 + 初亮路灯（与晨/午材料完全独立）
+   - 背景：暖霞纸面、低垂落日、横霞带、归鸟剪影、路灯初亮、长影
+   - 按钮：灯笼圆钮（软圆 + 暖光），播放键为落日暖钮
+   - 装饰：归鸟、霞带、路灯、长影、晚风粒子
+   - 唱片：霞光唱片（深梅盘身 + 落日标签）
+   排版骨架沿用已确认版本；材料与元素全部重新设计。
+   ============================================================ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  /* 暮 · 材料色 */
+  --paper: #f5dfc0;
+  --paper-2: #f7e6cb;
+  --paper-3: #e8cba4;
+  --ink: #3a2518;
+  --sub: #7d5f48;
+  --dim: #b08a6b;
+  --line: rgba(58, 37, 24, 0.18);
+  --line-strong: rgba(58, 37, 24, 0.42);
+  --accent: #d6532f;
+  --accent-soft: rgba(214, 83, 47, 0.14);
+  --gold: #e8a34d;
+  --gold-soft: rgba(232, 163, 77, 0.22);
+  --rose: #c4625a;
+  --wine: #7d3b52;
+  --bird: #4a2d22;
+  --vinyl: #5d2f33;
+  --vinyl-dark: #3d1f22;
+  --ease: cubic-bezier(0.22, 0.8, 0.3, 1);
+
+  --page-bg: #ecd4b4;
+  --page-ink: #3a2518;
+  --page-muted: #8a6a50;
+  --page-line: rgba(58, 37, 24, 0.2);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background:
+    radial-gradient(1100px 520px at 60% -8%, rgba(232, 163, 77, 0.22), transparent 62%),
+    radial-gradient(900px 480px at 10% 110%, rgba(214, 83, 47, 0.12), transparent 60%),
+    var(--page-bg);
+  color: var(--page-ink);
+  font-family: "Outfit", "PingFang SC", "Microsoft YaHei", sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; cursor: pointer; }
+.mono { font-family: "JetBrains Mono", "Cascadia Mono", monospace; }
+.serif { font-family: "Noto Serif SC", "Songti SC", "SimSun", serif; }
+
+/* ---------- 画布页头 ---------- */
+.canvas-head {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 40px 34px 22px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--page-line);
+}
+
+.canvas-head h1 {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: clamp(26px, 3vw, 38px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.canvas-head h1 em {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.canvas-head__sub {
+  margin-top: 8px;
+  color: var(--page-muted);
+  font-size: 14px;
+}
+
+.canvas-head__meta {
+  flex: none;
+  text-align: right;
+  color: var(--page-muted);
+  font-size: 12px;
+  line-height: 1.9;
+}
+
+.canvas-head__meta b { color: var(--page-ink); font-weight: 700; }
+
+.canvas-head__stamp {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--wine);
+  background: linear-gradient(180deg, var(--gold-soft), rgba(214, 83, 47, 0.12));
+  color: var(--wine);
+  font-family: "Noto Serif SC", serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+/* ---------- 主舞台 ---------- */
+.page-stage {
+  max-width: 1500px;
+  margin: 18px 34px 0;
+}
+
+.browser-frame {
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow:
+    0 34px 80px rgba(58, 37, 24, 0.24),
+    0 0 0 6px rgba(255, 240, 214, 0.35);
+}
+
+.browser-frame__bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background:
+    linear-gradient(180deg, rgba(232, 163, 77, 0.14), transparent),
+    var(--paper-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.browser-frame__dots { display: flex; gap: 7px; }
+.browser-frame__dots i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6);
+}
+
+.browser-frame__url {
+  flex: 1;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--sub);
+  font-size: 11.5px;
+  text-align: center;
+  font-family: "JetBrains Mono", monospace;
+  box-shadow: inset 0 1px 3px rgba(58, 37, 24, 0.06);
+}
+
+/* ---- 报头（电台头部）---- */
+.radio-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 30px 14px;
+  border-bottom: 1px solid var(--line-strong);
+  background:
+    linear-gradient(180deg, rgba(255, 244, 220, 0.45), transparent),
+    transparent;
+}
+
+.radio-callsign {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.radio-seal {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--wine);
+  background: radial-gradient(circle at 35% 30%, #ffd9a0, var(--gold) 62%, var(--accent));
+  color: var(--paper);
+  font-family: "Noto Serif SC", serif;
+  font-size: 17px;
+  font-weight: 900;
+  box-shadow: 0 4px 14px rgba(214, 83, 47, 0.32);
+}
+
+.radio-callsign__name {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 23px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  line-height: 1.1;
+}
+
+.radio-callsign__name span { color: var(--accent); }
+
+.radio-callsign__freq {
+  margin-top: 4px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  color: var(--sub);
+  letter-spacing: 0.14em;
+  line-height: 1.7;
+}
+
+.radio-callsign__freq b {
+  display: inline-block;
+  color: var(--wine);
+  font-weight: 700;
+}
+
+.radio-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.radio-nav button {
+  position: relative;
+  padding: 7px 14px;
+  background: transparent;
+  border: none;
+  color: var(--sub);
+  font-size: 13px;
+  border-radius: 999px;
+  transition: color 0.25s var(--ease), background 0.25s var(--ease);
+}
+
+.radio-nav button:hover { color: var(--ink); background: var(--gold-soft); }
+.radio-nav button.is-active {
+  color: var(--paper);
+  background: linear-gradient(180deg, var(--gold), var(--accent));
+  font-weight: 700;
+  box-shadow: 0 3px 10px rgba(214, 83, 47, 0.28);
+}
+
+.radio-head__actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.on-air {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: 6px;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  color: var(--sub);
+  font-family: "JetBrains Mono", monospace;
+}
+
+.on-air__lamp {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 0 rgba(232, 163, 77, 0.6);
+}
+
+.is-playing .on-air__lamp { animation: lamp-pulse 2.6s ease-in-out infinite; }
+
+@keyframes lamp-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 163, 77, 0.55); }
+  50% { box-shadow: 0 0 0 7px rgba(232, 163, 77, 0); }
+}
+
+/* 灯笼圆钮：软圆 + 暖光 */
+.paper-btn {
+  height: 34px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 2px 6px rgba(58, 37, 24, 0.12);
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: background 0.25s var(--ease), color 0.25s var(--ease),
+    box-shadow 0.25s var(--ease), transform 0.15s var(--ease);
+}
+
+.paper-btn svg { width: 14px; height: 14px; }
+.paper-btn:hover {
+  background: linear-gradient(180deg, #ffd9a0, var(--gold));
+  color: var(--paper);
+  box-shadow:
+    0 4px 16px rgba(232, 163, 77, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transform: translateY(-1px);
+}
+.paper-btn:active { transform: translateY(1px); box-shadow: inset 0 2px 5px rgba(58, 37, 24, 0.16); }
+
+/* ---- 主体三栏 ---- */
+.radio-body {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr) 0;
+  min-height: 620px;
+  transition: grid-template-columns 0.45s var(--ease);
+  position: relative;
+}
+
+.radio-body.has-drawer { grid-template-columns: 208px minmax(0, 1fr) 300px; }
+
+/* 左栏：晚场节目单 */
+.rail {
+  border-right: 1px solid var(--line);
+  padding: 18px 14px 20px;
+  background:
+    linear-gradient(180deg, rgba(232, 163, 77, 0.1), transparent 40%),
+    var(--paper-2);
+}
+
+.rail__group {
+  margin-top: 16px;
+  padding: 0 8px 7px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--wine);
+  font-family: "JetBrains Mono", monospace;
+  border-bottom: 1px dotted var(--line-strong);
+}
+
+.rail__group:first-child { margin-top: 0; }
+
+.rail-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px;
+  border: none;
+  border-bottom: 1px dotted var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sub);
+  font-size: 13px;
+  text-align: left;
+  transition: background 0.25s var(--ease), color 0.25s var(--ease);
+}
+
+.rail-item:hover { background: var(--gold-soft); color: var(--ink); }
+.rail-item.is-active {
+  color: var(--paper);
+  background: linear-gradient(90deg, var(--gold), var(--accent));
+  font-weight: 700;
+  box-shadow: 0 3px 10px rgba(214, 83, 47, 0.24);
+}
+
+.rail-item__num {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: var(--dim);
+  transition: color 0.25s var(--ease);
+}
+
+.rail-item.is-active .rail-item__num { color: rgba(255, 244, 220, 0.85); }
+
+.rail-item__count {
+  margin-left: auto;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  color: var(--dim);
+}
+
+.rail-item__badge {
+  margin-left: auto;
+  font-size: 9px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--wine);
+  color: var(--wine);
+  letter-spacing: 0.1em;
+}
+
+/* ---- 中栏舞台 ---- */
+.stage {
+  position: relative;
+  min-height: 620px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 40px 34px;
+  overflow: hidden;
+  text-align: center;
+}
+
+/* 暮 · 背景层：低垂落日 + 霞带 + 归鸟 + 路灯 + 长影 */
+.dusk-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.db-glow {
+  position: absolute;
+  left: 18%;
+  bottom: -12%;
+  width: 520px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 190, 110, 0.55), rgba(255, 150, 90, 0.18) 52%, transparent 72%);
+  filter: blur(12px);
+}
+
+.db-sun {
+  position: absolute;
+  left: 16%;
+  bottom: 6%;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 42% 36%, #ffe6b0, #ffb063 58%, #e8703f 100%);
+  box-shadow: 0 0 90px 34px rgba(255, 158, 90, 0.5);
+  opacity: 0.92;
+}
+
+.db-bands {
+  position: absolute;
+  inset: -10%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 44px,
+    rgba(230, 150, 90, 0.16) 44px 46px,
+    transparent 46px 90px,
+    rgba(210, 110, 80, 0.1) 90px 91px,
+    transparent 91px 150px
+  );
+  filter: blur(6px);
+  animation: bands-drift 26s ease-in-out infinite alternate;
+}
+
+@keyframes bands-drift {
+  from { transform: translateX(-16px); }
+  to { transform: translateX(16px); }
+}
+
+.db-birds { position: absolute; inset: 0; }
+
+.db-birds i {
+  position: absolute;
+  width: 26px;
+  height: 11px;
+  border-top: 2.5px solid var(--bird);
+  border-radius: 50% 50% 0 0;
+  opacity: 0.8;
+  animation: dusk-bird-fly 24s linear infinite;
+}
+
+.db-birds i::before {
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: -2.5px;
+  width: 26px;
+  height: 11px;
+  border-top: 2.5px solid var(--bird);
+  border-radius: 50% 50% 0 0;
+}
+
+.db-birds i:nth-child(1) { top: 20%; animation-delay: 0s; }
+.db-birds i:nth-child(2) { top: 27%; animation-delay: -8s; transform: scale(0.72); }
+.db-birds i:nth-child(3) { top: 23%; animation-delay: -16s; transform: scale(0.52); }
+
+@keyframes dusk-bird-fly {
+  0% { left: -8%; opacity: 0; }
+  6% { opacity: 0.8; }
+  88% { opacity: 0.8; }
+  96% { opacity: 0; }
+  100% { left: 106%; }
+}
+
+/* 初亮路灯 */
+.db-lamp {
+  position: absolute;
+  right: 44px;
+  bottom: 0;
+  width: 90px;
+  height: 150px;
+  opacity: 0.9;
+}
+
+.db-lamp__pole {
+  position: absolute;
+  left: 43px;
+  bottom: 0;
+  width: 4px;
+  height: 118px;
+  background: linear-gradient(180deg, var(--bird), rgba(74, 45, 34, 0.5));
+  border-radius: 2px;
+}
+
+.db-lamp__arm {
+  position: absolute;
+  left: 34px;
+  bottom: 108px;
+  width: 30px;
+  height: 4px;
+  background: var(--bird);
+  border-radius: 2px;
+  transform: rotate(18deg);
+  transform-origin: left center;
+}
+
+.db-lamp__head {
+  position: absolute;
+  left: 20px;
+  bottom: 96px;
+  width: 22px;
+  height: 14px;
+  border-radius: 50% 50% 30% 30%;
+  background: linear-gradient(180deg, #ffe6ae, var(--gold));
+  box-shadow: 0 0 22px 9px rgba(255, 208, 120, 0.65);
+  animation: lamp-breathe 4s ease-in-out infinite;
+}
+
+@keyframes lamp-breathe {
+  0%, 100% { box-shadow: 0 0 20px 8px rgba(255, 208, 120, 0.5); }
+  50% { box-shadow: 0 0 30px 13px rgba(255, 208, 120, 0.75); }
+}
+
+.db-shadow {
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  bottom: -16px;
+  height: 40px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(90, 50, 30, 0.3), transparent 68%);
+  filter: blur(3px);
+}
+
+/* 暮 · 音场（晚风波形 + 暖尘粒子） */
+.sound-field {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.sf-wave {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 36px;
+  height: 46px;
+  opacity: 0.6;
+}
+
+.sf-wave svg { width: 100%; height: 100%; overflow: visible; }
+
+.sf-wave path {
+  fill: none;
+  stroke: var(--wine);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+
+.sf-wave .wave-a { stroke: var(--gold); animation: dusk-wave 6.5s ease-in-out infinite alternate; }
+.sf-wave .wave-b { stroke: var(--rose); animation: dusk-wave 8s ease-in-out infinite alternate-reverse; opacity: 0.6; }
+
+@keyframes dusk-wave {
+  from { transform: translateX(-12px) scaleY(1); }
+  to { transform: translateX(12px) scaleY(1.08); }
+}
+
+.sf-dust {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 214, 140, 0.8);
+  box-shadow: 0 0 9px rgba(255, 214, 140, 0.7);
+  animation: dust-rise 10s ease-in-out infinite alternate;
+}
+
+.sf-dust:nth-child(1) { left: 14%; top: 70%; animation-delay: -1s; }
+.sf-dust:nth-child(2) { left: 38%; top: 62%; animation-delay: -4s; transform: scale(0.7); }
+.sf-dust:nth-child(3) { left: 62%; top: 68%; animation-delay: -6s; transform: scale(1.1); }
+.sf-dust:nth-child(4) { left: 80%; top: 58%; animation-delay: -8s; transform: scale(0.8); }
+.sf-dust:nth-child(5) { left: 52%; top: 74%; animation-delay: -2.5s; transform: scale(0.6); }
+
+@keyframes dust-rise {
+  from { transform: translateY(0) translateX(0); opacity: 0.35; }
+  to { transform: translateY(-36px) translateX(10px); opacity: 1; }
+}
+
+.sf-note {
+  position: absolute;
+  left: 18px;
+  bottom: 14px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--dim);
+}
+
+.stage > *:not(.dusk-bg) { position: relative; z-index: 1; }
+
+/* 霞光唱片 */
+.vinyl {
+  position: relative;
+  width: 236px;
+  height: 236px;
+  flex: none;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center,
+      var(--gold) 0 5%,
+      transparent 5.5% 7%,
+      var(--paper) 7% 13%,
+      transparent 13.5%,
+      var(--vinyl) 22% 68%,
+      var(--vinyl-dark) 84% 100%);
+  border: 1px solid var(--line-strong);
+  box-shadow:
+    0 20px 42px rgba(58, 37, 24, 0.28),
+    0 0 0 6px rgba(255, 244, 220, 0.3),
+    0 0 50px rgba(255, 170, 90, 0.28);
+}
+
+.vinyl::before {
+  content: "";
+  position: absolute;
+  inset: 17%;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(circle, transparent 0 2.4px, rgba(255, 230, 200, 0.1) 2.4px 2.7px);
+}
+
+/* 落日标签：霞光同心环 */
+.vinyl__label {
+  position: absolute;
+  inset: 13%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 58%,
+      #ffd9a0 0 16%,
+      var(--gold) 18% 34%,
+      var(--accent) 36% 54%,
+      var(--rose) 56% 72%,
+      var(--wine) 74% 100%);
+  border: 1px solid rgba(255, 240, 214, 0.45);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.vinyl__label::before {
+  content: "";
+  position: absolute;
+  inset: 33%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 45% 40%, rgba(255, 240, 214, 0.95), rgba(255, 220, 170, 0.75) 60%, transparent 74%);
+  border: 1px solid rgba(255, 240, 214, 0.55);
+}
+
+.vinyl__label span {
+  position: relative;
+  z-index: 1;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.26em;
+  color: var(--wine);
+  background: rgba(255, 244, 220, 0.82);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+.is-playing .vinyl { animation: vinyl-spin 14s linear infinite; }
+
+@keyframes vinyl-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 曲目信息 */
+.now-meta {
+  margin-top: 28px;
+  max-width: 520px;
+}
+
+.now-meta__eyebrow {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+  color: var(--wine);
+  margin-bottom: 8px;
+}
+
+.now-meta__eyebrow::before {
+  content: "☾ ";
+  font-size: 10px;
+}
+
+.now-meta__title {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: clamp(20px, 2.4vw, 28px);
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  line-height: 1.35;
+}
+
+.now-meta__artist {
+  margin-top: 4px;
+  color: var(--sub);
+  font-size: 14px;
+}
+
+.now-meta__chips {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 暖光标签 */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px;
+  font-size: 11px;
+  color: var(--sub);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 248, 232, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.chip--accent {
+  color: var(--paper);
+  border-color: var(--wine);
+  background: linear-gradient(180deg, var(--gold), var(--accent));
+  font-weight: 700;
+}
+
+.chip svg { width: 12px; height: 12px; }
+
+/* 轮播歌词 */
+.lyric-carousel {
+  position: relative;
+  width: min(520px, 90%);
+  height: 108px;
+  margin: 22px auto 0;
+  overflow: hidden;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+  background: linear-gradient(180deg, transparent, rgba(232, 163, 77, 0.07) 50%, transparent);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 26%, #000 74%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 26%, #000 74%, transparent 100%);
+}
+
+.lyric-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  transform: translateY(-50%);
+  transition: transform 0.7s var(--ease);
+}
+
+.lyric-line {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 15px;
+  color: var(--dim);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.5s var(--ease), color 0.5s var(--ease), font-size 0.5s var(--ease);
+}
+
+.lyric-line.is-current {
+  opacity: 1;
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.lyric-line.is-near { opacity: 0.55; }
+
+.lyric-tip {
+  margin-top: 8px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--dim);
+}
+
+/* 进度：暖光细线 + 落日渐隐拇指 */
+.now-progress {
+  width: min(560px, 88%);
+  margin-top: 22px;
+}
+
+.now-progress__row {
+  display: grid;
+  grid-template-columns: 52px 1fr 52px;
+  gap: 12px;
+  align-items: center;
+}
+
+.now-progress__time {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--sub);
+  text-align: center;
+}
+
+.now-progress__track {
+  position: relative;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.now-progress__track::before {
+  content: "";
+  width: 100%;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(232, 163, 77, 0.4), rgba(125, 59, 82, 0.35));
+}
+
+.now-progress__fill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 32%;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--gold), var(--accent));
+  transform: translateY(-50%);
+  box-shadow: 0 0 8px rgba(232, 163, 77, 0.55);
+}
+
+.now-progress__thumb {
+  position: absolute;
+  left: 32%;
+  top: 50%;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #ffe9bd, var(--gold) 64%, var(--accent));
+  border: 1px solid var(--line-strong);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 10px rgba(255, 190, 110, 0.75);
+  opacity: 0;
+  transition: opacity 0.2s var(--ease);
+}
+
+.now-progress__track:hover .now-progress__thumb { opacity: 1; }
+
+.is-playing .now-progress__fill { animation: prog-run 32s linear infinite; }
+
+@keyframes prog-run {
+  from { width: 3%; }
+  to { width: 96%; }
+}
+
+/* 控制：暖圆钮 + 落日播放钮 */
+.now-controls {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.now-controls .ctrl {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 2px 7px rgba(58, 37, 24, 0.14);
+  transition: background 0.25s var(--ease), color 0.25s var(--ease),
+    box-shadow 0.25s var(--ease), transform 0.15s var(--ease);
+}
+
+.now-controls .ctrl:hover {
+  background: linear-gradient(180deg, #ffd9a0, var(--gold));
+  color: var(--paper);
+  box-shadow: 0 4px 16px rgba(232, 163, 77, 0.4);
+  transform: translateY(-1px);
+}
+.now-controls .ctrl:active { transform: translateY(1px); box-shadow: inset 0 2px 5px rgba(58, 37, 24, 0.15); }
+.now-controls .ctrl svg { width: 17px; height: 17px; }
+
+.now-controls .play {
+  width: 56px;
+  height: 56px;
+  border: 1px solid var(--wine);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffdfae, var(--gold) 55%, var(--accent) 100%);
+  color: var(--paper);
+  box-shadow:
+    0 0 0 4px rgba(255, 244, 220, 0.35),
+    0 8px 24px rgba(214, 83, 47, 0.38);
+  animation: play-breathe 3.4s ease-in-out infinite;
+}
+
+.now-controls .play:hover {
+  background: radial-gradient(circle at 35% 30%, #ffe9bd, var(--gold) 55%, var(--accent));
+  transform: translateY(-1px);
+}
+
+@keyframes play-breathe {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(255, 244, 220, 0.3), 0 8px 22px rgba(214, 83, 47, 0.32); }
+  50% { box-shadow: 0 0 0 7px rgba(255, 244, 220, 0.16), 0 8px 30px rgba(214, 83, 47, 0.45); }
+}
+
+.now-controls .play svg { width: 22px; height: 22px; }
+
+.ico-pause { display: none; }
+.is-playing .ico-play { display: none; }
+.is-playing .ico-pause { display: block; }
+
+.now-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 6px;
+}
+
+.now-actions .chip-btn {
+  height: 30px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 248, 232, 0.5);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--sub);
+  font-size: 11.5px;
+  transition: border-color 0.25s var(--ease), color 0.25s var(--ease), background 0.25s var(--ease);
+}
+
+.now-actions .chip-btn:hover { border-color: var(--wine); color: var(--ink); background: var(--gold-soft); }
+.now-actions .chip-btn.is-active {
+  border-color: var(--wine);
+  color: var(--paper);
+  background: linear-gradient(180deg, var(--gold), var(--accent));
+  font-weight: 700;
+}
+
+.now-actions .chip-btn svg { width: 13px; height: 13px; }
+
+/* ---- 右侧设置栏（黄昏抽屉）---- */
+.settings-drawer {
+  border-left: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(232, 163, 77, 0.1), transparent 36%),
+    var(--paper-2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateX(16px);
+  transition: opacity 0.35s var(--ease), transform 0.35s var(--ease);
+}
+
+.has-drawer .settings-drawer { opacity: 1; transform: translateX(0); }
+
+.settings-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 18px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.settings-drawer__head h3 {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.settings-drawer__head h3 small {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  color: var(--dim);
+  letter-spacing: 0.18em;
+  display: block;
+}
+
+.settings-drawer__head button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--sub);
+}
+
+.settings-drawer__head button:hover { border-color: var(--wine); color: var(--wine); }
+.settings-drawer__head button svg { width: 13px; height: 13px; }
+
+.settings-body {
+  flex: 1;
+  padding: 8px 18px 20px;
+  overflow: auto;
+}
+
+.set-group { margin-top: 18px; }
+.set-group:first-child { margin-top: 8px; }
+
+.set-group__title {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--wine);
+  margin-bottom: 8px;
+  border-bottom: 1px dotted var(--line-strong);
+  padding-bottom: 5px;
+}
+
+.set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px dotted var(--line);
+}
+
+.set-row:last-child { border-bottom: none; }
+
+.set-row__label { font-size: 13px; color: var(--ink); }
+
+.set-row__hint {
+  display: block;
+  font-size: 11px;
+  color: var(--dim);
+  margin-top: 1px;
+}
+
+.set-row__value {
+  flex: none;
+  font-size: 12px;
+  color: var(--sub);
+}
+
+/* 暖光开关 */
+.toggle {
+  position: relative;
+  width: 40px;
+  height: 21px;
+  flex: none;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--paper-3);
+  cursor: pointer;
+  transition: background 0.25s var(--ease), border-color 0.25s var(--ease);
+}
+
+.toggle::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--sub);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5);
+  transition: transform 0.25s var(--ease), background 0.25s var(--ease);
+}
+
+.toggle.is-on {
+  background: linear-gradient(90deg, var(--gold), var(--accent));
+  border-color: var(--wine);
+}
+
+.toggle.is-on::after {
+  transform: translateX(19px);
+  background: #fff6e0;
+}
+
+.set-note {
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px dashed var(--wine);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--dim);
+  line-height: 1.55;
+}
+
+.set-seg {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+
+.set-seg button {
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--sub);
+  font-size: 12px;
+  transition: all 0.25s var(--ease);
+}
+
+.set-seg button:hover { border-color: var(--wine); color: var(--ink); }
+.set-seg button.is-on {
+  border-color: var(--wine);
+  color: var(--paper);
+  background: linear-gradient(180deg, var(--gold), var(--accent));
+  font-weight: 700;
+}
+
+.set-seg button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.set-seg--2 { grid-template-columns: repeat(2, 1fr); }
+
+.period-status {
+  margin-top: 6px;
+  padding: 8px 11px;
+  border: 1px dashed var(--wine);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--wine);
+  line-height: 1.5;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 0;
+  font-size: 12px;
+  color: var(--sub);
+  border-bottom: 1px dotted var(--line);
+}
+
+.shortcut-row:last-child { border-bottom: none; }
+
+.shortcut-row kbd {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  padding: 1px 7px;
+  background: var(--paper);
+}
+
+/* ============================================================
+   悬浮窗（黄昏小卡 + 停靠条）
+   ============================================================ */
+.float-stage {
+  max-width: 1500px;
+  margin: 18px 34px 0;
+}
+
+.float-frame {
+  border-radius: 18px;
+  border: 1px solid var(--page-line);
+  overflow: hidden;
+  background:
+    radial-gradient(800px 340px at 62% -6%, rgba(232, 163, 77, 0.22), transparent 60%),
+    radial-gradient(700px 380px at 8% 110%, rgba(214, 83, 47, 0.12), transparent 58%),
+    var(--page-bg);
+  box-shadow: 0 34px 80px rgba(58, 37, 24, 0.2);
+}
+
+.float-frame__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--page-line);
+  font-size: 12px;
+  color: var(--page-muted);
+}
+
+.float-frame__bar b { color: var(--page-ink); font-weight: 700; }
+
+.float-scene {
+  position: relative;
+  min-height: 430px;
+  padding: 44px 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 60px;
+  flex-wrap: wrap;
+  overflow: hidden;
+}
+
+.float-scene .dusk-bg { z-index: 0; }
+.float-scene > *:not(.dusk-bg) { position: relative; z-index: 1; }
+
+/* 黄昏小卡（悬浮窗） */
+.float-window {
+  width: 360px;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(232, 163, 77, 0.08), transparent 40%),
+    var(--paper);
+  border: 1px solid var(--line-strong);
+  box-shadow:
+    0 18px 44px rgba(58, 37, 24, 0.22),
+    0 0 0 5px rgba(255, 240, 214, 0.3);
+}
+
+.float-window__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.float-window__head .fm-tag {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--sub);
+}
+
+.float-window__head .fm-tag::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #ffe9bd, var(--gold));
+  box-shadow: 0 0 7px rgba(255, 190, 110, 0.8);
+  vertical-align: 1px;
+}
+
+.float-window__head-actions { display: flex; gap: 2px; }
+.float-window__head-actions button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: none;
+  color: var(--sub);
+  border-radius: 50%;
+}
+
+.float-window__head-actions button:hover { background: var(--gold-soft); color: var(--ink); }
+.float-window__head-actions button svg { width: 14px; height: 14px; }
+
+.float-window__body {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 14px;
+  align-items: center;
+  padding: 6px 14px 12px;
+}
+
+.float-window__vinyl {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center,
+      var(--gold) 0 8%,
+      transparent 8.5% 11%,
+      var(--paper) 11% 22%,
+      transparent 22.5%,
+      var(--vinyl) 40% 100%);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 3px 10px rgba(58, 37, 24, 0.22);
+}
+
+.float-window__vinyl::before {
+  content: "";
+  position: absolute;
+  inset: 26%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 60%, #ffd9a0, var(--gold) 42%, var(--accent) 78%);
+}
+
+.is-playing .float-window__vinyl { animation: vinyl-spin 14s linear infinite; }
+
+.float-window__meta { min-width: 0; }
+.float-window__title {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.float-window__artist {
+  font-size: 12px;
+  color: var(--sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.float-window__progress {
+  margin: 0 14px 8px;
+  position: relative;
+  height: 14px;
+}
+
+.float-window__progress::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(232, 163, 77, 0.4), rgba(125, 59, 82, 0.35));
+}
+
+.float-window__progress i {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 32%;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--gold), var(--accent));
+  transform: translateY(-50%);
+  box-shadow: 0 0 7px rgba(232, 163, 77, 0.55);
+}
+
+.is-playing .float-window__progress i { animation: prog-run 32s linear infinite; }
+
+.float-window__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px 14px;
+}
+
+.float-window__controls .ctrl {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.float-window__controls .ctrl:hover { background: var(--gold-soft); color: var(--wine); }
+.float-window__controls .ctrl svg { width: 14px; height: 14px; }
+
+.float-window__controls .play {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--wine);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffdfae, var(--gold) 58%, var(--accent));
+  color: var(--paper);
+  box-shadow: 0 4px 14px rgba(214, 83, 47, 0.34);
+}
+
+.float-window__controls .play svg { width: 17px; height: 17px; }
+
+/* 停靠条（黄昏印张） */
+.dock-bar {
+  width: min(680px, 92%);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(232, 163, 77, 0.08), transparent 44%),
+    var(--paper);
+  border: 1px solid var(--line-strong);
+  box-shadow:
+    0 14px 36px rgba(58, 37, 24, 0.2),
+    0 0 0 4px rgba(255, 240, 214, 0.26);
+}
+
+.dock-bar__main {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px 12px;
+}
+
+.dock-bar__vinyl {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center,
+      var(--gold) 0 10%,
+      transparent 10.5% 13%,
+      var(--paper) 13% 25%,
+      transparent 25.5%,
+      var(--vinyl) 45% 100%);
+  border: 1px solid var(--line-strong);
+}
+
+.is-playing .dock-bar__vinyl { animation: vinyl-spin 14s linear infinite; }
+
+.dock-bar__meta { min-width: 0; }
+.dock-bar__title {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dock-bar__artist {
+  font-size: 11.5px;
+  color: var(--sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dock-bar__actions { display: flex; gap: 2px; }
+.dock-bar__actions button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--sub);
+}
+
+.dock-bar__actions button:hover { background: var(--gold-soft); color: var(--wine); }
+.dock-bar__actions button svg { width: 14px; height: 14px; }
+
+.dock-bar__progress {
+  position: relative;
+  height: 10px;
+  margin: 0 14px;
+}
+
+.dock-bar__progress::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(232, 163, 77, 0.4), rgba(125, 59, 82, 0.35));
+}
+
+.dock-bar__progress i {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 32%;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--gold), var(--accent));
+  transform: translateY(-50%);
+  box-shadow: 0 0 6px rgba(232, 163, 77, 0.5);
+}
+
+.is-playing .dock-bar__progress i { animation: prog-run 32s linear infinite; }
+
+/* ============================================================
+   本期排印说明
+   ============================================================ */
+.note-band {
+  max-width: 1500px;
+  margin: 44px auto 0;
+  padding: 0 34px;
+}
+
+.note-band__head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--page-line);
+}
+
+.note-band__head h2 {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 21px;
+  font-weight: 900;
+}
+
+.note-band__head p { color: var(--page-muted); font-size: 13px; }
+
+.note-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.note-card {
+  padding: 16px 18px;
+  border: 1px solid var(--page-line);
+  border-radius: 14px;
+  background: rgba(255, 248, 232, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 3px 10px rgba(58, 37, 24, 0.08);
+}
+
+.note-card__no {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  color: var(--wine);
+  letter-spacing: 0.16em;
+}
+
+.note-card__title {
+  margin-top: 4px;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.note-card__desc {
+  margin-top: 5px;
+  font-size: 12.5px;
+  color: var(--page-muted);
+  line-height: 1.6;
+}
+
+/* ---------- 页脚 ---------- */
+.canvas-foot {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 34px 34px 80px;
+}
+
+.canvas-foot__box {
+  border: 1px solid var(--page-line);
+  border-radius: 14px;
+  padding: 20px 24px;
+  background: rgba(255, 248, 232, 0.42);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+  color: var(--page-muted);
+}
+
+.canvas-foot__box strong {
+  color: var(--page-ink);
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 14px;
+}
+
+.canvas-foot__box ul {
+  margin: 10px 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* ---------- Tweaks ---------- */
+.tweaks-toggle {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 80;
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid #7d3b52;
+  background: linear-gradient(180deg, #e8a34d, #d6532f);
+  color: #f7e6cb;
+  font-size: 12.5px;
+  font-weight: 700;
+  box-shadow: 0 5px 16px rgba(214, 83, 47, 0.38);
+}
+
+.tweaks {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 81;
+  width: 272px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid #7d3b52;
+  background: #f7e6cb;
+  color: #3a2518;
+  box-shadow:
+    0 18px 44px rgba(58, 37, 24, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transform: translateY(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+.tweaks.is-open { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+.tweaks__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tweaks__close {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--sub);
+}
+
+.tweaks__close svg { width: 13px; height: 13px; }
+
+.tweak-group { margin-bottom: 13px; }
+
+.tweak-group__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--sub);
+  letter-spacing: 0.1em;
+}
+
+.tweak-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 0;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tweak-switch input { display: none; }
+.tweak-switch .toggle { pointer-events: none; }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1100px) {
+  .radio-body { grid-template-columns: 180px minmax(0, 1fr); }
+  .radio-body.has-drawer { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .settings-drawer {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 300px;
+    z-index: 5;
+  }
+  .note-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 760px) {
+  .canvas-head { flex-direction: column; align-items: flex-start; padding: 28px 18px 18px; }
+  .canvas-head__meta { text-align: left; }
+  .page-stage, .float-stage, .note-band, .canvas-foot { padding-left: 18px; padding-right: 18px; }
+  .page-stage, .float-stage { margin-left: 18px; margin-right: 18px; }
+  .note-grid { grid-template-columns: 1fr; }
+  .float-scene { flex-direction: column; }
+  .radio-head { grid-template-columns: 1fr auto; }
+  .radio-nav { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .is-playing .vinyl,
+  .is-playing .float-window__vinyl,
+  .is-playing .dock-bar__vinyl,
+  .now-controls .play,
+  .db-lamp__head { animation: none; }
+  .is-playing .now-progress__fill,
+  .is-playing .float-window__progress i,
+  .is-playing .dock-bar__progress i { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="canvas-head">
+  <div>
+    <h1>黄昏电台 · <em>暮</em></h1>
+    <p class="canvas-head__sub">v5 单时段排印 · 落日 / 霞光 / 归鸟 / 路灯 · 排版骨架沿用 · 与晨、午材料完全独立</p>
+  </div>
+  <div class="canvas-head__meta">
+    <b>本期：DUSK EDITION</b><br>
+    2026.08.01 · 不参考任何现有设计文件<br>
+    <span class="canvas-head__stamp">暮 · 晚风号</span>
+  </div>
+</header>
+
+<div class="theme-root is-playing" id="themeRoot">
+
+  <!-- ============ 独立音乐页 ============ -->
+  <div class="page-stage">
+    <div class="browser-frame">
+      <div class="browser-frame__bar">
+        <div class="browser-frame__dots"><i></i><i></i><i></i></div>
+        <div class="browser-frame__url">dusk-broadcast.local / now-playing</div>
+        <div style="width:52px"></div>
+      </div>
+
+      <div class="radio-head">
+        <div class="radio-callsign">
+          <span class="radio-seal">暮</span>
+          <div>
+            <div class="radio-callsign__name">黄昏<span>电台</span></div>
+            <div class="radio-callsign__freq"><b>DUSK</b> · FM 87.5 · 18:30</div>
+          </div>
+        </div>
+        <nav class="radio-nav">
+          <button class="is-active">正在播放</button>
+          <button>本地资料库</button>
+          <button>歌词</button>
+          <button>播放列表</button>
+          <button>网易云 <span style="font-size:10px;opacity:.65">可选</span></button>
+        </nav>
+        <div class="radio-head__actions">
+          <span class="on-air"><span class="on-air__lamp"></span>ON AIR</span>
+          <button class="paper-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg>搜索</button>
+          <button class="paper-btn" id="openSettingsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h9M18 7h2M4 17h3M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>设置</button>
+        </div>
+      </div>
+
+      <div class="radio-body" id="radioBody">
+        <aside class="rail">
+          <span class="rail__group">晚场节目 · PROGRAM</span>
+          <button class="rail-item is-active"><span class="rail-item__num">晚 01</span><span>全部音乐</span><span class="rail-item__count">42</span></button>
+          <button class="rail-item"><span class="rail-item__num">晚 02</span><span>专辑</span><span class="rail-item__count">9</span></button>
+          <button class="rail-item"><span class="rail-item__num">晚 03</span><span>艺术家</span><span class="rail-item__count">6</span></button>
+          <button class="rail-item"><span class="rail-item__num">晚 04</span><span>文件夹</span><span class="rail-item__count">3</span></button>
+          <span class="rail__group">歌单 · PLAYLISTS</span>
+          <button class="rail-item"><span class="rail-item__num">晚 05</span><span>收藏</span><span class="rail-item__count">12</span></button>
+          <button class="rail-item"><span class="rail-item__num">晚 06</span><span>最近添加</span><span class="rail-item__count">8</span></button>
+          <button class="rail-item"><span class="rail-item__num">晚 07</span><span>黄昏歌单</span><span class="rail-item__badge">SMART</span></button>
+          <button class="rail-item"><span class="rail-item__num">晚 08</span><span>播放历史</span><span class="rail-item__count">24</span></button>
+        </aside>
+
+        <main class="stage">
+          <div class="dusk-bg" aria-hidden="true">
+            <span class="db-glow"></span>
+            <span class="db-sun"></span>
+            <span class="db-bands"></span>
+            <div class="db-birds"><i></i><i></i><i></i></div>
+            <div class="db-lamp">
+              <span class="db-lamp__pole"></span>
+              <span class="db-lamp__arm"></span>
+              <span class="db-lamp__head"></span>
+            </div>
+            <span class="db-shadow"></span>
+          </div>
+
+          <div class="sound-field">
+            <span class="sf-dust"></span>
+            <span class="sf-dust"></span>
+            <span class="sf-dust"></span>
+            <span class="sf-dust"></span>
+            <span class="sf-dust"></span>
+            <div class="sf-wave">
+              <svg viewBox="0 0 900 60" preserveAspectRatio="none">
+                <path class="wave-a" d="M0 30 C 60 12, 110 48, 170 30 S 290 14, 350 30 470 46, 530 30 650 12, 710 32 830 48, 900 28" />
+                <path class="wave-b" d="M0 34 C 70 20, 130 44, 200 32 S 320 18, 390 34 510 46, 580 30 700 16, 770 34 900 30" />
+              </svg>
+            </div>
+            <span class="sf-note">FIELD · 晚风波形（占位）</span>
+          </div>
+
+          <div class="vinyl"><div class="vinyl__label"><span>SUNSET · SIDE C</span></div></div>
+
+          <div class="now-meta">
+            <div class="now-meta__eyebrow">NOW PLAYING · 晚场栏目 03</div>
+            <h3 class="now-meta__title serif">示例曲目（本地文件占位）</h3>
+            <p class="now-meta__artist">艺术家待填 · 专辑待填</p>
+            <div class="now-meta__chips">
+              <span class="chip chip--accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 15V4M8 8l4-4 4 4M4 16.5v2A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>本地库</span>
+              <span class="chip mono">FLAC · 44.1kHz</span>
+              <span class="chip mono">320kbps</span>
+            </div>
+          </div>
+
+          <div class="lyric-carousel">
+            <div class="lyric-track" id="lyricTrack">
+              <div class="lyric-line is-near">晚霞 在窗边铺开</div>
+              <div class="lyric-line is-near">路灯 一盏一盏醒来</div>
+              <div class="lyric-line is-current">归鸟 划过橘色的天</div>
+              <div class="lyric-line is-near">黄昏电台 播到这一首</div>
+              <div class="lyric-line is-near">影子 拉得很长很长</div>
+              <div class="lyric-line">歌单 收进夜色之前</div>
+              <div class="lyric-line">下一首 留给月亮</div>
+            </div>
+          </div>
+          <div class="lyric-tip">轮播歌词 · 点击可跳转（占位）</div>
+
+          <div class="now-progress">
+            <div class="now-progress__row">
+              <span class="now-progress__time">1:24</span>
+              <div class="now-progress__track"><div class="now-progress__fill"></div><div class="now-progress__thumb"></div></div>
+              <span class="now-progress__time">4:10</span>
+            </div>
+          </div>
+
+          <div class="now-controls">
+            <button class="ctrl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 6H7a4 4 0 0 0-4 4v1M7 18h10a4 4 0 0 0 4-4v-1M18.5 20.5 21 18l-2.5-2.5M5.5 3.5 3 6l2.5 2.5"/></svg></button>
+            <button class="ctrl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 5v14"/><path d="M17.5 6.5 8.5 12l9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+            <button class="ctrl play" id="mainPlayBtn">
+              <svg class="ico-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+              <svg class="ico-pause" viewBox="0 0 24 24"><rect x="6.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/><rect x="13.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/></svg>
+            </button>
+            <button class="ctrl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M17.5 5v14"/><path d="M6.5 6.5l9 5.5-9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+            <button class="ctrl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z" fill="currentColor" stroke="none"/><path d="M15.5 9a5 5 0 0 1 0 6"/><path d="M17.8 6.8a9 9 0 0 1 0 10.4"/></svg></button>
+          </div>
+
+          <div class="now-actions">
+            <button class="chip-btn is-active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h12M4 17.5h8"/></svg>歌词</button>
+            <button class="chip-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h10M4 17.5h6"/></svg>队列</button>
+            <button class="chip-btn mono">1.0×</button>
+            <button class="chip-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h14"/><circle cx="9" cy="7" r="1.8" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="11" cy="17" r="1.8" fill="currentColor" stroke="none"/></svg>EQ</button>
+          </div>
+        </main>
+
+        <aside class="settings-drawer" id="settingsDrawer">
+          <div class="settings-drawer__head">
+            <h3 class="serif">设置<small>SETTINGS · 黄昏版</small></h3>
+            <button id="closeSettingsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+          </div>
+          <div class="settings-body">
+            <div class="set-group">
+              <div class="set-group__title">主题时段</div>
+              <div class="set-seg">
+                <button disabled title="已排印">晨</button>
+                <button disabled title="已排印">午</button>
+                <button class="is-on">暮</button>
+                <button disabled title="待排印">夜</button>
+              </div>
+              <div class="period-status">本期排印「暮」：落日 + 霞光 + 归鸟 + 路灯，材料与前两版完全独立。夜待排印。</div>
+            </div>
+
+            <div class="set-group">
+              <div class="set-group__title">播放</div>
+              <div class="set-row">
+                <span>
+                  <span class="set-row__label">无缝播放</span>
+                  <span class="set-row__hint">同采样率曲目无缝衔接</span>
+                </span>
+                <span class="toggle is-on" data-toggle></span>
+              </div>
+              <div class="set-row">
+                <span>
+                  <span class="set-row__label">交叉淡化</span>
+                  <span class="set-row__hint">切歌时淡入淡出</span>
+                </span>
+                <span class="toggle" data-toggle></span>
+              </div>
+              <div class="set-row">
+                <span class="set-row__label">播放倍速</span>
+                <span class="set-row__value mono">1.0×</span>
+              </div>
+            </div>
+
+            <div class="set-group">
+              <div class="set-group__title">歌词</div>
+              <div class="set-seg set-seg--2" data-lyric-seg>
+                <button class="is-on">逐词</button>
+                <button>逐行</button>
+              </div>
+              <div class="set-row" style="margin-top:10px">
+                <span class="set-row__label">本地 LRC 优先</span>
+                <span class="toggle is-on" data-toggle></span>
+              </div>
+            </div>
+
+            <div class="set-group">
+              <div class="set-group__title">音乐源</div>
+              <div class="set-row">
+                <span>
+                  <span class="set-row__label">本地资料库</span>
+                  <span class="set-row__hint">文件夹扫描 · 始终可用</span>
+                </span>
+                <span class="toggle is-on" data-toggle data-lock></span>
+              </div>
+              <div class="set-row">
+                <span>
+                  <span class="set-row__label">网易云搜索</span>
+                  <span class="set-row__hint">可选源 · 接口不稳定</span>
+                </span>
+                <span class="toggle" data-toggle data-netease></span>
+              </div>
+              <div class="set-note">开启后仅在搜索 / 歌词补全时联网；失败自动降级为本地库。</div>
+            </div>
+
+            <div class="set-group">
+              <div class="set-group__title">快捷键</div>
+              <div class="shortcut-row"><span>播放 / 暂停</span><kbd>Space</kbd></div>
+              <div class="shortcut-row"><span>上一首 / 下一首</span><kbd>← →</kbd></div>
+              <div class="shortcut-row"><span>搜索</span><kbd>Ctrl K</kbd></div>
+              <div class="shortcut-row"><span>静音</span><kbd>M</kbd></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 悬浮窗 ============ -->
+  <div class="float-stage">
+    <div class="float-frame">
+      <div class="float-frame__bar">
+        <span><b>悬浮窗</b> · 黄昏小卡（暖光圆角 + 落日微光）</span>
+        <span class="mono" style="font-size:11px">DUSK FLOAT</span>
+      </div>
+      <div class="float-scene">
+        <div class="dusk-bg" aria-hidden="true">
+          <span class="db-glow"></span>
+          <span class="db-sun"></span>
+          <span class="db-bands"></span>
+          <div class="db-birds"><i></i><i></i><i></i></div>
+        </div>
+
+        <div class="float-window">
+          <div class="float-window__head">
+            <span class="fm-tag">DUSK EDITION · 18:30</span>
+            <div class="float-window__head-actions">
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h10M4 17.5h6"/></svg></button>
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 10l4-4 4 4"/><path d="M8 14l4 4 4-4"/></svg></button>
+            </div>
+          </div>
+          <div class="float-window__body">
+            <div class="float-window__vinyl"></div>
+            <div class="float-window__meta">
+              <div class="float-window__title serif">示例曲目（本地占位）</div>
+              <div class="float-window__artist">艺术家待填 · 黄昏歌单</div>
+            </div>
+          </div>
+          <div class="float-window__progress"><i></i></div>
+          <div class="float-window__controls">
+            <button class="ctrl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 5v14"/><path d="M17.5 6.5 8.5 12l9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+            <button class="ctrl play">
+              <svg class="ico-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+              <svg class="ico-pause" viewBox="0 0 24 24"><rect x="6.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/><rect x="13.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/></svg>
+            </button>
+            <button class="ctrl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M17.5 5v14"/><path d="M6.5 6.5l9 5.5-9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+          </div>
+        </div>
+
+        <div class="dock-bar">
+          <div class="dock-bar__main">
+            <div class="dock-bar__vinyl"></div>
+            <div class="dock-bar__meta">
+              <div class="dock-bar__title serif">示例曲目（本地占位）</div>
+              <div class="dock-bar__artist">艺术家待填 · 黄昏歌单</div>
+            </div>
+            <div class="dock-bar__actions">
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 5v14"/><path d="M17.5 6.5 8.5 12l9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+              <button>
+                <svg class="ico-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+                <svg class="ico-pause" viewBox="0 0 24 24"><rect x="6.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/><rect x="13.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/></svg>
+              </button>
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h10M4 17.5h6"/></svg></button>
+            </div>
+          </div>
+          <div class="dock-bar__progress"><i></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 本期排印说明 ============ -->
+<section class="note-band">
+  <div class="note-band__head">
+    <h2>本期「暮」排印了什么</h2>
+    <p>背景 / 按钮 / 装饰三个层面全部换材料，与晨、午无共享元素</p>
+  </div>
+  <div class="note-grid">
+    <div class="note-card">
+      <div class="note-card__no">01 · 背景</div>
+      <div class="note-card__title">落日 + 霞带 + 归鸟</div>
+      <div class="note-card__desc">暖霞纸面，左下低垂的落日带大光晕，横霞带缓慢漂移，归鸟剪影划过天空，右下角一盏刚亮起的路灯在呼吸。</div>
+    </div>
+    <div class="note-card">
+      <div class="note-card__no">02 · 按钮</div>
+      <div class="note-card__title">灯笼圆钮</div>
+      <div class="note-card__desc">全部改为软圆 + 暖光：按钮像小灯笼，悬停时亮起金橙光；播放键是落日暖钮，带缓慢呼吸的辉光。</div>
+    </div>
+    <div class="note-card">
+      <div class="note-card__no">03 · 装饰</div>
+      <div class="note-card__title">路灯 · 长影 · 晚尘</div>
+      <div class="note-card__desc">唱片底下有一道拉长的暖影，音场里是晚风波形和漂浮的暖尘；左栏用「晚 01–08」节目编号，虚点分隔线。</div>
+    </div>
+    <div class="note-card">
+      <div class="note-card__no">04 · 唱片</div>
+      <div class="note-card__title">霞光唱片</div>
+      <div class="note-card__desc">深梅盘身 + 落日标签：标签是一圈从金到酒红的霞光同心环；悬浮窗与停靠条同步换版。</div>
+    </div>
+  </div>
+</section>
+
+<footer class="canvas-foot">
+  <div class="canvas-foot__box">
+    <strong>下一步：</strong>确认「暮」后，最后一版「夜」单独排印（初步想法：月光、星野、窗灯与午夜电台）。
+    <ul>
+      <li>暮 = 落日 · 霞光 · 归鸟 · 路灯 · 灯笼圆钮 · 霞光唱片</li>
+      <li>夜会单独设计，不复制前三版的配方。</li>
+    </ul>
+  </div>
+</footer>
+
+<!-- ============ Tweaks ============ -->
+<button class="tweaks-toggle" id="tweaksToggle">Tweaks</button>
+
+<div class="tweaks" id="tweaks">
+  <div class="tweaks__head">
+    <span>Tweaks · 暮</span>
+    <button class="tweaks__close" id="tweaksClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+  <div class="tweak-group">
+    <label class="tweak-switch">
+      <span>播放演示</span>
+      <input type="checkbox" id="demoPlay" checked>
+      <span class="toggle is-on"></span>
+    </label>
+    <label class="tweak-switch">
+      <span>侧边设置栏</span>
+      <input type="checkbox" id="demoDrawer" checked>
+      <span class="toggle is-on"></span>
+    </label>
+    <label class="tweak-switch">
+      <span>网易云源（演示）</span>
+      <input type="checkbox" id="demoNetease">
+      <span class="toggle"></span>
+    </label>
+  </div>
+</div>
+
+<script>
+(function () {
+  var themeRoot = document.getElementById('themeRoot');
+
+  var tweaks = document.getElementById('tweaks');
+  document.getElementById('tweaksToggle').addEventListener('click', function () {
+    tweaks.classList.toggle('is-open');
+  });
+  document.getElementById('tweaksClose').addEventListener('click', function () {
+    tweaks.classList.remove('is-open');
+  });
+
+  var demoPlay = document.getElementById('demoPlay');
+  var lyricLines = Array.prototype.slice.call(document.querySelectorAll('.lyric-line'));
+  var lyricIndex = 2;
+  var lyricTimer = null;
+
+  function renderLyrics() {
+    var track = document.getElementById('lyricTrack');
+    if (!track) return;
+    var count = lyricLines.length;
+    var offset = Math.max(0, Math.min(lyricIndex - 2, count - 4));
+    track.style.transform = 'translateY(calc(-50% - ' + offset * 42 + 'px))';
+    lyricLines.forEach(function (line, i) {
+      line.classList.toggle('is-current', i === lyricIndex);
+      line.classList.toggle('is-near', Math.abs(i - lyricIndex) <= 2 && i !== lyricIndex);
+    });
+  }
+
+  function setPlaying(on) {
+    themeRoot.classList.toggle('is-playing', on);
+    demoPlay.checked = on;
+    clearInterval(lyricTimer);
+    if (on) {
+      lyricTimer = setInterval(function () {
+        lyricIndex = (lyricIndex + 1) % lyricLines.length;
+        renderLyrics();
+      }, 3200);
+    }
+  }
+
+  demoPlay.addEventListener('change', function () {
+    setPlaying(demoPlay.checked);
+  });
+  document.getElementById('mainPlayBtn').addEventListener('click', function () {
+    setPlaying(!themeRoot.classList.contains('is-playing'));
+  });
+  renderLyrics();
+  setPlaying(true);
+
+  var radioBody = document.getElementById('radioBody');
+  var drawerCheck = document.getElementById('demoDrawer');
+
+  function setDrawer(on) {
+    radioBody.classList.toggle('has-drawer', on);
+    drawerCheck.checked = on;
+  }
+
+  document.getElementById('openSettingsBtn').addEventListener('click', function () {
+    setDrawer(true);
+  });
+  document.getElementById('closeSettingsBtn').addEventListener('click', function () {
+    setDrawer(false);
+  });
+  drawerCheck.addEventListener('change', function () {
+    setDrawer(drawerCheck.checked);
+  });
+  setDrawer(true);
+
+  document.querySelectorAll('[data-toggle]').forEach(function (t) {
+    t.addEventListener('click', function () {
+      if (t.hasAttribute('data-lock')) return;
+      t.classList.toggle('is-on');
+      if (t.hasAttribute('data-netease')) {
+        document.getElementById('demoNetease').checked = t.classList.contains('is-on');
+      }
+    });
+  });
+
+  var neteaseToggle = document.getElementById('demoNetease');
+  neteaseToggle.addEventListener('change', function () {
+    document.querySelectorAll('[data-netease]').forEach(function (t) {
+      t.classList.toggle('is-on', neteaseToggle.checked);
+    });
+  });
+
+  document.querySelectorAll('[data-lyric-seg]').forEach(function (seg) {
+    seg.addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      seg.querySelectorAll('button').forEach(function (b) { b.classList.remove('is-on'); });
+      btn.classList.add('is-on');
+    });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.target instanceof HTMLInputElement) return;
+    if (e.key === 'p' || e.key === 'P') {
+      setPlaying(!themeRoot.classList.contains('is-playing'));
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -41,6 +41,7 @@ import {
   type ChatMessage,
 } from '@/composables/useChatStreamStore'
 import AgentToolCard from '@/components/chat/AgentToolCard.vue'
+import StationRoomShell from '@/components/shared/StationRoomShell.vue'
 import {
   getChatConfigStorageKey,
   saveLastChatConversationId,
@@ -607,7 +608,7 @@ const handleKeydown = (e: KeyboardEvent) => {
 }
 
 const goBack = () => {
-  router.push('/')
+  router.push('/chat')
 }
 
 const loadRoles = async () => {
@@ -930,6 +931,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <StationRoomShell brand-path="/chat" note-label="Chat · 对话中" room="chat" fill="frame">
   <div class="chat-page">
   <div class="chat-header">
     <div class="chat-header__left">
@@ -1211,6 +1213,7 @@ onUnmounted(() => {
       </div>
     </div>
   </div>
+  </StationRoomShell>
 </template>
 
 <style scoped>

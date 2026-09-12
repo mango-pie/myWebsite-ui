@@ -204,9 +204,15 @@ export const useLearningWorkbenchStore = defineStore('learningWorkbench', () => 
 
   async function confirmBranch(payload: { title: string; parentBranchId: number | string }) {
     if (!currentDomainId.value) return
+    const parentRaw = payload.parentBranchId
+    // 雪花 ID 必须保持字符串，避免精度丢失；0 / '0' / null 表示建 L1
+    const parentBranchId =
+      parentRaw == null || parentRaw === '' || parentRaw === 0 || parentRaw === '0'
+        ? 0
+        : String(parentRaw)
     const res = await learningApi.createBranch(currentDomainId.value, {
-      title: payload.title,
-      parentBranchId: payload.parentBranchId,
+      title: payload.title.trim(),
+      parentBranchId,
     })
     if (res.data.code !== 0) throw new Error(res.data.message || '建枝失败')
     await loadTree(currentDomainId.value)

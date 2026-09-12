@@ -1,404 +1,693 @@
-/**
- * 领域知识树 V3 — Styles
- * Scope: .learning-domain (coexists with .admin-theme-page)
- *
- * Page chrome (breadcrumb, hero, filter-bar) from admin-theme.css.
- * Component-scoped styles live in their respective .vue files.
- * This file handles: workspace layout, welcome, tree-viz, shared utilities.
- */
-
-/* ================================================================
-   1. Workspace — dual-panel (tree left, detail right)
-   ================================================================ */
-.learning-domain .learning-workspace {
-  display: flex;
-  gap: 20px;
-  min-height: calc(100vh - 320px);
+/* Reading Room v1 observatory shell for the learning workbench. */
+.learning-domain {
+  --ld-color-bg-elevated: rgba(255, 255, 255, 0.64);
+  --ld-color-bg-subtle: rgba(255, 255, 255, 0.52);
+  --ld-color-bg-muted: rgba(255, 255, 255, 0.72);
+  --ld-color-border: color-mix(in srgb, var(--room) 20%, #fff);
+  --ld-color-border-strong: color-mix(in srgb, var(--room) 48%, #fff);
+  --ld-color-text-primary: var(--ink);
+  --ld-color-text-secondary: var(--ink-soft);
+  --ld-color-text-tertiary: var(--ink-faint);
+  --ld-color-primary: var(--room);
+  --ld-color-primary-hover: color-mix(in srgb, var(--room) 80%, #fff);
+  --ld-color-primary-subtle: var(--room-soft);
+  --ld-color-primary-muted: color-mix(in srgb, var(--room) 28%, transparent);
+  --ld-color-primary-08: color-mix(in srgb, var(--room) 10%, transparent);
+  --ld-color-primary-12: color-mix(in srgb, var(--room) 14%, transparent);
+  --ld-color-primary-20: color-mix(in srgb, var(--room) 20%, transparent);
+  --ld-color-primary-35: color-mix(in srgb, var(--room) 36%, transparent);
+  --ld-color-ai: var(--c-blue);
+  --ld-color-ai-20: #e3f0fc;
+  --ld-color-success: #2a8a6e;
+  --ld-color-success-15: var(--c-mint-soft);
+  --ld-color-surface-hover: rgba(255, 255, 255, 0.82);
+  height: 100%;
+  min-height: 0;
+  color: var(--ink);
 }
 
-.learning-domain .learning-workspace__tree {
-  flex: 0 0 clamp(240px, 22vw, 300px);
-  width: clamp(240px, 22vw, 300px);
-  min-width: 220px;
-  max-width: 320px;
-  background: transparent;
-  border-right: 1px solid var(--color-border);
-  padding: 16px;
-  overflow: auto;
+.learning-domain .learning-side,
+.learning-domain .learning-deck {
+  position: relative;
+  z-index: 2;
 }
 
-.learning-domain .learning-workspace__detail {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
+.learning-domain .learn-back {
+  display: none;
 }
 
-/* ================================================================
-   2. Welcome (no domain selected)
-   ================================================================ */
-.learning-domain .learning-welcome {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 50vh;
+.learning-domain .learn-domain-picker :where(.ant-select) {
+  width: 100%;
 }
 
-.learning-domain .learning-welcome__card {
-  width: min(480px, 100%);
-  background: var(--color-bg-card);
-  border-radius: var(--radius-xl);
-  padding: 48px 36px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.learning-domain .learn-domain-picker :where(.ant-select-selector) {
+  border-radius: 999px !important;
+  border-color: rgba(255, 255, 255, 0.95) !important;
+  background: rgba(255, 255, 255, 0.74) !important;
+  box-shadow: none !important;
+}
+
+.learning-domain .learn-domain-picker :where(.ant-select-selection-item),
+.learning-domain .learn-domain-picker :where(.ant-select-selection-placeholder) {
+  color: var(--ink-soft) !important;
+  font-size: 12px;
+}
+
+.learning-domain .learning-mid {
+  position: relative;
+  z-index: 2;
   gap: 12px;
 }
 
-.learning-domain .learning-welcome__icon {
-  color: var(--color-primary);
-  opacity: 0.6;
+.learning-domain .learn-toolbar {
+  flex: none;
 }
 
-.learning-domain .learning-welcome__title {
-  margin: 0;
-  font-size: 1.125rem;
-  line-height: 1.55;
-  font-weight: 700;
-  color: var(--color-text-primary);
+.learning-domain .learn-toolbar .chip-btn.on {
+  background: var(--room);
+  color: #fff;
 }
 
-.learning-domain .learning-welcome__desc {
-  margin: 0 0 12px;
-  color: var(--color-text-secondary);
-  font-size: 0.875rem;
-  line-height: 1.75;
-}
-
-/* ================================================================
-   3. Filter bar — snapshot hint
-   ================================================================ */
 .learning-domain .snapshot-hint {
-  font-size: 0.75rem;
-  color: var(--color-warning);
-  white-space: nowrap;
+  margin-left: auto;
+  max-width: 220px;
   overflow: hidden;
+  color: #b06c36;
+  font-size: 10px;
+  letter-spacing: .5px;
   text-overflow: ellipsis;
-  max-width: 320px;
+  white-space: nowrap;
 }
 
-/* ================================================================
-   4. DomainTreeViz (SVG tree diagram — global, used by TreeVizOverlay)
-   ================================================================ */
-.learning-domain .domain-tree-viz {
+
+.learning-domain .learning-welcome {
   flex: 1;
+  min-height: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: 36px;
+  text-align: center;
+}
+
+.learning-domain .learning-welcome__icon {
+  color: var(--room);
+  opacity: .72;
+}
+
+.learning-domain .learning-welcome h2 {
+  margin: 5px 0 8px;
+  font-size: 24px;
+  letter-spacing: 1px;
+}
+
+.learning-domain .learning-welcome p {
+  max-width: 330px;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.learning-domain .eyebrow {
+  color: var(--ink-faint);
+  font-size: 10px;
+  letter-spacing: 2px;
+}
+
+/* Bring the retained tree and content components into the room palette. */
+.learning-domain .domain-tree__header {
+  border-color: color-mix(in srgb, var(--room) 22%, transparent);
+}
+
+.learning-domain .domain-tree__domain-name,
+.learning-domain .tree-row--l1 .tree-row__title,
+.learning-domain .ld-content__branch {
+  color: var(--ink);
+}
+
+.learning-domain .tree-row:hover,
+.learning-domain .tree-chevron:hover {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.learning-domain .tree-row--active {
+  background: #fff;
+  border-color: color-mix(in srgb, var(--room) 28%, transparent);
+}
+
+.learning-domain .tree-row--active::before {
+  background: var(--room);
+}
+
+.learning-domain .tree-l2-group::before,
+.learning-domain .tree-guide {
+  background: color-mix(in srgb, var(--room) 38%, transparent);
+}
+
+.learning-domain .tree-row--l2::after,
+.learning-domain .tree-row--l2::before {
+  display: none;
+}
+
+.learning-domain .domain-tree--editing {
+  background: color-mix(in srgb, var(--room-soft) 50%, transparent);
+  border-color: color-mix(in srgb, var(--room) 38%, transparent);
+}
+
+.learning-domain .ld-content {
+  padding: 0;
+  gap: 12px;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.learning-domain .ld-ask__inner {
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--room) 18%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--room-soft) 52%, #fff);
+}
+
+.learning-domain .ld-ask__input {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.learning-domain .ld-ask__send {
+  border-radius: 12px;
+  background: var(--room);
+}
+
+.learning-domain .ld-content__body {
+  padding-right: 2px;
+}
+
+.learning-domain .ld-gate,
+.learning-domain .ld-preview__item,
+.learning-domain .note-list__item,
+.learning-domain .empty-state {
+  border-color: color-mix(in srgb, var(--room) 16%, transparent);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.learning-domain .ld-gate--branch {
+  background: color-mix(in srgb, var(--room-soft) 56%, #fff);
+}
+
+.learning-domain .ld-gate--leaf {
+  background: color-mix(in srgb, var(--c-mint-soft) 78%, #fff);
+}
+
+.learning-domain .ld-rejudge-btn,
+.learning-domain .ld-gate__hint {
+  background: rgba(255, 255, 255, 0.62);
+  border-color: color-mix(in srgb, var(--room) 20%, transparent);
+  color: var(--ink-soft);
+}
+
+.learning-domain .ld-rejudge-btn:hover,
+.learning-domain .ld-gate__hint:hover {
+  color: var(--room);
+  border-color: color-mix(in srgb, var(--room) 45%, transparent);
+}
+
+.learning-domain .stat-row {
+  display: flex;
+  gap: 8px;
+}
+
+.learning-domain .room-bars .rb-row b {
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .learning-domain * {
+    transition-duration: .01ms !important;
+  }
+}
+
+/* ============================================================
+   方案 A · 学习页弹性工作台（design-preview v0 落地）
+   采集页保留固定舞台；学习页脱离舞台，随视口流动。
+   ============================================================ */
+.learning-domain {
+  height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  touch-action: none;
+  min-width: 0;
 }
 
-.learning-domain .domain-tree-viz__toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  flex-shrink: 0;
+.learning-domain > .learn-toolbar {
+  flex: none;
+  margin-bottom: 10px;
 }
 
-.learning-domain .domain-tree-viz__zoom-label {
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-  min-width: 40px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
-.learning-domain .domain-tree-viz__canvas {
+.learning-domain .learning-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 260px;
+  gap: 16px;
   flex: 1;
   min-height: 0;
-  transform-origin: center top;
-  transition: transform 0.2s ease;
+  overflow: hidden;
+}
+
+.learning-domain .learning-side,
+.learning-domain .learning-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.learning-domain .learning-mid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.learning-domain .learn-row {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(190px, .9fr) minmax(260px, 1.2fr);
+  gap: 12px;
+  overflow: hidden;
+}
+
+.learning-domain .tree-box.glass,
+.learning-domain .leaf-box.glass {
+  padding: 14px;
+  overflow: auto;
+  border-radius: var(--r-md);
+}
+
+.learning-domain .tree-box {
+  min-height: 0;
+}
+
+.learning-domain .leaf-box {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.learning-domain .leaf-box > .ld-content {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Flatten ContentPanel chrome so leaf-box glass is the only frame */
+.learning-domain .ld-content {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  gap: 12px !important;
+}
+
+.learning-domain .ld-ask__inner {
+  background: rgba(255, 255, 255, 0.72) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  border-radius: 14px;
+  box-shadow: var(--shadow-1);
+}
+
+.learning-domain .learn-sky__node {
+  cursor: pointer;
+}
+
+.learning-domain .sky-panel--clickable {
+  cursor: pointer;
+  transition: transform 0.25s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.5, 1)), box-shadow 0.25s;
+}
+
+.learning-domain .sky-panel--clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2, 0 4px 10px rgba(96, 116, 168, 0.14), 0 20px 48px rgba(96, 116, 168, 0.18));
+}
+
+.learning-domain .sky-panel--clickable:focus-visible {
+  outline: 2.5px solid rgba(155, 140, 232, 0.7);
+  outline-offset: 3px;
+}
+
+.learning-domain .domain-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.learning-domain .log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.learning-domain .log-line {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .72);
+  border: 1px solid rgba(255, 255, 255, .95);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.learning-domain .log-line .t {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--ink-faint);
+  font-family: var(--mono, ui-monospace, Consolas, monospace);
+}
+
+.learning-domain .log-line .m {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.learning-domain .log-line .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--room);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--room-soft) 80%, transparent);
+}
+
+.learning-domain .log-line.blue .dot {
+  background: var(--c-blue);
+  box-shadow: 0 0 0 3px #e3f0fc;
+}
+
+.learning-domain .log-line.mint .dot {
+  background: var(--c-mint);
+  box-shadow: 0 0 0 3px var(--c-mint-soft);
+}
+
+.learning-domain .sky-panel {
+  min-height: 210px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 10px 10px;
+}
+
+.learning-domain .sky-panel .map-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.learning-domain .sky-panel svg {
+  width: 100%;
+  height: 100%;
   overflow: visible;
 }
 
-.learning-domain .domain-tree-viz__svg {
-  width: 100%;
-  height: 100%;
-  min-height: 420px;
+/* 星图节点：避免 SVG 默认黑填，对齐设计稿紫罗兰玻璃节点 */
+.learning-domain .sky-panel .rm-edge {
+  fill: none;
+  stroke: color-mix(in srgb, var(--room) 40%, #fff);
+  stroke-width: 1.4;
+  transition: stroke 0.4s;
 }
 
-.learning-domain .domain-tree-viz__loading {
-  margin: auto;
-  color: var(--color-text-secondary);
-}
-
-.learning-domain .domain-tree-viz__edge {
-  opacity: 0.85;
-}
-
-.learning-domain .domain-tree-viz__root-circle {
-  fill: rgba(184, 164, 201, 0.55);
-  stroke: #cbb8da;
+.learning-domain .rm-edge.lit {
+  stroke: var(--room);
   stroke-width: 2;
 }
 
-.learning-domain .domain-tree-viz__root-label {
-  fill: #f5f0f8;
-  font-size: 12px;
-  font-weight: 700;
-  pointer-events: none;
-}
-
-.learning-domain .domain-tree-viz__node {
+.learning-domain .sky-panel .rm-node {
+  fill: color-mix(in srgb, var(--room-soft) 88%, #fff) !important;
+  stroke: color-mix(in srgb, var(--room) 55%, #fff) !important;
+  stroke-width: 1.5;
   cursor: pointer;
-  transition: filter 0.2s ease;
+  transition: filter 0.2s, stroke 0.2s, fill 0.3s;
 }
 
-.learning-domain .domain-tree-viz__node:hover {
-  filter: brightness(1.15);
+.learning-domain .sky-panel .rm-node:hover,
+.learning-domain .sky-panel .rm-node.is-on {
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--room) 45%, transparent));
+  stroke: var(--room) !important;
 }
 
-.learning-domain .domain-tree-viz__circle {
-  fill: rgba(45, 36, 56, 0.92);
-  stroke: #7c9ce0;
-  stroke-width: 2;
+.learning-domain .sky-panel .rm-node.is-on {
+  fill: var(--room) !important;
+  stroke: #fff !important;
 }
 
-.learning-domain .domain-tree-viz__node.is-empty .domain-tree-viz__circle {
-  fill: transparent;
-  stroke-dasharray: 4 3;
-  stroke: #cbb8da;
+.learning-domain .sky-panel .rm-node.root {
+  fill: color-mix(in srgb, var(--room) 55%, #fff) !important;
+  stroke: #fff !important;
 }
 
-.learning-domain .domain-tree-viz__node.is-active .domain-tree-viz__circle {
-  fill: rgba(184, 164, 201, 0.65);
-  stroke: #e8e0f0;
-  stroke-width: 2.5;
+.learning-domain .sky-panel .rm-node.empty {
+  fill: rgba(255, 255, 255, 0.65) !important;
+  stroke: color-mix(in srgb, var(--ink-faint) 60%, #fff) !important;
+  stroke-dasharray: 4 4;
 }
 
-.learning-domain .domain-tree-viz__label {
-  fill: #e8e0f0;
+.learning-domain .sky-panel .rm-lab {
   font-size: 10px;
-  font-weight: 600;
+  fill: var(--ink-soft) !important;
   pointer-events: none;
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
-.learning-domain .domain-tree-viz__badge {
-  fill: #6ee7b7;
-  font-size: 11px;
+.learning-domain .sky-panel .rm-lab.root-label,
+.learning-domain .sky-panel .rm-lab.on {
+  fill: #fff !important;
+}
+
+.learning-domain .sky-panel .rm-badge {
+  fill: var(--c-mint) !important;
+  stroke: none;
+}
+
+.learning-domain .sky-panel .rm-badge-t {
+  font-size: 8px;
+  fill: #fff !important;
   font-weight: 700;
   pointer-events: none;
 }
 
-.learning-domain .domain-tree-viz__hint {
-  fill: #cbb8da;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+.learning-domain .rm-node.empty {
+  stroke-dasharray: 4 4;
 }
 
-.learning-domain .domain-tree-viz__tip {
-  margin: 4px 0 0;
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
+.learning-domain .room-bars {
+  min-height: 110px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  padding: 26px 14px 10px;
 }
 
-/* ================================================================
-   5. Icon buttons (used by sub-components that don't have scoped styles)
-   ================================================================ */
-.learning-domain .ld-icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.learning-domain .room-bars .rb-row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: flex-end;
   gap: 6px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--color-text-secondary);
-  border-radius: var(--radius-sm);
-  padding: 6px 10px;
-  font-size: 0.75rem;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-
-.learning-domain .ld-icon-btn:hover:not(:disabled) {
-  color: var(--color-text-primary);
-  background: var(--color-surface-hover);
-}
-
-.learning-domain .ld-icon-btn:active:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.learning-domain .ld-icon-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.learning-domain .ld-icon-btn--ghost {
-  padding: 4px;
-}
-
-.learning-domain .ld-icon-btn--primary {
-  background: var(--color-primary-08);
-  color: var(--color-primary);
-  border-color: var(--color-primary-20);
-}
-
-.learning-domain .ld-icon-btn--primary:hover:not(:disabled) {
-  background: var(--color-primary-12);
-  color: var(--color-primary-light);
-}
-
-.learning-domain .ld-icon-btn--block {
-  width: 100%;
-}
-
-/* ================================================================
-   6. Skeleton shimmer (shared)
-   ================================================================ */
-.learning-domain .u-skeleton-shimmer {
   position: relative;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: var(--radius-sm);
+  z-index: 2;
 }
 
-.learning-domain .u-skeleton-shimmer::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    120deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.12) 45%,
-    transparent 70%
-  );
-  transform: translateX(-100%);
-  animation: ld-shimmer 1.8s linear infinite;
+.learning-domain .room-bars .rb-row b {
+  min-width: 0;
+}
+
+.learning-domain .cta-foot {
+  flex: none;
+}
+
+.learning-domain .root-label {
+  fill: #fff;
+}
+
+/* ============================================================
+   方案 A · 排版密度（对齐 design-preview：12–14px 工作台字号）
+   组件自带 1rem 基字号偏大，这里统一压回密集工作台档位。
+   ============================================================ */
+.learning-domain .domain-tree__domain-name {
+  font-size: 15px;
+}
+
+.learning-domain .domain-tree__summary,
+.learning-domain .domain-tree__snapshot-warn {
+  font-size: 11px;
+}
+
+.learning-domain .tree-row__title {
+  font-size: 13px;
+}
+
+.learning-domain .tree-row__badge,
+.learning-domain .tree-row__tag {
+  font-size: 10px;
+}
+
+.learning-domain .tree-empty-cta,
+.learning-domain .tree-ctx-menu__item,
+.learning-domain .tree-action-btn {
+  font-size: 11px;
+}
+
+.learning-domain .domain-tree__empty-hint {
+  font-size: 12px;
+}
+
+.learning-domain .note-list__title {
+  font-size: 14px;
+}
+
+.learning-domain .note-list__count {
+  font-size: 11px;
+}
+
+.learning-domain .note-list__search-input {
+  font-size: 13px;
+}
+
+.learning-domain .note-list__filter-chip {
+  font-size: 10px;
+}
+
+.learning-domain .note-card__title {
+  font-size: 14px;
+}
+
+.learning-domain .note-card__summary {
+  font-size: 12px;
+}
+
+.learning-domain .note-card__status-tag {
+  font-size: 10px;
+}
+
+.learning-domain .note-card__expand-md {
+  font-size: 12px;
+}
+
+.learning-domain .ld-ask__input {
+  font-size: 14px;
+}
+
+.learning-domain .ld-content__branch {
+  font-size: 15px;
+}
+
+.learning-domain .ld-gate__answer {
+  font-size: 13px;
+}
+
+.learning-domain .ld-gate__hint,
+.learning-domain .ld-rejudge-btn {
+  font-size: 12px;
+}
+
+.learning-domain .ld-preview__item-title {
+  font-size: 13px;
+}
+
+.learning-domain .ld-preview__item-desc {
+  font-size: 12px;
+}
+
+@media (max-width: 1280px) {
+  .learning-domain .learning-layout {
+    grid-template-columns: minmax(0, 1fr) 260px;
+  }
+
+  .learning-domain .learning-side {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .learning-domain .learning-layout {
+    grid-template-columns: 1fr;
+    overflow: auto;
+  }
+
+  .learning-domain .learning-deck {
+    display: none;
+  }
+
+  .learning-domain .learn-row {
+    grid-template-columns: 1fr;
+  }
+
+  .learning-domain .tree-box {
+    min-height: 260px;
+  }
+
+  .learning-domain .leaf-box {
+    min-height: 420px;
+  }
+
+  .learning-domain .learn-toolbar .hint {
+    display: none;
+  }
 }
 
 /* ================================================================
-   7. Keyframes
+   复习模式（枝级自测题）
    ================================================================ */
-@keyframes ld-shimmer {
-  to { transform: translateX(100%); }
+.learning-domain .review-box {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--ld-color-text-secondary);
+  font-size: 13px;
 }
 
-/* ================================================================
-   8. Responsive
-   ================================================================ */
-@media (max-width: 1200px) {
-  .learning-domain .learning-workspace {
-    flex-direction: column;
-  }
-  .learning-domain .learning-workspace__tree {
-    width: 100%;
-    max-width: none;
-    flex: none;
-    min-width: 0;
-    max-height: 360px;
-  }
+.learning-domain .review-card {
+  border: 1px dashed var(--ld-color-border-strong, rgba(165, 172, 196, 0.35));
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: rgba(255, 255, 255, 0.025);
 }
 
-@media (max-width: 960px) {
-  .learning-domain .learning-workspace {
-    flex-direction: column;
-    gap: 12px;
-  }
-  .learning-domain .learning-workspace__tree {
-    width: 100%;
-    max-width: none;
-    flex: none;
-    min-width: 0;
-    max-height: 240px;
-    border-right: none;
-    border-bottom: 1px solid var(--color-border);
-    padding: 12px;
-  }
-  .learning-domain .learning-workspace__detail {
-    padding: 0 4px;
-  }
-  .learning-domain .admin-page-hero {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .learning-domain .admin-page-hero .hero-extra {
-    width: 100%;
-  }
+.learning-domain .review-q {
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--ld-color-text-primary);
+  margin-bottom: 8px;
+  white-space: pre-wrap;
 }
 
-/* ================================================================
-   9. Override admin-theme card formula within learning-domain
-   ================================================================ */
-.learning-domain .admin-page-hero {
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--color-border);
-  border-radius: 0;
-  box-shadow: none;
-  padding: 0 0 12px;
-  margin-bottom: 12px;
+.learning-domain .review-q b {
+  color: var(--ld-color-primary);
+  margin-right: 6px;
 }
 
-.learning-domain .admin-page-hero .hero-left {
-  gap: 4px;
+.learning-domain .review-a {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(124, 156, 224, 0.08);
+  border: 1px solid rgba(124, 156, 224, 0.14);
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--ld-color-text-secondary);
+  white-space: pre-wrap;
 }
 
-.learning-domain .admin-page-hero .hero-title {
-  font-size: 1.05rem;
-  line-height: 1.3;
-}
-
-.learning-domain .admin-page-hero .hero-subtitle {
-  font-size: 0.75rem;
-  line-height: 1.4;
-  font-weight: 400;
-  color: var(--color-text-muted);
-  margin-left: 4px;
-}
-
-.learning-domain .ld-breadcrumb-link {
-  color: var(--color-text-muted);
-  text-decoration: none;
-  font-weight: 400;
-  font-size: 0.8125rem;
-}
-
-.learning-domain .ld-breadcrumb-link:hover {
-  color: var(--color-primary);
-}
-
-.learning-domain .ld-breadcrumb-sep {
-  color: var(--color-text-muted);
-  margin: 0 6px;
-  font-weight: 300;
-  font-size: 0.8125rem;
-}
-
-.learning-domain .admin-filter-bar {
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--color-border);
-  border-radius: 0;
-  box-shadow: none;
-  padding: 0 0 10px;
-  margin-bottom: 12px;
-}
-
-/* ================================================================
-   10. Reduced motion
-   ================================================================ */
-@media (prefers-reduced-motion: reduce) {
-  .learning-domain .u-skeleton-shimmer::after,
-  .learning-domain .domain-tree-viz__node {
-    animation: none !important;
-    transition: none !important;
-  }
+.learning-domain .review-empty {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--ld-color-text-tertiary);
+  font-size: 13px;
 }

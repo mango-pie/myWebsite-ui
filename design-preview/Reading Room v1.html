@@ -1,0 +1,3717 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="morning">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>某某の小站 · 精读房间 v1</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/zcool-kuaile@5/index.css">
+<link rel="stylesheet" href="shared/period-atmosphere.css">
+<style>
+/* ============================================================
+   精读房间 v1 — 五页 · leftover 高密度蒸馏工房
+   1920×1080 · violet #9b8ce8 · 3 栏 248|mid|280
+   ============================================================ */
+:root{
+  --ink:#4c5570;--ink-soft:#7a83a0;--ink-faint:#a5acc4;
+  --c-violet:#9b8ce8;--c-violet-soft:#e4dffd;
+  --c-lilac:#c79ae0;--c-blue:#6aaee8;--c-mint:#5fc4a5;--c-mint-soft:#d6f2e8;
+  --c-sun:#ffcf6e;--c-sakura:#f490ad;
+  --room:#9b8ce8;--room-soft:#e4dffd;
+  --shadow-1:0 2px 6px rgba(96,116,168,.10),0 10px 28px rgba(96,116,168,.12);
+  --shadow-2:0 4px 10px rgba(96,116,168,.14),0 20px 48px rgba(96,116,168,.18);
+  --r-md:20px;--r-sm:14px;
+  --ease-spring:cubic-bezier(.34,1.56,.5,1);
+  --ease-out:cubic-bezier(.22,.8,.32,1);
+  --col-side:248px;--col-deck:280px;--mid-input-w:680px;
+}
+:root[data-theme="morning"]{
+  --craft-a:#b8a8f0;--craft-b:#f490ad;--craft-c:#9b8ce8;
+  --craft-mist:rgba(184,168,240,.4);--craft-blush:rgba(228,223,253,.5);
+  --craft-glass:rgba(255,255,255,.86);
+}
+:root[data-theme="noon"]{
+  --craft-a:#ffcf6e;--craft-b:#9b8ce8;--craft-c:#6aaee8;
+  --craft-mist:rgba(255,207,110,.35);--craft-blush:rgba(228,223,253,.4);
+  --craft-glass:rgba(255,255,255,.88);
+}
+:root[data-theme="dusk"]{
+  --craft-a:#e0699b;--craft-b:#ffb45e;--craft-c:#9b8ce8;
+  --craft-mist:rgba(255,180,94,.4);--craft-blush:rgba(155,140,232,.28);
+  --craft-glass:rgba(255,250,246,.86);
+}
+:root[data-theme="night"]{
+  --craft-a:#9b8ce8;--craft-b:#6aaee8;--craft-c:#c79ae0;
+  --craft-mist:rgba(61,63,122,.18);--craft-blush:rgba(155,140,232,.28);
+  --craft-glass:rgba(244,246,255,.88);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%;overflow:hidden}
+body{
+  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Source Han Sans SC",sans-serif;
+  color:var(--ink);display:flex;justify-content:center;align-items:flex-start;
+  -webkit-font-smoothing:antialiased;
+}
+.font-display{font-family:"ZCOOL KuaiLe","PingFang SC",sans-serif}
+button,input,textarea{font-family:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+input,textarea{border:none;outline:none;background:transparent}
+.text-pretty{text-wrap:pretty}
+
+/* ── stage ── */
+#stageWrap{position:relative;flex:none}
+#stage{
+  position:absolute;top:0;left:0;width:1920px;height:1080px;
+  transform-origin:top left;border-radius:36px;overflow:hidden;background:transparent;
+  box-shadow:0 40px 120px rgba(70,80,130,.28);
+}
+@keyframes riseIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes pageIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes inkPulse{0%,100%{opacity:.55}50%{opacity:1}}
+.anim{opacity:0;animation:riseIn .65s var(--ease-out) forwards}
+
+/* ── topbar ── */
+#topbar{position:relative;z-index:5;height:84px;padding:0 48px;display:flex;align-items:center;gap:28px}
+.brand{display:flex;align-items:center;gap:12px;padding:0;text-align:left;font:inherit;color:inherit}
+.brand-mark{
+  width:46px;height:46px;border-radius:16px;
+  background:linear-gradient(140deg,var(--craft-c),var(--craft-b));
+  box-shadow:var(--shadow-1),inset 0 2px 4px rgba(255,255,255,.5);
+  display:grid;place-items:center;transform:rotate(-6deg);
+  transition:transform .4s var(--ease-spring);
+}
+.brand:hover .brand-mark{transform:rotate(6deg) scale(1.06)}
+.brand-mark svg{width:24px;height:24px}
+.brand-name{font-size:22px;letter-spacing:1px}
+.brand-sub{font-size:11px;color:var(--ink-faint);letter-spacing:3px;margin-top:2px}
+#mainnav{
+  display:flex;gap:4px;margin:0 auto;position:relative;
+  background:rgba(255,255,255,.72);backdrop-filter:blur(10px);
+  padding:6px;border-radius:999px;box-shadow:var(--shadow-1);border:1.5px solid rgba(255,255,255,.9);
+}
+#mainnav button{
+  padding:9px 18px;border-radius:999px;font-size:15px;color:var(--ink-soft);
+  letter-spacing:2px;position:relative;z-index:1;transition:color .3s,transform .3s var(--ease-spring);
+}
+#mainnav button:hover{color:var(--ink);transform:translateY(-2px)}
+#mainnav button.active{color:#fff}
+#navPill{
+  position:absolute;top:6px;left:0;height:calc(100% - 12px);border-radius:999px;z-index:0;
+  background:linear-gradient(135deg,var(--c-violet),#b8a8f0);
+  box-shadow:0 6px 16px rgba(155,140,232,.45);
+  transition:left .45s var(--ease-spring),width .45s var(--ease-spring),opacity .3s;opacity:0;
+}
+.top-right{display:flex;align-items:center;gap:14px}
+.clock-chip{
+  background:rgba(255,255,255,.72);backdrop-filter:blur(10px);
+  border:1.5px solid rgba(255,255,255,.9);border-radius:16px;
+  padding:6px 14px;box-shadow:var(--shadow-1);text-align:right;line-height:1.2;
+}
+.clock-time{font-size:18px;font-weight:700;letter-spacing:2px;font-variant-numeric:tabular-nums}
+.clock-time .sec{font-size:12px;color:var(--ink-faint)}
+.clock-time .colon{animation:blink 2s steps(1) infinite}
+@keyframes blink{50%{opacity:.25}}
+.clock-date{font-size:10px;color:var(--ink-faint);letter-spacing:1px}
+.avatar{
+  width:46px;height:46px;border-radius:50%;
+  background:linear-gradient(140deg,var(--c-violet-soft),#f2e2fa);
+  border:3px solid #fff;box-shadow:var(--shadow-1);
+  display:grid;place-items:center;font-size:18px;color:var(--c-violet);
+  font-family:"ZCOOL KuaiLe",sans-serif;
+}
+
+/* ── note chip ── */
+.note-chip{
+  position:absolute;z-index:6;top:90px;left:48px;right:48px;max-width:920px;
+  font-size:11px;letter-spacing:1.2px;color:var(--ink-faint);
+  background:rgba(255,255,255,.55);border:1.5px dashed color-mix(in srgb,var(--room) 45%,transparent);
+  border-radius:999px;padding:5px 14px;
+}
+
+/* ── pages ── */
+.page{
+  position:absolute;top:84px;left:0;right:0;bottom:0;
+  z-index:4;padding:8px 48px 28px;overflow:hidden;
+}
+.page[hidden]{display:none!important}
+
+/* ── glass & shell ── */
+.glass{
+  background:var(--craft-glass);backdrop-filter:blur(10px);
+  border:1.5px solid rgba(255,255,255,.95);border-radius:var(--r-md);box-shadow:var(--shadow-1);
+}
+.shell{
+  display:grid;grid-template-columns:var(--col-side) minmax(0,1fr) var(--col-deck);
+  gap:22px;height:100%;padding-top:36px;min-height:0;overflow:hidden;
+}
+.side,.deck{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0;overflow:hidden}
+.side-card,.deck-panel{padding:14px 16px;position:relative}
+.side-card h3,.deck-panel h3{font-size:14px;letter-spacing:2px;margin-bottom:8px}
+.about{font-size:12px;line-height:1.65;color:var(--ink-soft)}
+.tape{
+  position:absolute;top:-8px;left:20px;width:48px;height:14px;
+  background:color-mix(in srgb,var(--craft-c) 55%,transparent);border-radius:2px;transform:rotate(-4deg);
+}
+.tape.alt{left:auto;right:22px;transform:rotate(6deg);background:color-mix(in srgb,var(--craft-a) 55%,transparent)}
+:focus{outline:none}
+:focus-visible{outline:2.5px solid rgba(155,140,232,.7);outline-offset:3px}
+
+/* ── chip buttons ── */
+.chip-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:36px;padding:0 14px;border-radius:999px;font-size:13px;letter-spacing:1px;
+  background:rgba(255,255,255,.9);border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:var(--shadow-1);color:var(--ink-soft);
+  transition:transform .3s var(--ease-spring),color .2s,background .2s,box-shadow .25s;
+}
+.chip-btn:hover{transform:translateY(-2px);color:var(--ink)}
+.chip-btn:active{transform:scale(.96)}
+.chip-btn.primary{
+  background:linear-gradient(135deg,var(--c-violet),#b8a8f0);color:#fff;border-color:transparent;
+  box-shadow:0 6px 14px rgba(155,140,232,.4);
+}
+.chip-btn.primary:hover{color:#fff}
+.chip-btn.primary:active{transform:scale(.96);box-shadow:0 3px 8px rgba(155,140,232,.35)}
+.chip-btn.sm{height:32px;padding:0 12px;font-size:12px}
+.chip-btn.on{background:var(--room-soft);color:var(--room)}
+.chip-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.chip-btn.danger{background:#fff5f7;color:#c45a72;border-color:rgba(196,90,114,.2)}
+.col-stack{display:flex;flex-direction:column;gap:8px}
+
+/* ── mid-bay ── */
+.mid-bay{
+  display:flex;flex-direction:column;gap:10px;min-height:0;height:100%;
+  align-items:stretch;overflow:hidden;
+}
+.band{flex:none;align-self:flex-start;width:100%;max-width:100%}
+
+/* ingest: compact controls LEFT + craft fills horizontal leftover RIGHT */
+.ingest-top{
+  display:flex;gap:12px;align-items:stretch;flex:none;
+  min-height:0;
+}
+.ingest-controls{
+  flex:none;width:min(var(--mid-input-w),52%);
+  display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0;
+  overflow:auto;
+}
+.ingest-controls .mode-bar,
+.ingest-controls .input-card,
+.ingest-controls .work-bar{max-width:100%;width:100%}
+
+/* ══ 采集页主视觉 · 日间观测站（浅色天体制图）══ */
+/* 居中元素的动画必须带上 translate(-50%,-50%)，否则会被关键帧覆盖 */
+@keyframes orbitSpin{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes corePulse{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.035)}}
+@keyframes softPulse{0%,100%{opacity:.5}50%{opacity:1}}
+@keyframes lumSweep{to{transform:rotate(360deg)}}
+@keyframes lumDrift{0%,100%{transform:translate(0,0);opacity:.45}50%{transform:translate(6px,-8px);opacity:1}}
+@keyframes lumPulseRing{0%,100%{transform:scale(1);opacity:.35}50%{transform:scale(1.06);opacity:.7}}
+@keyframes lumOrbit{to{transform:rotate(360deg)}}
+
+/* ── 精读房间装饰通用：奶油玻璃制图板（全页）── */
+.page .chart-panel{
+  position:relative;overflow:hidden;border-radius:var(--r-md);
+  background:var(--craft-glass);
+  border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:var(--shadow-1);
+}
+.page .chart-panel::before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 45%,color-mix(in srgb,var(--room-soft) 62%,transparent),transparent 70%),
+    radial-gradient(ellipse 45% 40% at 88% 88%,color-mix(in srgb,var(--craft-mist) 45%,transparent),transparent);
+}
+.page .chart-panel .chart-cap{
+  position:absolute;top:10px;left:14px;z-index:6;
+  font-size:9px;letter-spacing:2.5px;color:var(--ink-faint);
+}
+.page .chart-panel .chart-cap b{color:var(--room);font-weight:600}
+.page .chart-grid{
+  position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.5;
+  background-image:
+    linear-gradient(color-mix(in srgb,var(--room) 9%,transparent) 1px,transparent 1px),
+    linear-gradient(90deg,color-mix(in srgb,var(--room) 9%,transparent) 1px,transparent 1px);
+  background-size:26px 26px;
+  mask-image:radial-gradient(ellipse 78% 70% at 50% 50%,#000 35%,transparent 78%);
+}
+
+/* 附属页 · 共用：流水日志 / 柱阵 / 星图节点 */
+.room-log{
+  min-height:0;display:flex;flex-direction:column;padding:12px 12px 10px;
+}
+.room-log .log-cap{
+  flex:none;font-size:9px;letter-spacing:2.5px;color:var(--ink-faint);margin-bottom:8px;position:relative;z-index:2;
+}
+.room-log .log-cap b{color:var(--room);font-weight:600}
+.room-log .log-list{
+  flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:6px;justify-content:flex-end;position:relative;z-index:2;
+}
+.room-log .log-line{
+  display:grid;grid-template-columns:42px 1fr auto;gap:8px;align-items:center;
+  padding:7px 10px;border-radius:10px;
+  background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.95);
+  font-size:11px;color:var(--ink-soft);
+}
+.room-log .log-line .t{font-size:9px;letter-spacing:1px;color:var(--ink-faint)}
+.room-log .log-line .m{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.room-log .log-line .dot{
+  width:7px;height:7px;border-radius:50%;background:var(--room);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--room-soft) 80%,transparent);
+}
+.room-log .log-line.mint .dot{background:var(--c-mint);box-shadow:0 0 0 3px var(--c-mint-soft)}
+.room-log .log-line.blue .dot{background:var(--c-blue);box-shadow:0 0 0 3px #e3f0fc}
+.room-log .log-line.sun .dot{background:var(--c-sun);box-shadow:0 0 0 3px #fff1d6}
+.room-bars{min-height:120px;cursor:pointer;transition:box-shadow .35s var(--ease-spring),border-color .35s ease}
+.room-bars:hover{
+  border-color:color-mix(in srgb,var(--room) 40%,#fff);
+  box-shadow:var(--shadow-1),0 0 0 3px color-mix(in srgb,var(--room-soft) 60%,transparent);
+}
+.room-bars .rb-row{
+  position:absolute;left:16px;right:16px;bottom:22px;top:34px;z-index:2;
+  display:flex;align-items:flex-end;gap:6px;
+}
+.room-bars .rb-row b{
+  flex:1;border-radius:6px 6px 2px 2px;min-height:18%;height:55%;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--room) 55%,#fff),color-mix(in srgb,var(--room-soft) 80%,#fff));
+  transform-origin:bottom center;cursor:pointer;
+  transition:filter .25s,box-shadow .25s,height .2s var(--ease-spring);
+}
+.room-bars .rb-row b:nth-child(2){background:linear-gradient(180deg,color-mix(in srgb,var(--c-mint) 55%,#fff),var(--c-mint-soft));height:62%}
+.room-bars .rb-row b:nth-child(3){background:linear-gradient(180deg,color-mix(in srgb,var(--c-blue) 45%,#fff),#e3f0fc);height:48%}
+.room-bars .rb-row b:nth-child(4){background:linear-gradient(180deg,color-mix(in srgb,#e8a0b0 55%,#fff),#fff0f3);height:70%}
+.room-bars .rb-row b:nth-child(5){background:linear-gradient(180deg,color-mix(in srgb,var(--c-sun) 55%,#fff),#fff1d6);height:40%}
+.room-bars .rb-row b:hover{filter:brightness(1.06);box-shadow:0 0 0 2px color-mix(in srgb,var(--room-soft) 80%,transparent)}
+.room-bars .rb-row b.is-bounce{animation:barBounce .7s var(--ease-spring) 1}
+.room-bars .rb-foot{position:absolute;left:16px;bottom:5px;z-index:4;font-size:9px;letter-spacing:1.5px;color:var(--ink-faint)}
+.room-map{min-height:0;display:flex;flex-direction:column}
+.room-map .map-body{flex:1;min-height:0;position:relative;z-index:2;padding:28px 12px 28px}
+.room-map .map-body svg{width:100%;height:100%;overflow:visible}
+.room-map .rm-edge{fill:none;stroke:color-mix(in srgb,var(--room) 35%,#fff);stroke-width:1.4}
+.room-map .rm-node{
+  fill:color-mix(in srgb,var(--room-soft) 88%,#fff);stroke:color-mix(in srgb,var(--room) 55%,#fff);stroke-width:1.5;
+  cursor:pointer;transition:filter .2s,stroke .2s;
+}
+.room-map .rm-node:hover,.room-map .rm-node.is-on{
+  filter:drop-shadow(0 0 8px color-mix(in srgb,var(--room) 45%,transparent));stroke:var(--room);
+}
+.room-map .rm-node.root{fill:color-mix(in srgb,var(--room) 35%,#fff)}
+.room-map .rm-lab{font-size:10px;fill:var(--ink-soft);font-family:"PingFang SC",sans-serif;pointer-events:none}
+.room-map .rm-badge{fill:var(--c-mint)}
+.room-map .rm-badge-t{font-size:8px;fill:#fff;font-weight:700}
+.room-map .map-leg{position:absolute;right:14px;bottom:10px;z-index:6;font-size:9px;letter-spacing:1.5px;color:var(--ink-faint);pointer-events:none}
+
+/* 附属页 shell + obs */
+#page-jobs .shell,#page-notes .shell,#page-detail .shell,#page-learning .shell{position:relative;overflow:visible}
+#page-jobs .obs-field,#page-notes .obs-field,#page-detail .obs-field,#page-learning .obs-field{
+  position:absolute;inset:0;z-index:6;pointer-events:none;overflow:visible;
+}
+#page-jobs .shell > .side,#page-jobs .shell > .mid-bay,#page-jobs .shell > .deck,
+#page-notes .shell > .side,#page-notes .shell > .mid-bay,#page-notes .shell > .deck,
+#page-detail .shell > .side,#page-detail .shell > .mid-bay,#page-detail .shell > .deck,
+#page-learning .shell > .side,#page-learning .shell > .mid-bay,#page-learning .shell > .deck{position:relative;z-index:2}
+
+/* 小物件线稿色（全页共用 · 避免 SVG 默认黑填） */
+.obs-prop{
+  position:absolute;opacity:.88;
+  filter:drop-shadow(0 4px 10px color-mix(in srgb,var(--room) 18%,transparent));
+  color:var(--room);
+}
+.obs-prop svg{display:block;width:100%;height:100%;overflow:visible}
+.obs-prop .stroke{
+  fill:none!important;
+  stroke:color-mix(in srgb,var(--room) 58%,#fff)!important;
+  stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;
+}
+.obs-prop .stroke.thin{stroke-width:1.1;opacity:.65}
+.obs-prop .fill{
+  fill:color-mix(in srgb,var(--room-soft) 88%,#fff)!important;
+  stroke:color-mix(in srgb,var(--room) 50%,#fff)!important;
+  stroke-width:1.4;
+}
+.obs-prop .accent{fill:var(--c-mint)!important;stroke:none!important}
+.obs-prop .accent.sun{fill:var(--c-sun)!important}
+.obs-prop .accent.blue{fill:var(--c-blue)!important}
+.obs-prop .glow{
+  fill:none!important;stroke:var(--c-mint)!important;stroke-width:1.2;opacity:.45;
+  animation:softPulse 2.6s ease-in-out infinite;
+}
+.obs-prop.craft-hit{pointer-events:auto;cursor:pointer;transition:filter .25s,opacity .25s}
+.obs-prop.craft-hit:hover{filter:drop-shadow(0 6px 14px color-mix(in srgb,var(--room) 28%,transparent));opacity:1}
+.obs-prop.craft-hit:active{transform:scale(.92)}
+.obs-prop.craft-hit.is-pop{animation:obsPop .5s var(--ease-spring)}
+.obs-prop path:not([class]),.obs-prop circle:not([class]),.obs-prop ellipse:not([class]),.obs-prop rect:not([class]){
+  fill:color-mix(in srgb,var(--room-soft) 80%,#fff);
+  stroke:color-mix(in srgb,var(--room) 55%,#fff);
+}
+
+/* jobs layout */
+#page-jobs .side{display:grid;grid-template-rows:auto auto auto minmax(140px,1fr);gap:12px}
+#page-jobs .deck{display:grid;grid-template-rows:auto auto minmax(120px,1fr) auto;gap:12px}
+#page-jobs .jobs-stage{flex:1;min-height:0;display:flex;gap:12px;align-items:stretch;width:100%}
+#page-jobs .jobs-stage .job-list-panel{flex:none;width:min(640px,52%);align-self:stretch;overflow:auto}
+#page-jobs .jobs-stage .job-sky{flex:1;min-width:0;min-height:0}
+#page-jobs .job-sky .map-body{padding-top:36px}
+#page-jobs .obs-prop.tower{left:4px;top:-2px;width:40px;height:80px;animation:obsBob 5.5s ease-in-out infinite}
+#page-jobs .obs-prop.ufo{left:48%;top:-12px;width:56px;height:34px;animation:obsDrift 8s ease-in-out infinite}
+#page-jobs .obs-prop.antenna{right:6px;bottom:90px;width:38px;height:64px;animation:obsWobble 5.4s ease-in-out infinite}
+
+/* notes layout */
+#page-notes .side{display:grid;grid-template-rows:auto auto minmax(140px,1fr);gap:12px}
+#page-notes .deck{display:grid;grid-template-rows:auto auto minmax(120px,1fr) auto;gap:12px}
+#page-notes .notes-top{flex:none;display:flex;gap:12px;align-items:stretch;min-height:200px}
+#page-notes .notes-controls{flex:none;width:min(680px,52%);display:flex;flex-direction:column;min-height:0}
+#page-notes .notes-controls .note-list-panel{flex:1;min-height:0;overflow:auto;max-height:none}
+#page-notes .notes-index{flex:1;min-width:0;min-height:160px}
+#page-notes .notes-bars{flex:1;min-height:140px;width:100%;align-self:stretch}
+#page-notes .obs-prop.sat-l{left:210px;top:100px;width:48px;height:32px;animation:obsDrift 7s ease-in-out infinite}
+#page-notes .obs-prop.scope{right:4px;top:-4px;width:48px;height:42px;animation:obsBob 6s ease-in-out infinite}
+#page-notes .obs-prop.comet{left:18%;bottom:6px;width:70px;height:24px;opacity:.75}
+
+/* detail · keep MD; thin side/deck craft */
+#page-detail .side{display:grid;grid-template-rows:auto auto auto minmax(120px,1fr);gap:12px}
+#page-detail .deck{display:grid;grid-template-rows:auto auto minmax(110px,1fr) auto;gap:12px}
+#page-detail .obs-prop.probe{left:52%;top:-10px;width:40px;height:40px;animation:obsBob 4.8s ease-in-out infinite}
+#page-detail .obs-prop.ufo-sm{right:220px;top:140px;width:44px;height:28px;animation:obsDrift 6.5s ease-in-out infinite}
+
+/* learning layout */
+#page-learning .side{display:grid;grid-template-rows:auto auto auto auto minmax(120px,1fr);gap:12px}
+#page-learning .deck{display:grid;grid-template-rows:auto auto minmax(120px,1fr) auto;gap:12px}
+#page-learning .learn-stage{flex:1;min-height:0;display:flex;gap:12px;align-items:stretch;width:100%}
+#page-learning .learn-controls{
+  flex:none;width:min(560px,48%);min-width:0;display:flex;flex-direction:column;gap:10px;min-height:0;overflow:hidden;
+}
+#page-learning .learn-controls .learn-toolbar{flex:none}
+#page-learning .learn-controls .learn-row{flex:1;min-height:0}
+#page-learning .learn-sky{flex:1;min-width:0;min-height:0}
+#page-learning .obs-prop.tower{left:4px;top:0;width:40px;height:80px;animation:obsBob 5.5s ease-in-out infinite}
+#page-learning .obs-prop.ufo{left:50%;top:-12px;width:58px;height:36px;animation:obsDrift 8s ease-in-out infinite}
+#page-learning .obs-prop.antenna{right:8px;bottom:88px;width:40px;height:66px;animation:obsWobble 5.4s ease-in-out infinite}
+
+/* 采集 · 左下：卫星接收站（朝右 · 线稿） */
+#page-ingest .side{
+  display:grid;
+  grid-template-rows:auto auto auto minmax(180px,1fr);
+  gap:12px;
+}
+/* 左栏托底：观测日志卡 · 顶栏嵌迷你接收站（不再单独长条） */
+#page-ingest .ingest-log{
+  min-height:0;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;padding:0 0 10px;
+}
+#page-ingest .ingest-log > .chart-grid{z-index:0}
+#page-ingest .ingest-log .log-rx{
+  flex:none;position:relative;z-index:2;
+  display:grid;grid-template-columns:72px 1fr auto;gap:8px;align-items:center;
+  margin:10px 10px 0;padding:8px 10px;border-radius:12px;cursor:pointer;
+  background:rgba(255,255,255,.78);border:1px solid rgba(255,255,255,.95);
+  transition:box-shadow .35s var(--ease-spring),border-color .35s ease,background .25s ease;
+}
+#page-ingest .ingest-log .log-rx:hover{
+  border-color:color-mix(in srgb,var(--room) 40%,#fff);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--room-soft) 65%,transparent);
+}
+#page-ingest .ingest-log .log-rx.is-scanning{
+  border-color:color-mix(in srgb,var(--c-mint) 50%,#fff);
+  background:color-mix(in srgb,var(--c-mint-soft) 55%,#fff);
+}
+#page-ingest .ingest-log .log-rx .dish-art{
+  width:72px;height:40px;position:relative;inset:auto;
+  transform-origin:40% 70%;
+  transition:transform .45s var(--ease-spring);
+}
+#page-ingest .ingest-log .log-rx:hover .dish-art{transform:rotate(4deg)}
+#page-ingest .ingest-log .log-rx.is-scanning .dish-art{transform:rotate(-6deg)}
+#page-ingest .ingest-log .log-rx .dish-art svg{width:100%;height:100%;overflow:visible;display:block}
+#page-ingest .ingest-log .log-rx .rx-meta{min-width:0}
+#page-ingest .ingest-log .log-rx .rx-k{
+  font-size:9px;letter-spacing:2px;color:var(--ink-faint);margin-bottom:2px;
+}
+#page-ingest .ingest-log .log-rx .rx-hint{
+  font-size:11px;letter-spacing:.5px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#page-ingest .ingest-log .log-rx .dish-status{
+  position:static;inset:auto;flex:none;
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 9px;border-radius:999px;
+  font-size:9px;letter-spacing:1.5px;color:var(--ink-soft);
+  background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.95);
+  pointer-events:none;white-space:nowrap;
+}
+#page-ingest .ingest-log .log-rx .dish-status::before{
+  content:"";width:6px;height:6px;border-radius:50%;background:var(--room);
+  transition:background .25s ease,box-shadow .25s ease;
+}
+#page-ingest .ingest-log .log-rx.is-scanning .dish-status{
+  color:#2a8a6e;background:var(--c-mint-soft);border-color:transparent;
+}
+#page-ingest .ingest-log .log-rx.is-scanning .dish-status::before{
+  background:var(--c-mint);box-shadow:0 0 6px var(--c-mint);
+  animation:softPulse .7s ease-in-out infinite;
+}
+#page-ingest .ingest-log .log-rx.is-aim .dish-art{animation:aimNudge .9s var(--ease-spring) 1}
+#page-ingest .ingest-log .log-rx.is-aim .dish-status{
+  color:#2a8a6e;background:var(--c-mint-soft);border-color:transparent;
+}
+#page-ingest .ingest-log .log-rx.is-aim .dish-status::before{background:var(--c-mint)}
+#page-ingest .dish-line{fill:none;stroke:color-mix(in srgb,var(--room) 62%,#fff);stroke-width:1.6;stroke-linecap:round}
+#page-ingest .dish-line.thin{stroke-width:1.1;opacity:.55}
+#page-ingest .dish-fill{fill:color-mix(in srgb,var(--room-soft) 88%,#fff);stroke:color-mix(in srgb,var(--room) 55%,#fff);stroke-width:1.6}
+#page-ingest .dish-mast{fill:color-mix(in srgb,var(--room) 20%,#fff);stroke:color-mix(in srgb,var(--room) 45%,#fff);stroke-width:1.2}
+#page-ingest .dish-wave{
+  fill:none;stroke:var(--c-mint);stroke-width:1.7;stroke-linecap:round;opacity:.45;
+  animation:softPulse 2.4s ease-in-out infinite;
+  transition:opacity .3s ease,stroke-width .3s ease;
+}
+#page-ingest .dish-wave.w2{animation-delay:.4s;opacity:.34}
+#page-ingest .dish-wave.w3{animation-delay:.8s;opacity:.22}
+#page-ingest .ingest-log .log-rx:hover .dish-wave{opacity:.75;stroke-width:2}
+#page-ingest .ingest-log .log-rx:hover .dish-wave.w2{opacity:.55}
+#page-ingest .ingest-log .log-rx:hover .dish-wave.w3{opacity:.38}
+#page-ingest .ingest-log .log-rx.is-scanning .dish-wave{
+  opacity:.9;stroke-width:2.2;animation:softPulse .7s ease-in-out infinite;
+}
+#page-ingest .dish-feed-dot{
+  fill:#fff;stroke:var(--room);stroke-width:2;
+  filter:drop-shadow(0 0 5px color-mix(in srgb,var(--room) 55%,transparent));
+  transition:filter .3s ease;
+}
+#page-ingest .ingest-log .log-rx:hover .dish-feed-dot,
+#page-ingest .ingest-log .log-rx.is-scanning .dish-feed-dot{
+  filter:drop-shadow(0 0 8px color-mix(in srgb,var(--c-mint) 70%,transparent));
+  stroke:var(--c-mint);
+}
+#page-ingest .dish-ping{
+  fill:none;stroke:var(--c-mint);stroke-width:1.4;opacity:0;pointer-events:none;
+}
+#page-ingest .ingest-log .log-rx.is-scanning .dish-ping{
+  animation:dishPing 1.1s ease-out 1;
+}
+@keyframes dishPing{
+  0%{opacity:.85;stroke-width:2.2}
+  100%{opacity:0;stroke-width:.6}
+}
+#page-ingest .ingest-log .log-cap{
+  flex:none;font-size:9px;letter-spacing:2.5px;color:var(--ink-faint);
+  margin:10px 14px 8px;position:relative;z-index:2;
+}
+#page-ingest .ingest-log .log-cap b{color:var(--room);font-weight:600}
+#page-ingest .ingest-log .log-list{
+  flex:1;min-height:0;overflow:hidden;
+  display:flex;flex-direction:column;gap:6px;justify-content:flex-end;
+  position:relative;z-index:2;padding:0 12px;
+}
+#page-ingest .ingest-log .log-line{
+  display:grid;grid-template-columns:42px 1fr auto;gap:8px;align-items:center;
+  padding:7px 10px;border-radius:10px;
+  background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.95);
+  font-size:11px;color:var(--ink-soft);letter-spacing:.3px;
+  transition:background .25s ease,border-color .25s ease,transform .3s var(--ease-spring);
+}
+#page-ingest .ingest-log .log-line .t{font-size:9px;letter-spacing:1px;color:var(--ink-faint)}
+#page-ingest .ingest-log .log-line .m{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#page-ingest .ingest-log .log-line .dot{
+  width:7px;height:7px;border-radius:50%;background:var(--room);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--room-soft) 80%,transparent);
+}
+#page-ingest .ingest-log .log-line.mint .dot{background:var(--c-mint);box-shadow:0 0 0 3px var(--c-mint-soft)}
+#page-ingest .ingest-log .log-line.blue .dot{background:var(--c-blue);box-shadow:0 0 0 3px #e3f0fc}
+#page-ingest .ingest-log .log-line.sun .dot{background:var(--c-sun);box-shadow:0 0 0 3px #fff1d6}
+#page-ingest .ingest-log .log-line.is-pulse{
+  background:#fff;border-color:color-mix(in srgb,var(--room) 35%,#fff);
+  transform:translateX(3px);
+}
+
+/* 采集 · 中右：天文图版（极坐标 + 星等 + 星座） */
+@keyframes chartSweep{
+  0%{transform:rotate(0deg);opacity:0}
+  8%{opacity:.9}
+  85%{opacity:.75}
+  100%{transform:rotate(360deg);opacity:0}
+}
+@keyframes starTwinkle{0%,100%{opacity:.35}50%{opacity:1}}
+@keyframes starFlash{0%,100%{opacity:1;filter:drop-shadow(0 0 4px transparent)}40%{opacity:1;filter:drop-shadow(0 0 12px color-mix(in srgb,var(--room) 80%,#fff))}}
+@keyframes barBounce{
+  0%,100%{transform:scaleY(1)}
+  35%{transform:scaleY(1.35)}
+  60%{transform:scaleY(.92)}
+}
+@keyframes aimNudge{
+  0%,100%{transform:rotate(0deg)}
+  40%{transform:rotate(8deg)}
+  70%{transform:rotate(-3deg)}
+}
+@keyframes scOrbitSpin{to{transform:rotate(360deg)}}
+@keyframes scOrbitSpinRev{to{transform:rotate(-360deg)}}
+
+#page-ingest .ingest-galaxy{
+  flex:1;min-width:0;min-height:230px;cursor:crosshair;
+  transition:box-shadow .35s var(--ease-spring),border-color .35s ease;
+}
+#page-ingest .ingest-galaxy:hover{
+  border-color:color-mix(in srgb,var(--room) 42%,#fff);
+  box-shadow:var(--shadow-1),0 0 0 3px color-mix(in srgb,var(--room-soft) 65%,transparent);
+}
+#page-ingest .ingest-galaxy .star-chart{
+  position:absolute;inset:8px 6px 28px;z-index:2;
+}
+#page-ingest .ingest-galaxy .star-chart svg{width:100%;height:100%;overflow:visible}
+#page-ingest .sc-grid{
+  fill:none;stroke:color-mix(in srgb,var(--room) 18%,#fff);stroke-width:1;
+}
+#page-ingest .sc-grid.radial{stroke-width:.75;opacity:.45}
+#page-ingest .sc-orbit-ring{
+  fill:none;stroke:color-mix(in srgb,var(--room) 32%,#fff);stroke-width:1;
+  stroke-dasharray:3 5;opacity:.7;
+}
+#page-ingest .sc-orbit-ring.r1{stroke:color-mix(in srgb,var(--room) 40%,#fff);stroke-dasharray:none;opacity:.45}
+#page-ingest .sc-orbit-ring.r2{stroke:color-mix(in srgb,var(--c-blue) 35%,#fff)}
+#page-ingest .sc-orbit-ring.r3{stroke:color-mix(in srgb,var(--c-mint) 35%,#fff)}
+#page-ingest .sc-orbit-ring.r4{stroke:color-mix(in srgb,#e8a0b0 40%,#fff)}
+#page-ingest .sc-dust{
+  fill:color-mix(in srgb,var(--room) 55%,#fff);opacity:.55;
+  animation:starTwinkle 3.6s ease-in-out infinite;
+}
+#page-ingest .sc-dust.d2{animation-delay:.7s;opacity:.4}
+#page-ingest .sc-dust.d3{animation-delay:1.4s;opacity:.3}
+
+/* 四轨公转：不同半径 / 周期 / 初相 */
+#page-ingest .sc-orbit{
+  transform-box:view-box;
+  transform-origin:210px 145px;
+  animation:scOrbitSpin 42s linear infinite;
+}
+#page-ingest .sc-orbit.o0{animation-duration:36s}
+#page-ingest .sc-orbit.o1{animation-duration:52s;animation-direction:reverse}
+#page-ingest .sc-orbit.o2{animation-duration:68s}
+#page-ingest .sc-orbit.o3{animation-duration:84s;animation-direction:reverse}
+/* 标签与星体反向自转，文字始终正立 */
+#page-ingest .sc-orbit .sc-spin-back{
+  transform-box:fill-box;
+  transform-origin:center;
+  animation:scOrbitSpin 42s linear infinite reverse;
+}
+#page-ingest .sc-orbit.o0 .sc-spin-back{animation-duration:36s}
+#page-ingest .sc-orbit.o1 .sc-spin-back{animation-duration:52s;animation-direction:normal}
+#page-ingest .sc-orbit.o2 .sc-spin-back{animation-duration:68s}
+#page-ingest .sc-orbit.o3 .sc-spin-back{animation-duration:84s;animation-direction:normal}
+#page-ingest .sc-const{
+  fill:none;stroke:color-mix(in srgb,var(--room) 40%,#fff);stroke-width:1;
+  stroke-linecap:round;opacity:.5;
+  transition:opacity .3s ease,stroke .3s ease;
+}
+#page-ingest .sc-star{
+  cursor:pointer;stroke:#fff;stroke-width:1.5;
+  transition:filter .2s ease,opacity .2s ease;
+  transform-box:fill-box;transform-origin:center;
+  opacity:.72;
+}
+#page-ingest .sc-star:hover,
+#page-ingest .sc-star.is-lit{
+  opacity:1;
+  filter:drop-shadow(0 0 6px color-mix(in srgb,var(--room) 55%,transparent));
+}
+#page-ingest .sc-star.is-beam{
+  opacity:1;
+  filter:drop-shadow(0 0 10px color-mix(in srgb,var(--room) 70%,#fff));
+  stroke:color-mix(in srgb,var(--room) 40%,#fff);
+}
+#page-ingest .sc-star.is-flash{animation:starFlash .55s ease-out 1}
+#page-ingest .sc-label{
+  font-size:10px;letter-spacing:1px;fill:var(--ink-faint);
+  font-family:"PingFang SC","Noto Sans SC",sans-serif;
+  pointer-events:none;opacity:.75;
+  transition:fill .25s ease,opacity .25s ease;
+}
+#page-ingest .sc-star.is-beam ~ .sc-label,
+#page-ingest .ingest-galaxy.is-focus-0 .sc-label[data-i="0"],
+#page-ingest .ingest-galaxy.is-focus-1 .sc-label[data-i="1"],
+#page-ingest .ingest-galaxy.is-focus-2 .sc-label[data-i="2"],
+#page-ingest .ingest-galaxy.is-focus-3 .sc-label[data-i="3"]{
+  fill:var(--room);opacity:1;
+}
+#page-ingest .sc-cross{
+  fill:none;stroke:color-mix(in srgb,var(--room) 55%,#fff);stroke-width:1.2;
+  pointer-events:none;
+}
+#page-ingest .sc-cross-hit{fill:transparent;cursor:pointer}
+#page-ingest .sc-cross-g:hover .sc-cross{stroke:var(--room)}
+/* 扫光束绑在 SVG 圆心 (210,145)，避免相对面板 50% 偏下 */
+#page-ingest .sc-beam{
+  transform-box:view-box;
+  transform-origin:210px 145px;
+  opacity:0;pointer-events:none;
+}
+#page-ingest .sc-beam .ray{
+  stroke:color-mix(in srgb,var(--room) 75%,#fff);
+  stroke-width:2;stroke-linecap:round;
+  filter:drop-shadow(0 0 6px color-mix(in srgb,var(--room) 45%,transparent));
+}
+#page-ingest .sc-beam .fan{
+  fill:color-mix(in srgb,var(--room) 20%,transparent);
+}
+#page-ingest .ingest-galaxy.is-sweep .sc-beam{
+  animation:chartSweep 1.4s linear 1;
+}
+#page-ingest .ingest-galaxy.is-focus-0 .sc-orbit:not(.o0),
+#page-ingest .ingest-galaxy.is-focus-1 .sc-orbit:not(.o1),
+#page-ingest .ingest-galaxy.is-focus-2 .sc-orbit:not(.o2),
+#page-ingest .ingest-galaxy.is-focus-3 .sc-orbit:not(.o3){opacity:.22}
+#page-ingest .ingest-galaxy.is-focus-0 .sc-orbit.o0 .sc-const,
+#page-ingest .ingest-galaxy.is-focus-1 .sc-orbit.o1 .sc-const,
+#page-ingest .ingest-galaxy.is-focus-2 .sc-orbit.o2 .sc-const,
+#page-ingest .ingest-galaxy.is-focus-3 .sc-orbit.o3 .sc-const{
+  opacity:1;stroke:var(--room);
+}
+#page-ingest .ingest-galaxy .gal-legend{
+  position:absolute;right:14px;bottom:10px;z-index:6;
+  font-size:9px;letter-spacing:1.5px;color:var(--ink-faint);
+  pointer-events:none;
+}
+
+/* 碟：对准某星时微倾 — 见 .log-rx.is-aim */
+
+/* 采集右栏托底：可拨弦的信号柱 */
+#page-ingest .ingest-telemetry{
+  flex:1;min-height:104px;cursor:pointer;
+  transition:box-shadow .35s var(--ease-spring),border-color .35s ease;
+}
+#page-ingest .ingest-telemetry:hover{
+  border-color:color-mix(in srgb,var(--room) 40%,#fff);
+  box-shadow:var(--shadow-1),0 0 0 3px color-mix(in srgb,var(--room-soft) 60%,transparent);
+}
+#page-ingest .ingest-telemetry .tel-bars{
+  position:absolute;left:16px;right:16px;bottom:22px;top:34px;z-index:2;
+  display:flex;align-items:flex-end;gap:6px;
+}
+#page-ingest .ingest-telemetry .tel-bars b{
+  flex:1;border-radius:5px 5px 2px 2px;min-height:10px;height:40%;
+  transform-origin:bottom center;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--room) 55%,#fff),color-mix(in srgb,var(--room-soft) 80%,#fff));
+  border:1px solid rgba(255,255,255,.9);
+  box-shadow:0 2px 6px color-mix(in srgb,var(--room) 18%,transparent);
+  cursor:pointer;
+  transition:filter .25s ease,box-shadow .25s ease,height .12s linear;
+}
+#page-ingest .ingest-telemetry .tel-bars b:hover{
+  filter:brightness(1.06);
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--room-soft) 80%,transparent);
+}
+#page-ingest .ingest-telemetry .tel-bars b.is-hot,
+#page-ingest .ingest-telemetry.is-record .tel-bars b.is-bounce{
+  animation:barBounce .7s var(--ease-spring) 1;
+}
+#page-ingest .ingest-telemetry .tel-bars b.is-hot{
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--room) 35%,transparent),0 4px 12px color-mix(in srgb,var(--room) 25%,transparent);
+}
+#page-ingest .ingest-telemetry .tel-bars b:nth-child(1){background:linear-gradient(180deg,color-mix(in srgb,var(--room) 55%,#fff),color-mix(in srgb,var(--room-soft) 80%,#fff))}
+#page-ingest .ingest-telemetry .tel-bars b:nth-child(2){background:linear-gradient(180deg,color-mix(in srgb,var(--c-mint) 55%,#fff),var(--c-mint-soft))}
+#page-ingest .ingest-telemetry .tel-bars b:nth-child(3){background:linear-gradient(180deg,color-mix(in srgb,var(--c-blue) 45%,#fff),#e3f0fc)}
+#page-ingest .ingest-telemetry .tel-bars b:nth-child(4){background:linear-gradient(180deg,color-mix(in srgb,#e8a0b0 55%,#fff),#fff0f3)}
+#page-ingest .ingest-telemetry .tel-bars b:nth-child(5){background:linear-gradient(180deg,color-mix(in srgb,var(--c-sun) 55%,#fff),#fff1d6)}
+#page-ingest .ingest-telemetry .tel-axis{
+  position:absolute;left:16px;right:16px;bottom:18px;height:1px;z-index:3;
+  background:color-mix(in srgb,var(--room) 22%,transparent);
+}
+#page-ingest .ingest-telemetry .tel-foot{
+  position:absolute;left:16px;bottom:5px;z-index:4;
+  font-size:9px;letter-spacing:1.5px;color:var(--ink-faint);
+}
+
+/* 采集页 · 卡片周围观测站小物件（天线 / UFO / 探针） */
+@keyframes obsBob{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-6px)}
+}
+@keyframes obsDrift{
+  0%,100%{transform:translate(0,0) rotate(-4deg)}
+  50%{transform:translate(8px,-10px) rotate(4deg)}
+}
+@keyframes obsWobble{
+  0%,100%{transform:rotate(-3deg)}
+  50%{transform:rotate(5deg)}
+}
+@keyframes obsBlink{
+  0%,100%{opacity:.35}
+  50%{opacity:1}
+}
+@keyframes obsSweepSoft{
+  0%{opacity:.2;transform:scaleX(.6)}
+  50%{opacity:.7;transform:scaleX(1)}
+  100%{opacity:.2;transform:scaleX(.6)}
+}
+#page-ingest .shell{position:relative;overflow:visible}
+#page-ingest .obs-field{
+  position:absolute;inset:0;z-index:6;pointer-events:none;overflow:visible;
+}
+#page-ingest .shell > .side,
+#page-ingest .shell > .mid-bay,
+#page-ingest .shell > .deck{position:relative;z-index:2}
+#page-ingest .obs-prop{
+  position:absolute;opacity:.88;
+  filter:drop-shadow(0 4px 10px color-mix(in srgb,var(--room) 18%,transparent));
+}
+#page-ingest .obs-prop svg{display:block;width:100%;height:100%;overflow:visible}
+#page-ingest .obs-prop .stroke{
+  fill:none;stroke:color-mix(in srgb,var(--room) 58%,#fff);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;
+}
+#page-ingest .obs-prop .stroke.thin{stroke-width:1.1;opacity:.65}
+#page-ingest .obs-prop .fill{
+  fill:color-mix(in srgb,var(--room-soft) 88%,#fff);
+  stroke:color-mix(in srgb,var(--room) 50%,#fff);stroke-width:1.4;
+}
+#page-ingest .obs-prop .accent{fill:var(--c-mint);stroke:none}
+#page-ingest .obs-prop .accent.sun{fill:var(--c-sun)}
+#page-ingest .obs-prop .accent.blue{fill:var(--c-blue)}
+#page-ingest .obs-prop .glow{
+  fill:none;stroke:var(--c-mint);stroke-width:1.2;opacity:.45;
+  animation:softPulse 2.6s ease-in-out infinite;
+}
+
+/* left column accents */
+#page-ingest .obs-prop.tower{left:4px;top:-2px;width:46px;height:92px;animation:obsBob 5.5s ease-in-out infinite}
+#page-ingest .obs-prop.sat-l{left:210px;top:108px;width:52px;height:36px;animation:obsDrift 7s ease-in-out infinite}
+#page-ingest .obs-prop.beacon{left:10px;bottom:108px;width:38px;height:54px;animation:obsWobble 6s ease-in-out infinite}
+
+/* mid bay accents */
+#page-ingest .obs-prop.ufo{left:52%;top:-14px;width:64px;height:40px;animation:obsDrift 8s ease-in-out infinite .4s}
+#page-ingest .obs-prop.probe{right:6%;top:38%;width:44px;height:44px;animation:obsBob 4.8s ease-in-out infinite .8s}
+#page-ingest .obs-prop.comet{left:10%;bottom:4px;width:78px;height:28px;opacity:.75}
+#page-ingest .obs-prop.comet .tail{stroke:color-mix(in srgb,var(--c-sun) 70%,#fff);stroke-width:1.4;fill:none;opacity:.55}
+#page-ingest .obs-prop.stars-m{left:44%;top:52%;width:70px;height:48px;opacity:.7}
+#page-ingest .obs-prop.stars-m .dot{fill:color-mix(in srgb,var(--room) 70%,#fff);animation:obsBlink 2.8s ease-in-out infinite}
+#page-ingest .obs-prop.stars-m .dot.d2{animation-delay:.7s;fill:var(--c-blue)}
+#page-ingest .obs-prop.stars-m .dot.d3{animation-delay:1.4s;fill:var(--c-mint)}
+
+/* right column accents */
+#page-ingest .obs-prop.scope{right:4px;top:-4px;width:54px;height:48px;animation:obsBob 6.2s ease-in-out infinite .2s}
+#page-ingest .obs-prop.ufo-sm{right:218px;top:152px;width:48px;height:30px;animation:obsDrift 6.5s ease-in-out infinite 1s}
+#page-ingest .obs-prop.antenna{right:8px;bottom:88px;width:42px;height:70px;animation:obsWobble 5.4s ease-in-out infinite .6s}
+#page-ingest .obs-prop.signal{
+  right:52px;bottom:150px;width:36px;height:20px;
+}
+#page-ingest .obs-prop.signal .wave{
+  fill:none;stroke:var(--c-mint);stroke-width:1.3;stroke-linecap:round;
+  animation:obsSweepSoft 2.2s ease-in-out infinite;
+}
+#page-ingest .obs-prop.signal .wave.w2{animation-delay:.35s;opacity:.55}
+#page-ingest .obs-prop.signal .wave.w3{animation-delay:.7s;opacity:.35}
+
+@media(prefers-reduced-motion:reduce){
+  #page-ingest .obs-prop,
+  #page-ingest .obs-prop .glow,
+  #page-ingest .obs-prop .dot,
+  #page-ingest .obs-prop .wave{animation:none!important}
+}
+#page-ingest .deck{
+  display:grid;
+  grid-template-rows:auto auto auto minmax(120px,1fr) auto;
+  gap:12px;
+}
+#page-ingest .deck > .deck-panel,
+#page-ingest .deck > .ingest-telemetry,
+#page-ingest .deck > .cta-foot{min-height:0}
+
+/* 中间下发：候选预览吃满 leftover */
+#page-ingest .ingest-bottom{
+  flex:1;min-height:0;display:flex;align-items:stretch;width:100%;
+}
+#page-ingest .ingest-bottom > .feedback{
+  flex:1;min-width:0;max-width:none;width:100%;
+}
+
+/* 通用光场（其他页） */
+.lum-field,.lum-side-panel,.lum-ripple,.notes-lum-bay,.notes-lum-rail,.job-lum-track{
+  position:relative;overflow:hidden;border-radius:var(--r-md);
+  border:1px solid color-mix(in srgb,var(--room) 22%,transparent);
+  box-shadow:var(--shadow-1),inset 0 1px 0 rgba(255,255,255,.25);
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 35%,color-mix(in srgb,var(--room) 14%,transparent),transparent 58%),
+    radial-gradient(ellipse 60% 50% at 85% 90%,color-mix(in srgb,var(--c-blue) 12%,transparent),transparent),
+    linear-gradient(168deg,color-mix(in srgb,var(--room-soft) 55%,#f8f6ff),color-mix(in srgb,var(--craft-mist) 40%,#eef0fa));
+}
+.lum-field{flex:1;min-width:0;min-height:0}
+.lum-cap{
+  position:absolute;top:10px;left:12px;z-index:4;
+  font-size:9px;letter-spacing:2.5px;color:color-mix(in srgb,var(--room) 70%,var(--ink-faint));
+  text-transform:uppercase;
+}
+.lum-sonar{
+  position:absolute;left:14%;top:50%;transform:translateY(-50%);
+  width:118px;height:118px;z-index:1;
+}
+.lum-sonar i{
+  position:absolute;inset:0;border-radius:50%;
+  border:1px solid color-mix(in srgb,var(--room) 38%,transparent);
+}
+.lum-sonar i:nth-child(1){inset:8%}.lum-sonar i:nth-child(2){inset:22%}.lum-sonar i:nth-child(3){inset:36%}
+.lum-sonar i:nth-child(4){inset:50%;background:radial-gradient(circle,color-mix(in srgb,var(--room) 55%,#fff),transparent 70%);border:none;animation:lumPulseRing 2.4s ease-in-out infinite}
+.lum-sonar::after{
+  content:"";position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(from 0deg,transparent 0 340deg,color-mix(in srgb,var(--room) 75%,#fff) 350deg,transparent 360deg);
+  mask:radial-gradient(circle,transparent 42%,#000 43%);
+  animation:lumSweep 4.5s linear infinite;
+}
+.lum-starmap{position:absolute;inset:12px 8px 12px 38%;z-index:2}
+.lum-starmap svg{width:100%;height:100%}
+.lum-starmap .edge{stroke:color-mix(in srgb,var(--room) 45%,#c8c4e8);stroke-width:1.2;fill:none;opacity:.65}
+.lum-starmap .node{fill:color-mix(in srgb,var(--room) 80%,#fff);filter:drop-shadow(0 0 6px color-mix(in srgb,var(--room) 55%,transparent))}
+.lum-starmap .lab{font-size:9px;fill:var(--ink-soft);font-family:"PingFang SC",sans-serif;opacity:.85}
+.lum-vortex{
+  position:absolute;right:12%;bottom:16%;width:88px;height:88px;z-index:2;
+}
+.lum-vortex::before{
+  content:"";position:absolute;inset:0;border-radius:50%;
+  background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--room) 18%,transparent) 0 14deg,transparent 14deg 28deg);
+  animation:lumOrbit 18s linear infinite reverse;opacity:.55;
+}
+.lum-vortex .core{
+  position:absolute;inset:28%;border-radius:50%;
+  background:radial-gradient(circle at 38% 32%,color-mix(in srgb,var(--room) 45%,#fff),var(--room));
+  border:1.5px solid #fff;
+  box-shadow:0 4px 14px color-mix(in srgb,var(--room) 35%,transparent);
+  display:grid;place-items:center;font-size:11px;letter-spacing:1px;color:#fff;
+  font-family:"ZCOOL KuaiLe","PingFang SC",sans-serif;
+}
+.lum-motes{position:absolute;inset:0;pointer-events:none;z-index:1}
+.lum-motes i{
+  position:absolute;width:5px;height:5px;border-radius:50%;
+  background:radial-gradient(circle,#fff,color-mix(in srgb,var(--room) 70%,transparent));
+  box-shadow:0 0 8px color-mix(in srgb,var(--room) 50%,transparent);
+  animation:lumDrift 4s ease-in-out infinite;
+}
+.lum-motes i:nth-child(1){left:22%;top:18%}
+.lum-motes i:nth-child(2){left:68%;top:28%;animation-delay:.8s;width:4px;height:4px;background:radial-gradient(circle,#fff,var(--c-mint))}
+.lum-motes i:nth-child(3){left:45%;top:72%;animation-delay:1.6s}
+.lum-motes i:nth-child(4){left:82%;top:58%;animation-delay:2.2s;width:3px;height:3px}
+.lum-motes i:nth-child(5){left:12%;top:62%;animation-delay:3s}
+.lum-side-panel{flex:1;min-height:88px;padding:12px}
+.lum-side-panel .lum-sonar{position:relative;left:auto;top:auto;transform:none;width:100%;height:72px;margin-top:8px}
+.lum-side-panel .lum-sonar::after{opacity:.5}
+.lum-side-panel.deck-deco{min-height:100px}
+
+#page-ingest .side-card{flex:none}
+
+/* 反馈区涟漪托底 */
+.lum-ripple{
+  margin-top:12px;flex:1;min-height:88px;
+  display:flex;align-items:center;justify-content:center;
+}
+.lum-ripple .lum-sonar{position:relative;left:auto;top:auto;transform:none}
+.lum-ripple .cap{
+  position:absolute;bottom:12px;left:14px;font-size:10px;letter-spacing:2px;color:var(--ink-faint);
+}
+
+/* 右栏光谱柱 */
+.lum-spectrum{
+  position:absolute;inset:28px 14px 14px;display:flex;align-items:flex-end;gap:5px;z-index:2;
+}
+.lum-spectrum b{
+  flex:1;border-radius:6px 6px 2px 2px;min-height:12px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--room) 70%,#fff),color-mix(in srgb,var(--room) 20%,transparent));
+  box-shadow:0 0 12px color-mix(in srgb,var(--room) 35%,transparent);
+}
+.lum-spectrum b:nth-child(1){height:42%}
+.lum-spectrum b:nth-child(2){height:68%;background:linear-gradient(180deg,var(--c-mint),transparent)}
+.lum-spectrum b:nth-child(3){height:55%;background:linear-gradient(180deg,var(--c-blue),transparent)}
+.lum-spectrum b:nth-child(4){height:82%}
+.lum-spectrum b:nth-child(5){height:36%;background:linear-gradient(180deg,var(--c-sun),transparent)}
+
+/* 列表：光柱谱 */
+.notes-lum-rail{
+  flex:1;min-width:0;min-height:0;padding:14px 16px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.notes-lum-rail .rail-cap{font-size:9px;letter-spacing:2px;color:var(--ink-faint);display:flex;justify-content:space-between}
+.notes-lum-rail .orbit-ring{
+  flex:1;min-height:0;position:relative;display:grid;place-items:center;
+}
+.notes-lum-rail .orbit-ring svg{width:100%;max-width:200px;height:auto;opacity:.9}
+.notes-lum-rail .orbit-ring .arc{fill:none;stroke-width:8;stroke-linecap:round}
+.notes-lum-rail .orbit-ring .arc.a{stroke:var(--room);stroke-dasharray:80 200}
+.notes-lum-rail .orbit-ring .arc.b{stroke:var(--c-mint);stroke-dasharray:50 200;transform:rotate(72deg);transform-origin:center}
+.notes-lum-rail .orbit-ring .arc.c{stroke:var(--c-sun);stroke-dasharray:30 200;transform:rotate(144deg);transform-origin:center}
+.notes-lum-rail .orbit-core{
+  position:absolute;font-size:10px;letter-spacing:1px;color:var(--ink-soft);text-align:center;line-height:1.5;
+}
+
+.notes-lum-bay{
+  flex:1;min-height:0;padding:14px 18px 12px;
+  display:flex;flex-direction:column;gap:12px;
+}
+.notes-lum-bay .bay-cap{font-size:9px;letter-spacing:2px;color:var(--ink-faint);display:flex;justify-content:space-between}
+.lum-organ{
+  flex:1;min-height:0;display:flex;align-items:flex-end;justify-content:center;gap:14px;padding:0 8px 6px;
+}
+.lum-organ .pillar{
+  flex:1;max-width:72px;min-height:40px;border-radius:10px 10px 4px 4px;position:relative;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--room) 75%,#fff) 0%,color-mix(in srgb,var(--room) 15%,transparent) 100%);
+  box-shadow:0 0 20px color-mix(in srgb,var(--room) 30%,transparent),inset 0 -8px 16px color-mix(in srgb,var(--room) 20%,transparent);
+}
+.lum-organ .pillar::before{
+  content:"";position:absolute;top:-6px;left:15%;right:15%;height:8px;border-radius:50%;
+  background:radial-gradient(ellipse,color-mix(in srgb,var(--room) 80%,#fff),transparent);
+  filter:blur(2px);
+}
+.lum-organ .pillar:nth-child(1){height:72%}
+.lum-organ .pillar:nth-child(2){height:58%;background:linear-gradient(180deg,color-mix(in srgb,var(--c-mint) 70%,#fff),transparent)}
+.lum-organ .pillar:nth-child(3){height:44%;background:linear-gradient(180deg,color-mix(in srgb,var(--c-blue) 65%,#fff),transparent)}
+.lum-organ .pillar:nth-child(4){height:86%;background:linear-gradient(180deg,color-mix(in srgb,var(--c-sun) 60%,#fff),transparent)}
+.lum-organ .pillar .lbl{
+  position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  width:max-content;max-width:90px;font-size:9px;letter-spacing:.5px;line-height:1.35;
+  color:var(--ink-soft);text-align:center;
+  text-shadow:0 0 12px color-mix(in srgb,var(--room) 40%,#fff);
+}
+.lum-organ .pillar .lbl em{display:block;font-size:8px;color:var(--ink-faint);font-style:normal;margin-top:2px}
+
+/* 任务：轨道追踪 */
+.job-lum-track{
+  flex:1;min-height:0;padding:16px;display:flex;flex-direction:column;gap:12px;
+}
+.job-lum-track .track-cap{font-size:9px;letter-spacing:2.5px;color:var(--ink-faint)}
+.job-lum-orbit{
+  flex:1;min-height:0;position:relative;display:grid;place-items:center;
+}
+.job-lum-orbit .ring{
+  position:absolute;border-radius:50%;border:1px solid color-mix(in srgb,var(--room) 28%,transparent);
+}
+.job-lum-orbit .ring.r1{width:92%;height:72%}
+.job-lum-orbit .ring.r2{width:68%;height:52%;border-style:dashed;opacity:.55}
+.job-lum-orbit .ring.r3{width:42%;height:32%;border-color:color-mix(in srgb,var(--room) 45%,transparent)}
+.job-lum-orbit .sat{
+  position:absolute;width:10px;height:10px;border-radius:50%;
+  box-shadow:0 0 10px currentColor;
+}
+.job-lum-orbit .sat.q{color:var(--c-sun);top:18%;left:12%;background:var(--c-sun)}
+.job-lum-orbit .sat.r{color:var(--c-blue);top:8%;right:28%;background:var(--c-blue);width:8px;height:8px;opacity:.5}
+.job-lum-orbit .sat.d{color:var(--room);bottom:32%;right:8%;background:var(--room);animation:inkPulse 1.8s ease-in-out infinite}
+.job-lum-orbit .sat.done{color:var(--c-mint);bottom:14%;left:22%;background:var(--c-mint)}
+.job-lum-orbit .hub{
+  width:56px;height:56px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff,var(--room));
+  box-shadow:0 0 28px color-mix(in srgb,var(--room) 50%,transparent);
+  display:grid;place-items:center;font-size:10px;letter-spacing:1px;color:#fff;
+  font-family:"ZCOOL KuaiLe","PingFang SC",sans-serif;z-index:2;
+}
+.job-lum-leg{
+  flex:none;display:flex;gap:16px;flex-wrap:wrap;font-size:10px;letter-spacing:1px;color:var(--ink-faint);
+}
+.job-lum-leg span{display:inline-flex;align-items:center;gap:5px}
+.job-lum-leg i{width:8px;height:8px;border-radius:50%;display:block}
+
+/* hide legacy craft kit in leftover zones */
+.ingest-craft,.notes-side-craft,.notes-craft,.job-craft{display:none!important}
+.side-deco:not(.lum-side-panel),.deck-deco:not(.lum-side-panel){display:none!important}
+.idle-deco{display:none!important}
+
+@media(prefers-reduced-motion:reduce){
+  .lum-sonar::after,.lum-vortex::before,.lum-motes i,.job-lum-orbit .sat.d,
+  #page-ingest .dish-wave,#page-ingest .dish-ping,
+  #page-ingest .sc-dust,#page-ingest .sc-star.is-flash,
+  #page-ingest .sc-beam,#page-ingest .ingest-galaxy.is-sweep .sc-beam,
+  #page-ingest .sc-orbit,#page-ingest .sc-orbit .sc-spin-back,
+  #page-ingest .ingest-telemetry .tel-bars b.is-bounce,
+  #page-ingest .ingest-log .log-rx.is-aim .dish-art{animation:none!important}
+}
+
+/* ── mode bar ── */
+.mode-bar{
+  display:inline-flex;align-self:flex-start;gap:3px;padding:4px;
+  background:rgba(255,255,255,.72);border-radius:999px;
+  border:1.5px solid rgba(255,255,255,.95);box-shadow:var(--shadow-1);
+}
+.mode-bar button{
+  padding:9px 18px;border-radius:999px;font-size:14px;letter-spacing:1px;color:var(--ink-soft);
+  transition:transform .3s var(--ease-spring),color .2s,background .25s,box-shadow .25s;
+}
+.mode-bar button:hover{color:var(--ink);transform:translateY(-1px)}
+.mode-bar button:active{transform:scale(.96)}
+.mode-bar button.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(90,100,160,.16);font-weight:600}
+
+/* ── input card ── */
+.input-card.glass{
+  width:100%;max-width:100%;padding:14px 16px;
+  flex:none;overflow:visible;
+}
+.input-card .head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px}
+.input-card .head h2{font-size:20px;letter-spacing:2px}
+.input-card .cap{font-size:11px;letter-spacing:2px;color:var(--ink-faint)}
+.field{display:none;flex-direction:column;gap:8px}
+.field.on{display:flex}
+.field label{font-size:12px;letter-spacing:1px;color:var(--ink-faint)}
+.field .inp,.field .area{
+  width:100%;max-width:640px;padding:10px 14px;border-radius:14px;
+  background:rgba(255,255,255,.92);border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:inset 0 1px 2px rgba(90,100,150,.06);font-size:14px;
+}
+.field .area{min-height:64px;max-height:88px;resize:none;line-height:1.5}
+.field .row{display:flex;gap:10px;max-width:640px}
+.field .row .inp{flex:1;min-width:0}
+.field .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:2px}
+.dropzone{
+  max-width:640px;padding:22px 18px;border-radius:16px;text-align:center;
+  border:1.5px dashed color-mix(in srgb,var(--room) 40%,transparent);
+  background:color-mix(in srgb,var(--room-soft) 35%,transparent);
+  font-size:13px;color:var(--ink-soft);letter-spacing:1px;cursor:pointer;
+  transition:transform .3s var(--ease-spring),border-color .25s,background .25s;
+}
+.dropzone:hover{
+  transform:translateY(-2px);
+  border-color:color-mix(in srgb,var(--room) 55%,transparent);
+  background:color-mix(in srgb,var(--room-soft) 55%,transparent);
+}
+.dropzone:active{transform:scale(.99)}
+.dropzone strong{display:block;font-size:15px;color:var(--ink);margin-bottom:6px;letter-spacing:1px}
+
+/* ── work bar ── */
+.work-bar.glass{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  width:100%;max-width:100%;padding:10px 14px;flex:none;
+}
+.work-bar .meta{font-size:13px;color:var(--ink-soft);letter-spacing:1px}
+.work-bar .meta b{color:var(--room);font-weight:600}
+.work-bar .warn{font-size:12px;color:#c45a72;letter-spacing:1px}
+.job-chip{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:5px 11px;border-radius:999px;font-size:12px;letter-spacing:1px;
+  background:var(--room-soft);color:var(--room);
+}
+.job-chip i{width:9px;height:9px;border-radius:50%;background:var(--room);animation:inkPulse 1.6s ease-in-out infinite}
+
+/* ── feedback ── */
+.feedback.glass{
+  width:100%;max-width:min(1080px,100%);padding:0;overflow:hidden;
+  display:flex;flex-direction:column;flex:1;min-height:0;align-self:stretch;
+}
+.feedback .fb-head{
+  flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:12px 16px;border-bottom:1px dashed rgba(165,172,196,.3);
+}
+.feedback .fb-head h3{font-size:15px;letter-spacing:2px}
+.feedback .fb-head .hint{font-size:11px;color:var(--ink-faint);letter-spacing:1px}
+.feedback .fb-body{
+  flex:1;min-height:0;overflow:hidden;padding:12px 16px 16px;display:flex;flex-direction:column;
+  transition:opacity .2s ease,transform .2s ease;
+}
+.fb-panel{display:none;opacity:0;transform:translateY(6px)}
+.fb-panel.on{display:flex;flex-direction:column;min-height:0;flex:1;overflow:auto;animation:fbIn .32s var(--ease-out) forwards}
+@keyframes fbIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.fb-body.is-switching{opacity:.35;transform:translateY(4px)}
+.idle-box{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.idle-box .step{padding:14px 16px;border-radius:14px;background:rgba(255,255,255,.7);border:1.5px solid rgba(255,255,255,.95)}
+.idle-box .n{font-size:11px;letter-spacing:2px;color:var(--room);margin-bottom:6px}
+.idle-box .t{font-size:14px;color:var(--ink-soft);line-height:1.5}
+.idle-deco{
+  margin-top:12px;border-radius:14px;position:relative;overflow:hidden;
+  flex:1;min-height:88px;
+  background:
+    radial-gradient(200px 120px at 20% 40%,color-mix(in srgb,var(--craft-blush) 75%,transparent),transparent),
+    radial-gradient(180px 100px at 80% 60%,color-mix(in srgb,var(--craft-mist) 65%,transparent),transparent),
+    linear-gradient(135deg,color-mix(in srgb,var(--craft-blush) 50%,transparent),color-mix(in srgb,var(--craft-mist) 45%,transparent));
+  border:1.5px solid rgba(255,255,255,.9);
+}
+.idle-deco span{position:absolute;left:14px;bottom:12px;font-size:11px;letter-spacing:2px;color:var(--ink-faint);z-index:2}
+.idle-deco .ink-beads{bottom:14px;right:16px;left:auto}
+.file-preview{
+  display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;
+  background:rgba(255,255,255,.75);border:1.5px solid rgba(255,255,255,.95);
+}
+.file-preview .ico{
+  width:48px;height:48px;border-radius:12px;display:grid;place-items:center;
+  background:var(--room-soft);color:var(--room);font-size:12px;font-weight:700;
+}
+.file-preview .t{font-size:16px;letter-spacing:1px}
+.file-preview .m{font-size:13px;color:var(--ink-faint);margin-top:3px}
+.cand-list{display:flex;flex-direction:column;gap:10px;flex:1;min-height:0;overflow:auto}
+.cand{
+  display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:start;
+  padding:14px 16px;border-radius:16px;text-align:left;width:100%;cursor:pointer;
+  background:rgba(255,255,255,.78);border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:var(--shadow-1);
+  transition:border-color .2s,transform .3s var(--ease-spring),box-shadow .25s,background .2s;
+}
+.cand:hover{transform:translateY(-2px) translateX(2px);box-shadow:var(--shadow-2)}
+.cand:active{transform:scale(.985)}
+.cand.on{border-color:color-mix(in srgb,var(--room) 50%,transparent);background:#fff}
+.cand.is-pop{animation:candPop .42s var(--ease-spring)}
+@keyframes candPop{
+  0%{transform:scale(1)}
+  40%{transform:scale(.97) translateX(2px)}
+  100%{transform:scale(1)}
+}
+.cand.risk{border-color:color-mix(in srgb,#e8a0b0 55%,transparent)}
+.cand .ck{
+  width:22px;height:22px;margin-top:2px;border-radius:6px;
+  border:1.5px solid color-mix(in srgb,var(--room) 45%,transparent);background:#fff;
+  padding:0;appearance:none;-webkit-appearance:none;cursor:pointer;flex:none;
+}
+.cand.on .ck{background:var(--room);border-color:var(--room);box-shadow:inset 0 0 0 3px #fff}
+.cand .title{font-size:16px;letter-spacing:.5px;margin-bottom:6px;line-height:1.35}
+.cand .sum{font-size:13px;color:var(--ink-soft);line-height:1.55;margin-bottom:8px}
+.cand .meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cand .tag{
+  font-size:11px;padding:3px 9px;border-radius:999px;letter-spacing:1px;
+  background:rgba(255,255,255,.9);color:var(--ink-faint);border:1px solid rgba(165,172,196,.25);
+}
+.cand .tag.src{color:var(--c-blue);background:#d8ebfb}
+.cand .tag.risk{color:#c45a72;background:#ffe8ee}
+.cand .reason{font-size:12px;color:var(--ink-faint);margin-top:8px;line-height:1.45}
+.cand .url{
+  font-size:12px;color:var(--room);letter-spacing:0;max-width:260px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;
+}
+.outline-box{
+  margin-bottom:12px;padding:12px 14px;border-radius:12px;flex:none;
+  background:rgba(255,255,255,.65);font-size:13px;line-height:1.55;color:var(--ink-soft);white-space:pre-wrap;
+}
+/* 手动 URL：与候选同级，默认收起 */
+.cand.cand-manual{
+  grid-template-columns:32px minmax(0,1fr) auto;
+  align-items:start;
+}
+.cand.cand-manual .manual-fold{
+  display:none;margin-top:10px;flex-direction:column;gap:8px;
+}
+.cand.cand-manual.is-open .manual-fold{display:flex}
+.cand.cand-manual .manual-fold .area{
+  width:100%;min-height:56px;font-size:13px;padding:10px 12px;border-radius:12px;
+  background:rgba(255,255,255,.95);border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:inset 0 1px 2px rgba(90,100,150,.06);resize:vertical;
+}
+.cand.cand-manual .manual-fold .row{display:flex;gap:8px;align-items:center}
+.cand.cand-manual .tag.manual{color:var(--room);background:var(--room-soft);border-color:transparent}
+.cand.cand-manual .hint-open{
+  font-size:11px;letter-spacing:1px;color:var(--ink-faint);margin-top:6px;
+}
+.cand.cand-manual.is-open .hint-open{display:none}
+.progress-steps{display:flex;gap:10px;margin-bottom:14px;flex:none}
+.progress-steps .s{flex:1;padding:12px 8px;border-radius:14px;text-align:center;background:rgba(255,255,255,.7);border:1.5px solid rgba(255,255,255,.95)}
+.progress-steps .s .n{font-size:11px;letter-spacing:1px;color:var(--ink-faint)}
+.progress-steps .s .v{font-size:14px;margin-top:4px;color:var(--ink-soft)}
+.progress-steps .s.done{background:var(--c-mint-soft)}.progress-steps .s.done .v{color:#2a8a6e}
+.progress-steps .s.on{background:var(--room-soft);box-shadow:0 0 0 2px color-mix(in srgb,var(--room) 30%,transparent)}
+.progress-steps .s.on .v{color:var(--room);font-weight:600}
+.result-card{padding:12px 14px;border-radius:14px;flex:none;background:rgba(255,255,255,.8);border:1.5px solid rgba(255,255,255,.95)}
+.result-card .t{font-size:18px;letter-spacing:1px;margin-bottom:6px}
+.result-card .m{font-size:13px;color:var(--ink-soft);line-height:1.5;margin-bottom:10px}
+.result-card .actions{display:flex;flex-wrap:wrap;gap:8px}
+.fail-list{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.fail-list .f{padding:10px 12px;border-radius:12px;font-size:13px;line-height:1.45;background:#fff5f7;border:1px solid #ffd6de;color:#c45a72}
+
+/* ── md preview (detail page) ── */
+.md-preview{
+  display:flex;flex-direction:column;overflow:hidden;
+  border-radius:14px;background:rgba(255,255,255,.88);
+  border:1.5px solid rgba(255,255,255,.95);box-shadow:var(--shadow-1);
+}
+.md-preview .md-toolbar{
+  flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:8px 12px;border-bottom:1px dashed rgba(165,172,196,.3);
+  background:color-mix(in srgb,var(--room-soft) 40%,transparent);
+}
+.md-preview .md-toolbar .lab{font-size:11px;letter-spacing:2px;color:var(--room)}
+.md-preview .md-seg{display:inline-flex;gap:2px;padding:2px;border-radius:999px;background:rgba(255,255,255,.7)}
+.md-preview .md-seg button{padding:4px 10px;border-radius:999px;font-size:11px;letter-spacing:1px;color:var(--ink-soft)}
+.md-preview .md-seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(90,100,160,.14)}
+.md-preview .md-body{flex:1;min-height:0;overflow:auto;padding:14px 16px 18px;font-size:13px;line-height:1.7;color:var(--ink)}
+.md-preview .md-body.raw{
+  font-family:ui-monospace,"SF Mono",Consolas,monospace;font-size:12px;line-height:1.6;
+  white-space:pre-wrap;color:var(--ink-soft);background:rgba(248,246,255,.6);
+}
+.md-preview .md-body h1{font-size:20px;letter-spacing:1px;margin:0 0 10px;font-family:"ZCOOL KuaiLe","PingFang SC",sans-serif}
+.md-preview .md-body h2{font-size:15px;letter-spacing:1px;margin:16px 0 8px;color:var(--room)}
+.md-preview .md-body p{margin:0 0 10px;text-wrap:pretty}
+.md-preview .md-body ul{margin:0 0 10px;padding-left:1.2em}
+.md-preview .md-body li{margin:4px 0}
+.md-preview .md-body code{font-size:12px;padding:1px 5px;border-radius:4px;background:var(--room-soft);color:var(--room)}
+.md-preview .md-body pre{margin:0 0 12px;padding:10px 12px;border-radius:10px;overflow:auto;background:#f4f2fb;font-size:12px;line-height:1.55;color:var(--ink-soft)}
+.md-preview .md-body blockquote{margin:0 0 12px;padding:8px 12px;border-left:3px solid var(--room);background:color-mix(in srgb,var(--room-soft) 45%,transparent);color:var(--ink-soft)}
+
+/* ── stat / recent / cta ── */
+.stat-row{display:flex;gap:8px}
+.stat-pill{flex:1;padding:8px 10px;border-radius:12px;text-align:center;background:rgba(255,255,255,.75);border:1.5px solid rgba(255,255,255,.95)}
+.stat-pill .n{font-size:18px;font-family:"ZCOOL KuaiLe",sans-serif;color:var(--room)}
+.stat-pill .l{font-size:9px;letter-spacing:2px;color:var(--ink-faint);margin-top:2px}
+.recent-line{padding:8px 10px;border-radius:12px;margin-bottom:6px;background:rgba(255,255,255,.7);border:1.5px solid rgba(255,255,255,.95);font-size:11px;color:var(--ink-soft);line-height:1.4}
+.recent-line .k{font-size:9px;letter-spacing:2px;color:var(--ink-faint);margin-bottom:2px}
+.cta-foot{
+  margin-top:auto;padding:12px 14px;border-radius:var(--r-md);
+  background:linear-gradient(135deg,color-mix(in srgb,var(--room) 18%,#fff),rgba(255,255,255,.9));
+  border:1.5px solid rgba(255,255,255,.95);box-shadow:var(--shadow-1);
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  transition:transform .3s var(--ease-spring),box-shadow .3s;
+}
+.cta-foot:hover{transform:translateY(-2px);box-shadow:var(--shadow-2)}
+.cta-foot .lbl{font-size:13px;letter-spacing:1px}
+.cta-foot .sub{font-size:10px;color:var(--ink-faint);margin-top:2px}
+.cta-foot .chip-btn{transition:transform .3s var(--ease-spring)}
+.cta-foot:hover .chip-btn{transform:translateX(3px)}
+
+/* ── deco fill ── */
+.side-deco,.deck-deco{
+  flex:1;min-height:80px;position:relative;overflow:hidden;border-radius:var(--r-md);
+  border:1.5px solid rgba(255,255,255,.9);box-shadow:var(--shadow-1);
+  background:
+    radial-gradient(180px 100px at 20% 30%,color-mix(in srgb,var(--craft-blush) 80%,transparent),transparent 70%),
+    radial-gradient(160px 90px at 80% 70%,color-mix(in srgb,var(--craft-mist) 70%,transparent),transparent 65%),
+    linear-gradient(165deg,rgba(255,255,255,.45),rgba(255,255,255,.15));
+}
+.side-deco .tag,.deck-deco .tag{
+  position:absolute;top:10px;left:12px;font-size:9px;letter-spacing:2px;color:var(--ink-faint);
+  background:rgba(255,255,255,.7);padding:3px 8px;border-radius:999px;
+}
+.slip-mini{
+  position:absolute;width:120px;padding:7px 9px;border-radius:8px;
+  background:rgba(255,255,255,.88);box-shadow:var(--shadow-1);
+  border-left:3px solid var(--room);font-size:10px;line-height:1.4;color:var(--ink-soft);
+}
+.slip-mini .k{font-size:8px;letter-spacing:1px;color:var(--ink-faint);margin-bottom:2px}
+.slip-mini.a{left:14px;top:36px;transform:rotate(-3deg)}
+.slip-mini.b{left:28px;top:88px;transform:rotate(2deg);border-left-color:var(--c-mint)}
+.bead{position:absolute;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff8,var(--room))}
+.bead.a{width:12px;height:12px;right:20px;bottom:24px}
+.bead.b{width:18px;height:18px;right:36px;bottom:36px;background:radial-gradient(circle at 35% 30%,#fff8,var(--c-mint))}
+.funnel-mini{position:absolute;right:16px;top:40px;width:56px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.funnel-mini .m{width:48px;height:14px;border-radius:5px;background:var(--room-soft);border:1px solid #fff}
+.funnel-mini .n{width:10px;height:16px;background:color-mix(in srgb,var(--room) 35%,transparent);border-radius:0 0 3px 3px}
+.funnel-mini .d{width:36px;height:28px;border-radius:6px;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-1);font-size:9px;color:var(--room);font-family:"ZCOOL KuaiLe",sans-serif}
+
+/* ── craft fill kit v1 ── */
+
+/* generic fill alias */
+.craft-fill{flex:1;min-height:0;position:relative;overflow:hidden}
+
+/* row of animated ink-bead dots */
+.ink-beads{
+  position:absolute;bottom:10px;left:12px;
+  display:flex;gap:5px;align-items:center;z-index:2;
+}
+.ink-beads span{
+  width:8px;height:8px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.85),var(--room));
+  animation:inkPulse 2.2s ease-in-out infinite;
+}
+.ink-beads span:nth-child(2){animation-delay:.35s;width:6px;height:6px;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.85),var(--c-mint))}
+.ink-beads span:nth-child(3){animation-delay:.7s;width:5px;height:5px;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.85),var(--craft-a))}
+.ink-beads span:nth-child(4){animation-delay:1.05s;width:7px;height:7px;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.85),var(--c-blue))}
+.ink-beads span:nth-child(5){animation-delay:1.4s;width:5px;height:5px}
+
+/* vertical rotated caption column */
+.margin-notes{
+  position:absolute;right:0;top:0;bottom:0;
+  display:flex;flex-direction:column;gap:6px;
+  justify-content:center;padding-right:8px;z-index:2;
+}
+.margin-notes span{
+  font-size:8px;letter-spacing:1.5px;color:var(--ink-faint);
+  writing-mode:vertical-rl;text-orientation:mixed;
+  background:rgba(255,255,255,.62);padding:4px 3px;border-radius:3px;
+}
+
+/* CSS distill flask */
+.alembic{display:inline-flex;flex-direction:column;align-items:center;gap:0;position:relative}
+.alembic .bulb{
+  width:34px;height:30px;border-radius:50% 50% 44% 44%;
+  background:radial-gradient(ellipse at 40% 35%,rgba(255,255,255,.92),color-mix(in srgb,var(--room) 30%,transparent));
+  border:1.5px solid color-mix(in srgb,var(--room) 42%,transparent);
+}
+.alembic .neck{
+  width:10px;height:14px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--room) 22%,transparent),color-mix(in srgb,var(--room) 42%,transparent));
+  border-left:1.5px solid color-mix(in srgb,var(--room) 32%,transparent);
+  border-right:1.5px solid color-mix(in srgb,var(--room) 32%,transparent);
+}
+.alembic .drops{display:flex;gap:3px;margin-top:3px}
+.alembic .drops i{
+  width:5px;height:7px;border-radius:50% 50% 40% 40%;
+  background:color-mix(in srgb,var(--room) 52%,transparent);
+  animation:inkPulse 1.9s ease-in-out infinite;
+}
+.alembic .drops i:nth-child(2){animation-delay:.46s;background:color-mix(in srgb,var(--c-mint) 52%,transparent)}
+.alembic .drops i:nth-child(3){animation-delay:.92s;background:color-mix(in srgb,var(--craft-a) 52%,transparent)}
+.alembic .lab{font-size:8px;letter-spacing:1px;color:var(--ink-faint);margin-top:4px}
+
+/* 3 overlapping source slips */
+.source-stack{position:relative;width:100%;height:68px}
+.source-stack .ss{
+  position:absolute;left:0;right:0;padding:6px 9px;border-radius:8px;
+  font-size:9px;letter-spacing:.8px;color:var(--ink-faint);
+  background:rgba(255,255,255,.93);box-shadow:var(--shadow-1);
+  border-left:2.5px solid var(--room);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.source-stack .ss:nth-child(1){top:0;transform:rotate(-4deg);z-index:3}
+.source-stack .ss:nth-child(2){top:12px;left:10px;transform:rotate(1.8deg);z-index:2;border-left-color:var(--c-mint)}
+.source-stack .ss:nth-child(3){top:24px;left:20px;transform:rotate(-2.2deg);z-index:1;border-left-color:var(--c-blue)}
+
+/* circular seals row: 馏/读/合 etc. */
+.seal-row{display:flex;gap:7px;align-items:center}
+.seal-row .seal{
+  width:32px;height:32px;border-radius:50%;
+  display:grid;place-items:center;flex:none;
+  font-size:9px;letter-spacing:.5px;
+  font-family:"ZCOOL KuaiLe","PingFang SC",sans-serif;
+  border:1.5px solid color-mix(in srgb,var(--room) 56%,transparent);
+  color:var(--room);
+  background:color-mix(in srgb,var(--room-soft) 58%,transparent);
+}
+.seal-row .seal.g{color:#2a8a6e;border-color:color-mix(in srgb,var(--c-mint) 56%,transparent);background:color-mix(in srgb,var(--c-mint-soft) 58%,transparent)}
+.seal-row .seal.b{color:var(--c-blue);border-color:color-mix(in srgb,var(--c-blue) 48%,transparent);background:color-mix(in srgb,#d8ebfb 58%,transparent)}
+.seal-row .seal.s{color:#b06020;border-color:color-mix(in srgb,var(--c-sun) 56%,transparent);background:rgba(255,207,110,.22)}
+
+/* horizontal perforated tickets */
+.ticket-rail{display:flex;gap:7px;flex-wrap:nowrap}
+.ticket-rail .tr{
+  flex:none;width:92px;padding:8px 9px;border-radius:8px;
+  background:rgba(255,255,255,.92);box-shadow:var(--shadow-1);
+  font-size:9px;line-height:1.4;
+  border-top:3px solid var(--room);
+  position:relative;overflow:hidden;
+}
+.ticket-rail .tr::after{
+  content:"";position:absolute;left:0;right:0;top:18px;height:1px;
+  background:repeating-linear-gradient(90deg,transparent,transparent 4px,rgba(165,172,196,.22) 4px,rgba(165,172,196,.22) 5px);
+}
+.ticket-rail .tr.q{border-top-color:var(--c-sun)}
+.ticket-rail .tr.r{border-top-color:var(--c-blue)}
+.ticket-rail .tr.d{border-top-color:var(--c-mint)}
+.ticket-rail .tr .t-lab{font-size:7px;letter-spacing:1.5px;color:var(--ink-faint);margin-bottom:3px}
+.ticket-rail .tr .t-val{font-size:9px;color:var(--ink);font-family:"ZCOOL KuaiLe","PingFang SC",sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* stacked folio note cards */
+.folio-stack{position:relative;width:100%;min-height:100px}
+.folio-stack .fc{
+  position:absolute;left:12px;right:12px;padding:8px 11px;
+  border-radius:10px;background:rgba(255,255,255,.92);
+  box-shadow:var(--shadow-1);font-size:10px;line-height:1.4;
+  border-left:2.5px solid var(--room);
+}
+.folio-stack .fc .fk{font-size:8px;letter-spacing:1.5px;color:var(--ink-faint);margin-bottom:2px}
+.folio-stack .fc:nth-child(1){top:0;transform:rotate(-3deg);z-index:4}
+.folio-stack .fc:nth-child(2){top:18px;left:20px;transform:rotate(1.6deg);z-index:3;border-left-color:var(--c-mint)}
+.folio-stack .fc:nth-child(3){top:36px;left:28px;transform:rotate(-2.2deg);z-index:2;border-left-color:var(--c-blue)}
+.folio-stack .fc:nth-child(4){top:54px;left:36px;transform:rotate(2.8deg);z-index:1;border-left-color:var(--craft-a)}
+
+/* short italic quote strip */
+.quote-ribbon{
+  padding:7px 12px;border-radius:8px;font-style:italic;
+  font-size:10px;line-height:1.58;color:var(--ink-soft);letter-spacing:.5px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--craft-blush) 72%,transparent),rgba(255,255,255,.52));
+  border-left:2.5px solid color-mix(in srgb,var(--room) 44%,transparent);
+}
+
+/* strengthen side/deck deco gradients */
+.side-deco,.deck-deco{
+  min-height:100px;
+  background:
+    radial-gradient(200px 130px at 15% 25%,color-mix(in srgb,var(--craft-blush) 92%,transparent),transparent 70%),
+    radial-gradient(180px 120px at 85% 75%,color-mix(in srgb,var(--craft-mist) 82%,transparent),transparent 65%),
+    radial-gradient(120px 80px at 50% 50%,color-mix(in srgb,var(--craft-a) 14%,transparent),transparent),
+    linear-gradient(165deg,rgba(255,255,255,.52),rgba(255,255,255,.18));
+}
+
+/* job craft extras row */
+.job-craft-extras{
+  flex:none;display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  padding-top:8px;border-top:1px dashed rgba(165,172,196,.28);
+}
+
+/* extend reduced-motion selectors */
+@media(prefers-reduced-motion:reduce){
+  .ink-beads span,.alembic .drops i,.ingest-craft .ic-drip{animation:none!important;opacity:.72}
+}
+
+/* ── toast ── */
+.toast{
+  position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);
+  background:rgba(50,55,80,.92);color:#fff;padding:10px 18px;border-radius:999px;
+  font-size:13px;letter-spacing:1px;opacity:0;pointer-events:none;z-index:100;
+  transition:opacity .3s,transform .3s var(--ease-out);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── tweaks ── */
+#tweaks{position:fixed;right:24px;bottom:24px;z-index:99;font-size:13px}
+#tweaks .panel{
+  display:none;width:320px;padding:16px 18px;margin-bottom:10px;
+  background:rgba(255,255,255,.96);backdrop-filter:blur(16px);
+  border-radius:20px;box-shadow:0 18px 48px rgba(70,80,130,.28);border:1.5px solid #fff;
+  opacity:0;transform:translateY(10px);
+}
+#tweaks.open .panel{display:block;animation:tweaksIn .32s var(--ease-out) forwards}
+@keyframes tweaksIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#tweaks h4{font-size:12px;letter-spacing:3px;color:var(--ink-faint);margin-bottom:12px;font-weight:600}
+#tweaks .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
+#tweaks .row:last-child{margin-bottom:0}
+#tweaks label{color:var(--ink-soft);letter-spacing:1px;flex:none;font-size:12px}
+.seg{display:flex;background:#f0ecf8;border-radius:999px;padding:3px;gap:2px;flex-wrap:wrap;justify-content:flex-end}
+.seg button{
+  padding:5px 8px;border-radius:999px;font-size:10px;color:var(--ink-soft);letter-spacing:1px;
+  transition:transform .25s var(--ease-spring),background .2s,box-shadow .2s,color .2s;
+}
+.seg button:hover{color:var(--ink);transform:translateY(-1px)}
+.seg button:active{transform:scale(.94)}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(90,100,160,.18)}
+#tweaks .fab{
+  display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;border-radius:999px;
+  background:rgba(255,255,255,.94);border:1.5px solid #fff;
+  box-shadow:0 12px 34px rgba(70,80,130,.35);color:var(--ink);letter-spacing:1px;font-size:13px;
+  transition:transform .3s var(--ease-spring),box-shadow .3s;
+}
+#tweaks .fab:hover{transform:translateY(-2px)}
+#tweaks .fab:active{transform:scale(.96)}
+#tweaks.open .fab{display:none}
+#tweaks .fab svg{width:15px;height:15px}
+
+/* ── interaction polish (Diary v8 feel) ── */
+.page.is-enter{animation:pageIn .42s var(--ease-out)}
+.hint-keys{
+  margin-top:8px;font-size:10px;letter-spacing:1px;color:var(--ink-faint);line-height:1.5;
+}
+.side-card,.deck-panel{
+  transition:transform .3s var(--ease-spring),box-shadow .3s;
+}
+.side-card:hover,.deck-panel:hover{transform:translateY(-1px)}
+#page-ingest .ingest-log .log-rx:active{transform:scale(.98)}
+#page-ingest .ingest-galaxy:active,
+#page-ingest .ingest-telemetry:active{transform:scale(.99)}
+#page-ingest .obs-prop.craft-hit{
+  pointer-events:auto;cursor:pointer;
+  transition:filter .25s,opacity .25s;
+}
+#page-ingest .obs-prop.craft-hit:hover{filter:drop-shadow(0 6px 14px color-mix(in srgb,var(--room) 28%,transparent));opacity:1}
+#page-ingest .obs-prop.craft-hit:active{transform:scale(.92)}
+#page-ingest .obs-prop.craft-hit.is-pop{animation:obsPop .5s var(--ease-spring)}
+@keyframes obsPop{
+  0%{transform:scale(1) rotate(0)}
+  35%{transform:scale(1.14) rotate(-6deg)}
+  70%{transform:scale(.94) rotate(4deg)}
+  100%{transform:scale(1) rotate(0)}
+}
+.field .inp,.field .area,.cand.cand-manual .manual-fold .area{
+  transition:box-shadow .25s,border-color .25s,background .25s;
+}
+.field .inp:focus,.field .area:focus,.cand.cand-manual .manual-fold .area:focus{
+  border-color:color-mix(in srgb,var(--room) 45%,#fff);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--room-soft) 80%,transparent),inset 0 1px 2px rgba(90,100,150,.06);
+}
+@media(prefers-reduced-motion:reduce){
+  .page.is-enter,.fb-panel.on,#tweaks.open .panel,.cand.is-pop,.note-card.is-pop,
+  .obs-prop.craft-hit.is-pop,.obs-prop .glow{animation:none!important}
+}
+
+/* ══════════ JOBS PAGE ══════════ */
+.job-list-panel{display:flex;flex-direction:column;gap:8px;flex:none}
+.job-row{
+  display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;
+  background:rgba(255,255,255,.82);border:1.5px solid rgba(255,255,255,.95);box-shadow:var(--shadow-1);
+  cursor:pointer;transition:transform .3s var(--ease-spring),box-shadow .25s,border-color .2s;
+}
+.job-row:hover{transform:translateY(-2px);box-shadow:var(--shadow-2)}
+.job-row:active{transform:scale(.985)}
+.status-dot{width:10px;height:10px;border-radius:50%;flex:none}
+.status-dot.distilling{background:var(--room);animation:inkPulse 1.6s ease-in-out infinite}
+.status-dot.queued{background:var(--c-sun)}
+.status-dot.done{background:var(--c-mint)}
+.j-title{font-size:14px;letter-spacing:.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.j-status{font-size:11px;letter-spacing:1px;color:var(--ink-faint);white-space:nowrap}
+.j-status.distilling{color:var(--room)}.j-status.queued{color:#b08040}.j-status.done{color:#2a8a6e}
+.j-meta{font-size:11px;color:var(--ink-faint);white-space:nowrap}
+
+/* job craft blotter */
+.job-craft{
+  flex:1;min-height:0;overflow:hidden;border-radius:var(--r-md);position:relative;
+  background:
+    radial-gradient(300px 200px at 15% 30%,color-mix(in srgb,var(--craft-blush) 70%,transparent),transparent),
+    radial-gradient(260px 180px at 85% 70%,color-mix(in srgb,var(--craft-mist) 60%,transparent),transparent),
+    linear-gradient(165deg,rgba(255,255,255,.4),rgba(255,255,255,.15));
+  border:1.5px solid rgba(255,255,255,.9);box-shadow:var(--shadow-1);
+  padding:14px 16px;display:flex;flex-direction:column;gap:10px;
+}
+.blotter-label{font-size:9px;letter-spacing:3px;color:var(--ink-faint);flex:none}
+.blotter-pipe{display:flex;gap:10px;flex:1;min-height:0}
+.blotter-col{
+  flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;
+  padding:8px 10px;border-radius:14px;
+  background:rgba(255,255,255,.55);border:1px dashed rgba(165,172,196,.28);
+}
+.blotter-col .col-h{
+  font-size:9px;letter-spacing:2px;color:var(--ink-faint);margin-bottom:4px;
+  display:flex;align-items:center;gap:6px;flex:none;
+}
+.blotter-col .col-h .dot{width:8px;height:8px;border-radius:50%}
+.ticket{
+  padding:8px 10px;border-radius:10px;font-size:10px;line-height:1.4;color:var(--ink-soft);
+  background:rgba(255,255,255,.92);box-shadow:var(--shadow-1);
+  border-left:3px solid var(--room);flex:none;
+}
+.ticket.q{border-left-color:var(--c-sun)}.ticket.r{border-left-color:var(--c-blue)}.ticket.done{border-left-color:var(--c-mint)}
+.ticket .t-id{font-size:8px;color:var(--ink-faint);letter-spacing:1px;margin-bottom:2px}
+.ticket .t-title{font-size:10px;color:var(--ink);font-weight:600;margin-bottom:3px}
+.blotter-seal{
+  position:absolute;font-size:9px;letter-spacing:2px;padding:4px 9px;border-radius:4px;
+  border:1.5px solid;font-weight:700;
+}
+.blotter-seal.v{color:var(--room);border-color:var(--room);right:22px;bottom:28px;transform:rotate(-8deg);background:color-mix(in srgb,var(--room-soft) 55%,transparent)}
+.blotter-seal.g{color:#2a8a6e;border-color:#2a8a6e;right:90px;bottom:20px;transform:rotate(6deg);background:color-mix(in srgb,var(--c-mint-soft) 55%,transparent)}
+.blotter-bead{position:absolute;border-radius:50%}
+.blotter-bead.a{width:14px;height:14px;left:20px;bottom:22px;background:radial-gradient(circle at 35% 30%,#fff8,var(--room))}
+.blotter-bead.b{width:10px;height:10px;left:38px;bottom:34px;background:radial-gradient(circle at 35% 30%,#fff8,var(--c-mint))}
+.legend{display:flex;flex-direction:column;gap:8px}
+.legend .l-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);letter-spacing:1px}
+.legend .dot{width:10px;height:10px;border-radius:50%;flex:none}
+
+/* ══════════ NOTES PAGE ══════════ */
+.filter-row{display:flex;flex-wrap:wrap;gap:6px}
+.filter-row .f-btn{
+  padding:6px 12px;border-radius:999px;font-size:12px;letter-spacing:1px;
+  background:rgba(255,255,255,.8);border:1.5px solid rgba(255,255,255,.95);
+  color:var(--ink-soft);box-shadow:var(--shadow-1);
+  transition:transform .25s var(--ease-spring),color .2s,background .2s,border-color .2s;
+}
+.filter-row .f-btn:hover{transform:translateY(-1px);color:var(--ink)}
+.filter-row .f-btn:active{transform:scale(.94)}
+.filter-row .f-btn.on{background:var(--room-soft);color:var(--room);border-color:color-mix(in srgb,var(--room) 30%,transparent)}
+.note-list-panel{display:flex;flex-direction:column;gap:8px;width:100%;max-width:100%;flex:none}
+.note-card{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;cursor:pointer;
+  background:rgba(255,255,255,.82);border:1.5px solid rgba(255,255,255,.95);box-shadow:var(--shadow-1);
+  transition:border-color .2s,transform .3s var(--ease-spring),box-shadow .25s,background .2s;
+}
+.note-card:hover{transform:translateY(-2px) translateX(2px);box-shadow:var(--shadow-2)}
+.note-card:active{transform:scale(.985)}
+.note-card.is-pop{animation:candPop .42s var(--ease-spring)}
+.note-card.selected{border-color:color-mix(in srgb,var(--room) 55%,transparent);background:#fff}
+.note-card .nc-icon{
+  width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;
+  background:var(--room-soft);color:var(--room);font-size:11px;font-weight:700;letter-spacing:.5px;
+}
+.note-card .nc-body{flex:1;min-width:0}
+.note-card .nc-title{font-size:14px;letter-spacing:.5px;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.note-card .nc-meta{font-size:11px;color:var(--ink-faint);display:flex;gap:8px;align-items:center}
+.note-card .nc-tag{font-size:10px;padding:2px 8px;border-radius:999px;letter-spacing:1px;background:var(--room-soft);color:var(--room)}
+.note-card .nc-tag.pub{background:var(--c-mint-soft);color:#2a8a6e}
+
+/* notes: list LEFT + craft RIGHT, then spaced bay below */
+.notes-top{
+  display:flex;gap:12px;align-items:stretch;flex:none;min-height:0;
+}
+.notes-controls{
+  flex:none;width:min(680px,52%);
+  display:flex;flex-direction:column;gap:10px;min-width:0;
+}
+.notes-side-craft{
+  flex:1;min-width:0;min-height:0;position:relative;overflow:hidden;
+  border-radius:var(--r-md);border:1.5px solid rgba(255,255,255,.95);box-shadow:var(--shadow-1);
+  background:
+    radial-gradient(240px 160px at 20% 30%,color-mix(in srgb,var(--craft-blush) 80%,transparent),transparent 65%),
+    radial-gradient(220px 150px at 85% 75%,color-mix(in srgb,var(--craft-mist) 70%,transparent),transparent 60%),
+    linear-gradient(165deg,rgba(255,255,255,.5),rgba(255,255,255,.18));
+  padding:14px 16px;display:flex;flex-direction:column;gap:10px;
+}
+.notes-side-craft .tag{
+  font-size:10px;letter-spacing:2px;color:var(--ink-faint);
+  background:rgba(255,255,255,.72);padding:3px 10px;border-radius:999px;align-self:flex-start;
+}
+.notes-side-craft .nsc-body{
+  flex:1;display:grid;grid-template-columns:1fr 1fr;gap:10px;align-content:center;min-height:0;
+}
+.notes-side-craft .nsc-slip{
+  padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.9);
+  border-left:3px solid var(--room);box-shadow:var(--shadow-1);
+  font-size:11px;line-height:1.4;color:var(--ink-soft);
+}
+.notes-side-craft .nsc-slip:nth-child(2){border-left-color:var(--c-mint);transform:rotate(1deg)}
+.notes-side-craft .nsc-slip:nth-child(3){border-left-color:var(--c-blue);transform:rotate(-1deg)}
+.notes-side-craft .nsc-slip:nth-child(4){border-left-color:var(--c-sun);transform:rotate(1.5deg)}
+.notes-side-craft .nsc-slip .k{font-size:8px;letter-spacing:1.5px;color:var(--ink-faint);margin-bottom:3px}
+.notes-side-craft .nsc-foot{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex:none;
+}
+.notes-side-craft .nsc-foot .hint{font-size:11px;letter-spacing:1px;color:var(--ink-faint)}
+
+.notes-craft{
+  flex:1;min-height:0;border-radius:var(--r-md);overflow:hidden;
+  border:1.5px solid rgba(255,255,255,.9);box-shadow:var(--shadow-1);
+  background:
+    radial-gradient(280px 180px at 18% 30%,color-mix(in srgb,var(--craft-blush) 70%,transparent),transparent),
+    radial-gradient(240px 160px at 82% 70%,color-mix(in srgb,var(--craft-mist) 60%,transparent),transparent),
+    linear-gradient(165deg,rgba(255,255,255,.42),rgba(255,255,255,.14));
+  padding:14px 16px;display:flex;flex-direction:column;gap:12px;
+}
+.notes-craft .nc-lab{
+  flex:none;font-size:10px;letter-spacing:2px;color:var(--ink-faint);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.notes-folio-grid{
+  flex:1;min-height:0;display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;align-content:stretch;
+}
+.notes-folio-grid .nf{
+  min-height:0;padding:12px 14px;border-radius:14px;
+  background:rgba(255,255,255,.9);border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:var(--shadow-1);border-top:3px solid var(--room);
+  display:flex;flex-direction:column;gap:6px;
+}
+.notes-folio-grid .nf:nth-child(2){border-top-color:var(--c-mint)}
+.notes-folio-grid .nf:nth-child(3){border-top-color:var(--c-blue)}
+.notes-folio-grid .nf:nth-child(4){border-top-color:var(--c-sun)}
+.notes-folio-grid .nf .fk{font-size:9px;letter-spacing:1.5px;color:var(--ink-faint)}
+.notes-folio-grid .nf .ft{
+  font-size:13px;line-height:1.45;color:var(--ink);letter-spacing:.5px;
+  font-family:"ZCOOL KuaiLe","PingFang SC",sans-serif;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+}
+.notes-folio-grid .nf .fm{margin-top:auto;font-size:10px;color:var(--ink-faint);letter-spacing:1px}
+.notes-craft-foot{
+  flex:none;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding-top:4px;border-top:1px dashed rgba(165,172,196,.28);
+}
+.notes-craft-foot .quote-ribbon{flex:1;min-width:180px;margin:0}
+
+@media (max-width:1100px){
+  .notes-folio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* legacy alias kept empty-safe */
+.notes-deco{display:none}
+
+/* ══════════ DETAIL PAGE ══════════ */
+.detail-title{font-size:22px;letter-spacing:1.5px;margin-bottom:8px}
+.folio-meta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--ink-faint);letter-spacing:1px}
+.folio-tag{padding:3px 10px;border-radius:999px;font-size:11px;letter-spacing:1px;background:var(--room-soft);color:var(--room)}
+.status-mini{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.status-mini .s{
+  display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;
+  font-size:11px;letter-spacing:1px;color:var(--ink-faint);
+  background:rgba(255,255,255,.7);border:1px solid rgba(165,172,196,.2);
+}
+.status-mini .s.done{color:#2a8a6e;background:var(--c-mint-soft);border-color:transparent}
+.status-mini .s.on{color:var(--room);background:var(--room-soft);border-color:color-mix(in srgb,var(--room) 30%,transparent);font-weight:600}
+.status-mini .s svg{width:12px;height:12px}
+.status-mini .arrow{color:var(--ink-faint);font-size:12px}
+.quote-deco{
+  padding:12px 14px;border-radius:14px;border-left:3px solid var(--room);
+  background:color-mix(in srgb,var(--room-soft) 40%,transparent);
+  font-size:12px;line-height:1.7;color:var(--ink-soft);
+}
+#page-detail .mid-bay .md-preview{flex:1;min-height:0;align-self:stretch;width:100%}
+
+/* ══════════ LEARNING PAGE ══════════ */
+.domain-chips{display:flex;flex-wrap:wrap;gap:6px}
+.domain-chips .chip-btn.on{background:var(--room);color:#fff;border-color:transparent}
+.learn-toolbar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:8px 12px;border-radius:14px;width:100%;max-width:100%;
+  background:rgba(255,255,255,.78);border:1.5px solid rgba(255,255,255,.95);box-shadow:var(--shadow-1);
+}
+.learn-toolbar .hint{font-size:11px;color:var(--ink-faint);letter-spacing:1px;margin-left:4px}
+.learn-row{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:12px;
+  width:100%;max-width:100%;flex:1;min-height:0;align-self:stretch;
+}
+.tree-box.glass,.leaf-box.glass{padding:12px;min-height:0;max-height:none;overflow:auto;flex:1}
+.tree-box .dom{font-size:11px;letter-spacing:2px;color:var(--ink-faint);margin-bottom:8px}
+.tree-node{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  width:100%;text-align:left;padding:7px 9px;border-radius:10px;
+  font-size:12px;color:var(--ink-soft);margin-bottom:3px;
+}
+.tree-node:hover{background:rgba(255,255,255,.75)}
+.tree-node.on{background:#fff;color:var(--ink);box-shadow:var(--shadow-1)}
+.tree-node.l2{padding-left:20px;font-size:11px}
+.tree-node .n{color:var(--ink-faint);font-size:10px;flex:none}
+.tree-node.stub{border:1.5px dashed color-mix(in srgb,var(--room) 35%,transparent);color:var(--ink-faint)}
+.leaf-box h2{font-size:15px;letter-spacing:1px;margin-bottom:4px}
+.leaf-box .meta{font-size:10px;color:var(--ink-faint);margin-bottom:10px;letter-spacing:1px}
+.leaf-chip{
+  display:block;width:100%;text-align:left;padding:8px 10px;border-radius:12px;margin-bottom:6px;
+  background:rgba(255,255,255,.72);border:1.5px solid rgba(255,255,255,.95);font-size:12px;
+  transition:transform .2s var(--ease-spring),background .2s;
+}
+.leaf-chip:hover{background:#fff;transform:translateX(2px)}
+.leaf-chip .m{font-size:10px;color:var(--ink-faint);margin-top:3px}
+.learn-deco{
+  flex:1;min-height:0;border-radius:var(--r-md);overflow:hidden;position:relative;
+  background:
+    radial-gradient(280px 200px at 18% 30%,color-mix(in srgb,var(--craft-blush) 70%,transparent),transparent),
+    radial-gradient(240px 180px at 82% 70%,color-mix(in srgb,var(--craft-mist) 55%,transparent),transparent),
+    linear-gradient(165deg,rgba(255,255,255,.42),rgba(255,255,255,.14));
+  border:1.5px solid rgba(255,255,255,.9);box-shadow:var(--shadow-1);
+}
+.learn-deco .tag{
+  position:absolute;top:12px;left:14px;z-index:2;
+  font-size:10px;letter-spacing:2px;color:var(--ink-faint);
+  padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.7);
+}
+.vein-svg{position:absolute;inset:18px 20px 16px;width:calc(100% - 40px);height:calc(100% - 34px)}
+.vein-svg .edge{stroke:color-mix(in srgb,var(--room) 45%,#c8c4e0);stroke-width:1.6;fill:none}
+.vein-svg .node{fill:#fff;stroke:var(--room);stroke-width:1.8}
+.vein-svg .node.root{fill:var(--room)}
+.vein-svg .lab{font-size:11px;fill:var(--ink-soft);font-family:"ZCOOL KuaiLe","PingFang SC",sans-serif}
+.vein-svg .lab.root{fill:#fff;font-size:12px}
+.vein-svg .badge{fill:var(--c-mint-soft);stroke:none}
+.vein-svg .badge-t{font-size:9px;fill:#2a8a6e}
+.learn-path{
+  position:absolute;right:16px;top:40px;display:flex;flex-direction:column;gap:6px;z-index:2;
+}
+.learn-path .slip-mini{position:relative;transform:none}
+#page-learning .mid-bay{gap:12px}
+
+/* ── reduced motion ── */
+@media(prefers-reduced-motion:reduce){
+  .anim,.job-chip i,.bead,.blotter-bead,.status-dot.distilling{animation:none!important;opacity:1}
+  .clock-time .colon{animation:none}
+}
+</style>
+</head>
+<body class="period-page-bg">
+<div id="stageWrap">
+<div id="stage">
+
+  <div class="period-atm" aria-hidden="true">
+    <div class="atm-wash"></div><div class="atm-dots"></div><div class="atm-glow"></div><div class="atm-mist"></div>
+    <div class="atm-sun"></div>
+    <div class="atm-rays"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="atm-dusk"></div><div class="atm-moon"></div>
+    <div class="atm-stars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="atm-birds"><i></i><i></i><i></i></div>
+  </div>
+
+  <header id="topbar">
+    <button type="button" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+          <path d="M5 19V6.5A2.5 2.5 0 0 1 7.5 4H19v13"/>
+          <path d="M9 8h6M9 12h4"/><path d="M5 19h12a2 2 0 0 0 2-2V8"/>
+        </svg>
+      </span>
+      <span>
+        <div class="brand-name font-display">某某の小站</div>
+        <div class="brand-sub" id="brandSub">READING ROOM V1</div>
+      </span>
+    </button>
+    <nav id="mainnav">
+      <span id="navPill" aria-hidden="true"></span>
+      <button type="button">博客</button>
+      <button type="button">日记</button>
+      <button type="button">知识库</button>
+      <button type="button" class="active">精读</button>
+      <button type="button">实验室</button>
+    </nav>
+    <div class="top-right">
+      <div class="clock-chip">
+        <div class="clock-time" id="clockTime">00:00<span class="sec"> 00</span></div>
+        <div class="clock-date" id="clockDate">—</div>
+      </div>
+      <div class="avatar" aria-hidden="true">某</div>
+    </div>
+  </header>
+
+  <div class="note-chip">v1 · 采集：左栏观测日志 · 中右星系 · 键盘 1–5</div>
+
+  <!-- ═══════════════════ PAGE 1: INGEST ═══════════════════ -->
+  <section id="page-ingest" class="page" aria-label="内容采集">
+    <div class="shell">
+      <div class="obs-field" aria-hidden="true">
+        <!-- LEFT · 天线塔 / 卫星 / 信标 -->
+        <div class="obs-prop tower craft-hit" role="button" tabindex="0" title="天线塔" data-craft="天线塔 · 在听">
+          <svg viewBox="0 0 46 92">
+            <path class="stroke thin" d="M8 88 H38"/>
+            <path class="stroke" d="M23 88 V18"/>
+            <path class="stroke thin" d="M14 70 L23 52 L32 70"/>
+            <path class="stroke thin" d="M12 52 L23 34 L34 52"/>
+            <path class="stroke thin" d="M16 34 L23 22 L30 34"/>
+            <circle class="fill" cx="23" cy="14" r="5"/>
+            <circle class="accent" cx="23" cy="14" r="2"/>
+            <path class="glow" d="M23 8 A10 10 0 0 1 31 14"/>
+            <path class="glow" d="M23 4 A14 14 0 0 1 35 14" style="animation-delay:.4s"/>
+          </svg>
+        </div>
+        <div class="obs-prop sat-l craft-hit" role="button" tabindex="0" title="卫星" data-craft="卫星过境 · 嘀">
+          <svg viewBox="0 0 52 36">
+            <rect class="fill" x="18" y="12" width="16" height="12" rx="2"/>
+            <rect class="stroke" x="4" y="14" width="12" height="8" rx="1"/>
+            <rect class="stroke" x="36" y="14" width="12" height="8" rx="1"/>
+            <path class="stroke thin" d="M16 16 H18 M34 16 H36 M16 20 H18 M34 20 H36"/>
+            <circle class="accent blue" cx="26" cy="18" r="2"/>
+            <path class="stroke thin" d="M26 12 V6"/>
+            <circle class="stroke thin" cx="26" cy="5" r="2"/>
+          </svg>
+        </div>
+        <div class="obs-prop beacon craft-hit" role="button" tabindex="0" title="信标" data-craft="信标闪了一下">
+          <svg viewBox="0 0 38 54">
+            <path class="fill" d="M10 50 L14 28 H24 L28 50 Z"/>
+            <rect class="stroke" x="16" y="18" width="6" height="12" rx="1"/>
+            <circle class="fill" cx="19" cy="14" r="7"/>
+            <circle class="accent sun" cx="19" cy="14" r="2.5"/>
+            <path class="glow" d="M19 6 A10 10 0 0 1 27 12"/>
+          </svg>
+        </div>
+
+        <!-- MID · UFO / 探针 / 彗星 / 星点 -->
+        <div class="obs-prop ufo craft-hit" role="button" tabindex="0" title="UFO" data-craft="UFO · 掠过天区">
+          <svg viewBox="0 0 64 40">
+            <ellipse class="fill" cx="32" cy="22" rx="24" ry="8"/>
+            <ellipse class="stroke" cx="32" cy="18" rx="12" ry="8"/>
+            <path class="fill" d="M22 18 Q32 8 42 18" opacity=".9"/>
+            <circle class="accent" cx="26" cy="22" r="1.6"/>
+            <circle class="accent sun" cx="32" cy="23" r="1.6"/>
+            <circle class="accent blue" cx="38" cy="22" r="1.6"/>
+            <path class="glow" d="M20 28 Q32 36 44 28"/>
+            <path class="stroke thin" d="M32 10 V4"/>
+            <circle class="stroke thin" cx="32" cy="3" r="1.5"/>
+          </svg>
+        </div>
+        <div class="obs-prop probe craft-hit" role="button" tabindex="0" title="探针" data-craft="探针 · 对准中心">
+          <svg viewBox="0 0 44 44">
+            <circle class="stroke thin" cx="22" cy="22" r="16"/>
+            <circle class="stroke thin" cx="22" cy="22" r="10"/>
+            <circle class="fill" cx="22" cy="22" r="5"/>
+            <circle class="accent" cx="22" cy="22" r="2"/>
+            <path class="stroke" d="M22 4 V10 M22 34 V40 M4 22 H10 M34 22 H40"/>
+            <path class="stroke thin" d="M10 10 L14 14 M30 14 L34 10 M10 34 L14 30 M30 30 L34 34"/>
+          </svg>
+        </div>
+        <div class="obs-prop stars-m">
+          <svg viewBox="0 0 70 48">
+            <circle class="dot" cx="10" cy="12" r="1.6"/>
+            <circle class="dot d2" cx="28" cy="8" r="1.2"/>
+            <circle class="dot d3" cx="48" cy="16" r="1.8"/>
+            <circle class="dot" cx="62" cy="10" r="1.1"/>
+            <circle class="dot d2" cx="18" cy="30" r="1.3"/>
+            <circle class="dot d3" cx="40" cy="34" r="1.5"/>
+            <path class="stroke thin" d="M12 14 L26 10 L46 18" opacity=".4"/>
+          </svg>
+        </div>
+        <div class="obs-prop comet craft-hit" role="button" tabindex="0" title="彗星" data-craft="彗星尾巴 · 唰">
+          <svg viewBox="0 0 78 28">
+            <path class="tail" d="M4 18 Q28 8 48 14"/>
+            <path class="tail" d="M8 22 Q30 14 46 18" opacity=".4"/>
+            <circle class="fill" cx="58" cy="14" r="7"/>
+            <circle class="accent sun" cx="60" cy="13" r="2.5"/>
+          </svg>
+        </div>
+
+        <!-- RIGHT · 望远镜 / 小UFO / 天线 / 信号弧 -->
+        <div class="obs-prop scope craft-hit" role="button" tabindex="0" title="望远镜" data-craft="望远镜 · 调焦">
+          <svg viewBox="0 0 54 48">
+            <path class="stroke" d="M10 40 L26 18"/>
+            <path class="fill" d="M22 12 L42 6 L46 16 L26 22 Z"/>
+            <circle class="stroke" cx="44" cy="11" r="5"/>
+            <circle class="accent blue" cx="44" cy="11" r="2"/>
+            <path class="stroke thin" d="M14 40 H34"/>
+            <path class="stroke thin" d="M18 40 V44 H30 V40"/>
+          </svg>
+        </div>
+        <div class="obs-prop ufo-sm craft-hit" role="button" tabindex="0" title="小UFO" data-craft="小碟 · 悬停">
+          <svg viewBox="0 0 48 30">
+            <ellipse class="fill" cx="24" cy="17" rx="18" ry="6"/>
+            <ellipse class="stroke" cx="24" cy="14" rx="9" ry="6"/>
+            <circle class="accent" cx="20" cy="17" r="1.3"/>
+            <circle class="accent sun" cx="24" cy="18" r="1.3"/>
+            <circle class="accent blue" cx="28" cy="17" r="1.3"/>
+            <path class="glow" d="M14 22 Q24 28 34 22"/>
+          </svg>
+        </div>
+        <div class="obs-prop antenna craft-hit" role="button" tabindex="0" title="碟形天线" data-craft="碟天线 · 回声">
+          <svg viewBox="0 0 42 70">
+            <path class="stroke thin" d="M6 66 H36"/>
+            <path class="fill" d="M16 66 L19 40 H23 L26 66 Z"/>
+            <path class="stroke" d="M21 40 V16"/>
+            <path class="stroke" d="M12 28 Q21 18 30 28"/>
+            <path class="stroke thin" d="M10 34 Q21 22 32 34"/>
+            <circle class="fill" cx="21" cy="12" r="5"/>
+            <circle class="accent" cx="21" cy="12" r="2"/>
+          </svg>
+        </div>
+        <div class="obs-prop signal">
+          <svg viewBox="0 0 36 20">
+            <path class="wave" d="M4 16 Q10 6 16 16"/>
+            <path class="wave w2" d="M10 16 Q18 2 26 16"/>
+            <path class="wave w3" d="M16 16 Q26 0 34 14"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- LEFT -->
+      <aside class="side anim" style="animation-delay:.06s">
+        <div class="side-card glass">
+          <span class="tape"></span>
+          <h3 class="font-display">内容采集</h3>
+          <p class="about text-pretty">学什么 → 找页 / 贴链 / 上传 → AI 合蒸 1 篇精读。对应 /admin/knowledge/ingest。</p>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">房间页</h3>
+          <div class="col-stack" data-room-nav="ingest"></div>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">当前模式</h3>
+          <p class="about" id="modeHint">AI 搜索合蒸：主题 → 候选勾选 → 合蒸 1 篇</p>
+          <div class="hint-keys">1–5 换页 · Esc 关面板/回采集 · 点装饰有回声</div>
+        </div>
+        <div class="ingest-log chart-panel" id="ingestLog" aria-hidden="true">
+          <div class="chart-grid"></div>
+          <div class="log-rx" id="ingestDish" title="点击扫描">
+            <div class="dish-art">
+              <svg viewBox="0 0 200 120" preserveAspectRatio="xMidYMid meet">
+                <path class="dish-line thin" d="M16 108 H184"/>
+                <path class="dish-line thin" d="M40 108 v5 M70 108 v5 M100 108 v5 M130 108 v5 M160 108 v5"/>
+                <path class="dish-mast" d="M58 108 L64 70 h12 l6 38 z"/>
+                <path class="dish-line" d="M70 72 L78 58"/>
+                <ellipse class="dish-fill" cx="86" cy="52" rx="34" ry="22" transform="rotate(28 86 52)"/>
+                <ellipse class="dish-line thin" cx="86" cy="52" rx="22" ry="14" transform="rotate(28 86 52)"/>
+                <ellipse class="dish-line thin" cx="86" cy="52" rx="11" ry="7" transform="rotate(28 86 52)"/>
+                <path class="dish-line" d="M86 52 L124 40"/>
+                <circle class="dish-feed-dot" cx="126" cy="39" r="4"/>
+                <path class="dish-wave" d="M134 28 A26 26 0 0 1 148 52"/>
+                <path class="dish-wave w2" d="M140 16 A40 40 0 0 1 162 54"/>
+                <path class="dish-wave w3" d="M146 4 A54 54 0 0 1 176 56"/>
+                <circle class="dish-ping" cx="126" cy="39" r="18"/>
+                <circle class="dish-ping" cx="126" cy="39" r="32" style="animation-delay:.15s"/>
+                <circle class="dish-ping" cx="126" cy="39" r="48" style="animation-delay:.3s"/>
+              </svg>
+            </div>
+            <div class="rx-meta">
+              <div class="rx-k">接收站</div>
+              <div class="rx-hint">点一下 · 扫一圈</div>
+            </div>
+            <span class="dish-status" id="dishStatus">静听</span>
+          </div>
+          <div class="log-cap">观测日志 · <b id="logCount">3</b></div>
+          <div class="log-list" id="logList">
+            <div class="log-line"><span class="t">14:02</span><span class="m">锁定源 · docs</span><span class="dot"></span></div>
+            <div class="log-line mint"><span class="t">14:03</span><span class="m">收到候选 · 4</span><span class="dot"></span></div>
+            <div class="log-line sun"><span class="t">14:04</span><span class="m">静听中 · 待命</span><span class="dot"></span></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- MID -->
+      <div class="mid-bay anim" style="animation-delay:.14s">
+
+        <div class="ingest-top">
+          <div class="ingest-controls">
+            <div class="band mode-bar" id="modeBar" role="tablist">
+              <button type="button" data-mode="url">URL</button>
+              <button type="button" data-mode="file">文件</button>
+              <button type="button" data-mode="agent" class="on">搜索合蒸</button>
+            </div>
+
+            <div class="band input-card glass">
+              <div class="head">
+                <h2 class="font-display" id="inputTitle">告诉 AI</h2>
+                <span class="cap">INPUT · COMPACT</span>
+              </div>
+              <div class="field" data-field="url">
+                <label>文章 URL</label>
+                <input class="inp" type="text" value="https://docs.spring.io/spring-security/reference/">
+                <div class="row">
+                  <input class="inp" type="text" placeholder="标题（可选）">
+                  <input class="inp" type="text" placeholder="标签（可选）">
+                </div>
+                <div class="actions">
+                  <button type="button" class="chip-btn primary font-display" data-fb="progress">开始精炼</button>
+                </div>
+              </div>
+              <div class="field" data-field="file">
+                <label>本地文件</label>
+                <div class="dropzone"><strong>点击或拖拽上传</strong>PDF / DOCX / TXT / Markdown</div>
+                <div class="row">
+                  <input class="inp" type="text" value="notes-draft.md" placeholder="标题（可选）">
+                  <input class="inp" type="text" placeholder="标签（可选）">
+                </div>
+                <div class="actions">
+                  <button type="button" class="chip-btn primary font-display" data-fb="progress">上传并精炼</button>
+                </div>
+              </div>
+              <div class="field on" data-field="agent">
+                <label>学习目标</label>
+                <input class="inp" type="text" value="我想学 Spring Security 6">
+                <div class="row">
+                  <input class="inp" type="text" value="官方文档优先" placeholder="偏好">
+                  <input class="inp" type="text" value="security, spring" placeholder="标签">
+                </div>
+                <label>精读 Prompt（可选）</label>
+                <textarea class="area" placeholder="留空用站点 distill.system_prompt"></textarea>
+                <div class="actions">
+                  <button type="button" class="chip-btn primary font-display" data-fb="candidates">搜索候选</button>
+                  <button type="button" class="chip-btn" id="btnMerge" data-fb="progress">合蒸一篇</button>
+                  <button type="button" class="chip-btn sm" data-toast="已清空草稿">清空草稿</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="band work-bar glass" id="workBar">
+              <span class="meta" id="workMeta">已选 <b>2</b> / 建议 2～5 · 上限 8</span>
+              <span class="warn" id="workWarn">1 条风险未勾选</span>
+              <span class="job-chip" id="jobChip" hidden><i></i> JOB-17 · 蒸馏中</span>
+              <button type="button" class="chip-btn sm primary" id="workCta" data-fb="progress">合蒸 → 1 篇</button>
+            </div>
+          </div>
+
+          <div class="ingest-galaxy chart-panel" id="ingestGalaxy">
+            <div class="chart-grid"></div>
+            <span class="chart-cap">天区图</span>
+            <div class="star-chart" id="starChart">
+              <svg viewBox="0 0 420 290" preserveAspectRatio="xMidYMid meet">
+                <!-- 极坐标底网 -->
+                <line class="sc-grid radial" x1="210" y1="15" x2="210" y2="275"/>
+                <line class="sc-grid radial" x1="80" y1="145" x2="340" y2="145"/>
+                <line class="sc-grid radial" x1="118" y1="53" x2="302" y2="237"/>
+                <line class="sc-grid radial" x1="302" y1="53" x2="118" y2="237"/>
+                <!-- 四条可见轨道（不同半径） -->
+                <circle class="sc-orbit-ring r1" cx="210" cy="145" r="52"/>
+                <circle class="sc-orbit-ring r2" cx="210" cy="145" r="78"/>
+                <circle class="sc-orbit-ring r3" cx="210" cy="145" r="104"/>
+                <circle class="sc-orbit-ring r4" cx="210" cy="145" r="128"/>
+                <!-- 背景星尘 -->
+                <circle class="sc-dust" cx="52" cy="48" r="1.2"/>
+                <circle class="sc-dust d2" cx="78" cy="92" r="1"/>
+                <circle class="sc-dust d3" cx="110" cy="38" r="1.4"/>
+                <circle class="sc-dust" cx="138" cy="78" r="1"/>
+                <circle class="sc-dust d2" cx="168" cy="42" r="1.1"/>
+                <circle class="sc-dust d3" cx="248" cy="36" r="1.3"/>
+                <circle class="sc-dust" cx="278" cy="72" r="1"/>
+                <circle class="sc-dust d2" cx="348" cy="88" r="1"/>
+                <circle class="sc-dust d3" cx="378" cy="56" r="1.1"/>
+                <circle class="sc-dust" cx="42" cy="128" r="1"/>
+                <circle class="sc-dust d2" cx="68" cy="168" r="1.2"/>
+                <circle class="sc-dust d3" cx="162" cy="158" r="1"/>
+                <circle class="sc-dust" cx="258" cy="208" r="1.1"/>
+                <circle class="sc-dust d2" cx="352" cy="158" r="1"/>
+                <circle class="sc-dust d3" cx="382" cy="188" r="1.1"/>
+                <circle class="sc-dust" cx="88" cy="258" r="1.2"/>
+                <circle class="sc-dust d2" cx="168" cy="268" r="1.1"/>
+                <circle class="sc-dust d3" cx="248" cy="268" r="1.2"/>
+                <circle class="sc-dust" cx="328" cy="262" r="1.1"/>
+                <circle class="sc-dust d2" cx="400" cy="118" r="1.2"/>
+                <circle class="sc-dust d3" cx="30" cy="88" r="1"/>
+                <circle class="sc-dust" cx="400" cy="250" r="1.1"/>
+
+                <!-- 轨0 · r=52 · 星尘 · 初相 0°（正上） -->
+                <g class="sc-orbit o0">
+                  <g transform="translate(210, 93)">
+                    <g class="sc-spin-back">
+                      <path class="sc-const" d="M-10 8 L0 0 L10 8"/>
+                      <circle class="sc-star" data-i="0" cx="0" cy="0" r="5" fill="#9b8ce8"/>
+                      <text class="sc-label" data-i="0" x="9" y="-7">星尘</text>
+                    </g>
+                  </g>
+                </g>
+                <!-- 轨1 · r=78 · 流光 · 初相 90°（正右） -->
+                <g class="sc-orbit o1">
+                  <g transform="translate(288, 145)">
+                    <g class="sc-spin-back">
+                      <path class="sc-const" d="M-8 -10 L0 0 L-8 10"/>
+                      <circle class="sc-star" data-i="1" cx="0" cy="0" r="5.5" fill="#6aaee8"/>
+                      <text class="sc-label" data-i="1" x="9" y="-7">流光</text>
+                    </g>
+                  </g>
+                </g>
+                <!-- 轨2 · r=104 · 涟漪 · 初相 180°（正下） -->
+                <g class="sc-orbit o2">
+                  <g transform="translate(210, 249)">
+                    <g class="sc-spin-back">
+                      <path class="sc-const" d="M-10 -8 L0 0 L10 -8"/>
+                      <circle class="sc-star" data-i="2" cx="0" cy="0" r="5" fill="#5fc4a5"/>
+                      <text class="sc-label" data-i="2" x="9" y="-7">涟漪</text>
+                    </g>
+                  </g>
+                </g>
+                <!-- 轨3 · r=128 · 暗斑 · 初相 270°（正左） -->
+                <g class="sc-orbit o3">
+                  <g transform="translate(82, 145)">
+                    <g class="sc-spin-back">
+                      <path class="sc-const" d="M8 -10 L0 0 L8 10"/>
+                      <circle class="sc-star" data-i="3" cx="0" cy="0" r="4.5" fill="#e8a0b0"/>
+                      <text class="sc-label" data-i="3" x="9" y="-7">暗斑</text>
+                    </g>
+                  </g>
+                </g>
+
+                <!-- 扫光束：绕 (210,145) 转 -->
+                <g class="sc-beam" id="scBeam" aria-hidden="true">
+                  <path class="fan" d="M210 145 L198 18 A132 132 0 0 1 222 18 Z"/>
+                  <line class="ray" x1="210" y1="145" x2="210" y2="16"/>
+                </g>
+                <!-- 中心准星（不转） -->
+                <g class="sc-cross-g" id="scCross">
+                  <circle class="sc-cross-hit" cx="210" cy="145" r="18"/>
+                  <circle class="sc-cross" cx="210" cy="145" r="10"/>
+                  <line class="sc-cross" x1="210" y1="128" x2="210" y2="162"/>
+                  <line class="sc-cross" x1="193" y1="145" x2="227" y2="145"/>
+                  <circle class="sc-cross" cx="210" cy="145" r="2.5" fill="#9b8ce8" stroke="none"/>
+                </g>
+              </svg>
+            </div>
+            <span class="gal-legend">四轨公转 · 点星对准</span>
+          </div>
+        </div>
+
+        <div class="ingest-bottom">
+          <div class="band feedback glass">
+            <div class="fb-head">
+              <h3 class="font-display" id="fbTitle">搜索候选</h3>
+              <span class="hint" id="fbHint">建议 2～5 条 · 限高滚动</span>
+            </div>
+            <div class="fb-body">
+
+              <div class="fb-panel" data-fb="idle">
+                <div class="idle-box" id="idleSteps"></div>
+                <div class="lum-ripple"><div class="lum-sonar"><i></i><i></i><i></i><i></i></div><span class="cap">待搜索 · 声呐待命</span></div>
+              </div>
+
+              <div class="fb-panel" data-fb="file-ready">
+                <div class="file-preview">
+                  <div class="ico">MD</div>
+                  <div>
+                    <div class="t">notes-draft.md</div>
+                    <div class="m">24 KB · Markdown · 可移除后重选</div>
+                  </div>
+                  <button type="button" class="chip-btn sm" style="margin-left:auto">移除</button>
+                </div>
+                <div class="lum-ripple" style="margin-top:10px"><div class="lum-sonar"><i></i><i></i><i></i><i></i></div><span class="cap">文件待上传</span></div>
+              </div>
+
+              <div class="fb-panel on" data-fb="candidates">
+                <div class="outline-box text-pretty">大纲（不落库）
+1. FilterChain 与 SecurityFilterChain
+2. JWT + 会话失效
+3. 方法级鉴权实践</div>
+                <div class="cand-list" id="candList"></div>
+              </div>
+
+              <div class="fb-panel" data-fb="progress">
+                <div class="progress-steps">
+                  <div class="s done"><div class="n">01</div><div class="v">排队</div></div>
+                  <div class="s done"><div class="n">02</div><div class="v">读取</div></div>
+                  <div class="s on"><div class="n">03</div><div class="v">蒸馏</div></div>
+                  <div class="s"><div class="n">04</div><div class="v">完成</div></div>
+                </div>
+                <p class="about text-pretty">AI 正在精读内容，预计 20–40 秒。可同时在任务页跟踪进度。</p>
+                <div class="lum-ripple"><div class="lum-sonar"><i></i><i></i><i></i><i></i></div><span class="cap">合蒸进行中</span></div>
+              </div>
+
+              <!-- SUCCESS: ONLY result card, NO md-preview here -->
+              <div class="fb-panel" data-fb="success">
+                <div class="result-card">
+                  <div class="t font-display">Spring Security 6 合蒸笔记</div>
+                  <div class="m text-pretty">已采用 3 源合蒸 1 篇 · Markdown 全文预览在精读详情页</div>
+                  <div class="actions">
+                    <button type="button" class="chip-btn primary sm" data-go="detail">打开详情</button>
+                    <button type="button" class="chip-btn sm" data-fb="idle">再采一篇</button>
+                  </div>
+                </div>
+                <div class="lum-ripple" style="margin-top:12px"><div class="lum-vortex" style="position:relative;right:auto;bottom:auto;margin:0 auto"><div class="core">完成</div></div><span class="cap">进详情看全文</span></div>
+              </div>
+
+              <div class="fb-panel" data-fb="fail">
+                <div class="result-card">
+                  <div class="t font-display">合蒸部分失败</div>
+                  <div class="m">2 源成功 · 1 源失败。可去掉失败源重试。</div>
+                  <div class="fail-list">
+                    <div class="f">[可能需登录] example.com/course — CAPTCHA 拦截</div>
+                  </div>
+                  <div class="actions" style="margin-top:10px">
+                    <button type="button" class="chip-btn primary sm" data-fb="progress">去掉失败源重试</button>
+                  </div>
+                </div>
+                <div class="lum-ripple" style="margin-top:12px"><div class="lum-sonar"><i></i><i></i><i></i><i></i></div><span class="cap">部分源失败 · 可重试</span></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <aside class="deck anim" style="animation-delay:.22s">
+        <div class="deck-panel glass">
+          <span class="tape alt"></span>
+          <h3 class="font-display">概览</h3>
+          <div class="stat-row">
+            <div class="stat-pill"><div class="n">24</div><div class="l">总精读</div></div>
+            <div class="stat-pill"><div class="n">3</div><div class="l">进行中</div></div>
+          </div>
+        </div>
+        <div class="deck-panel glass">
+          <h3 class="font-display">快捷</h3>
+          <div class="col-stack">
+            <button type="button" class="chip-btn sm" data-go="notes">精读列表</button>
+            <button type="button" class="chip-btn sm" data-go="jobs">任务流水</button>
+            <button type="button" class="chip-btn sm" data-toast="精读设置 · 下轮">精读设置</button>
+          </div>
+        </div>
+        <div class="deck-panel glass">
+          <h3 class="font-display">最近源</h3>
+          <div class="recent-line"><div class="k">URL</div>docs.spring.io/…/security</div>
+          <div class="recent-line"><div class="k">SEARCH</div>JWT Redis · 4 候选</div>
+          <div class="recent-line"><div class="k">FILE</div>notes-draft.md</div>
+        </div>
+        <div class="ingest-telemetry chart-panel" id="ingestTelemetry" title="点柱回响">
+          <div class="chart-grid"></div>
+          <span class="chart-cap">回响柱</span>
+          <div class="tel-bars" id="telBars">
+            <b data-i="0"></b><b data-i="1"></b><b data-i="2"></b><b data-i="3"></b><b data-i="4"></b>
+          </div>
+          <div class="tel-axis"></div>
+          <span class="tel-foot">拨一下 · 会回声</span>
+        </div>
+        <div class="cta-foot">
+          <div><div class="lbl font-display">任务流水</div><div class="sub">跟踪全部进度</div></div>
+          <button type="button" class="chip-btn primary sm" data-go="jobs">→</button>
+        </div>
+      </aside>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════ PAGE 2: JOBS ═══════════════════ -->
+  <section id="page-jobs" class="page" hidden aria-label="精读任务">
+    <div class="shell">
+      <div class="obs-field" aria-hidden="true">
+        <div class="obs-prop tower craft-hit" role="button" tabindex="0" title="天线塔" data-craft="任务台 · 天线在听">
+          <svg viewBox="0 0 46 92"><path class="stroke thin" d="M8 88 H38"/><path class="stroke" d="M23 88 V18"/><path class="stroke thin" d="M14 70 L23 52 L32 70"/><circle class="fill" cx="23" cy="14" r="5"/><circle class="accent" cx="23" cy="14" r="2"/><path class="glow" d="M23 8 A10 10 0 0 1 31 14"/></svg>
+        </div>
+        <div class="obs-prop ufo craft-hit" role="button" tabindex="0" title="UFO" data-craft="任务轨 · UFO 掠过">
+          <svg viewBox="0 0 64 40"><ellipse class="fill" cx="32" cy="22" rx="24" ry="8"/><ellipse class="stroke" cx="32" cy="18" rx="12" ry="8"/><circle class="accent" cx="26" cy="22" r="1.6"/><circle class="accent sun" cx="32" cy="23" r="1.6"/><circle class="accent blue" cx="38" cy="22" r="1.6"/></svg>
+        </div>
+        <div class="obs-prop antenna craft-hit" role="button" tabindex="0" title="碟天线" data-craft="任务回声 · 碟天线">
+          <svg viewBox="0 0 42 70"><path class="stroke thin" d="M6 66 H36"/><path class="fill" d="M16 66 L19 40 H23 L26 66 Z"/><path class="stroke" d="M21 40 V16"/><path class="stroke" d="M12 28 Q21 18 30 28"/><circle class="fill" cx="21" cy="12" r="5"/><circle class="accent" cx="21" cy="12" r="2"/></svg>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="side-card glass">
+          <span class="tape"></span>
+          <div style="margin-bottom:8px">
+            <button type="button" class="chip-btn sm" data-go="ingest">← 采集台</button>
+          </div>
+          <h3 class="font-display">精读任务</h3>
+          <p class="about text-pretty">后台蒸馏任务流水。蒸馏中实时更新，已完成可打开详情。</p>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">房间页</h3>
+          <div class="col-stack" data-room-nav="jobs"></div>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">轮询提示</h3>
+          <p class="about">任务轮询每 5 s 拉取。进行中不自动刷新界面，点"刷新列表"查最新状态。</p>
+        </div>
+        <div class="room-log chart-panel">
+          <div class="chart-grid"></div>
+          <div class="log-cap">任务日志 · <b>4</b></div>
+          <div class="log-list">
+            <div class="log-line sun"><span class="t">14:01</span><span class="m">JOB-016 · 入队</span><span class="dot"></span></div>
+            <div class="log-line"><span class="t">14:02</span><span class="m">JOB-017 · 读取 3 源</span><span class="dot"></span></div>
+            <div class="log-line blue"><span class="t">14:03</span><span class="m">蒸馏中 · Security</span><span class="dot"></span></div>
+            <div class="log-line mint"><span class="t">14:04</span><span class="m">JOB-015 · 完成</span><span class="dot"></span></div>
+          </div>
+        </div>
+      </aside>
+
+      <div class="mid-bay">
+        <div class="jobs-stage">
+          <div class="band job-list-panel">
+            <div class="job-row">
+              <span class="status-dot distilling"></span>
+              <span class="j-title font-display">Spring Security 6 合蒸笔记</span>
+              <span class="j-status distilling">蒸馏中</span>
+              <span class="j-meta">JOB-017 · 3 源</span>
+            </div>
+            <div class="job-row">
+              <span class="status-dot queued"></span>
+              <span class="j-title font-display">React Hooks 最佳实践</span>
+              <span class="j-status queued">排队中</span>
+              <span class="j-meta">JOB-016 · 2 源</span>
+            </div>
+            <div class="job-row">
+              <span class="status-dot done"></span>
+              <span class="j-title font-display">Clean Architecture 实践笔记</span>
+              <span class="j-status done">已完成</span>
+              <span class="j-meta">JOB-015 · 4 源</span>
+              <button type="button" class="chip-btn sm primary" data-go="detail">打开</button>
+            </div>
+          </div>
+          <div class="job-sky room-map chart-panel" id="jobSky">
+            <div class="chart-grid"></div>
+            <span class="chart-cap">任务天区 · <b>在轨</b></span>
+            <div class="map-body">
+              <svg viewBox="0 0 420 260" preserveAspectRatio="xMidYMid meet">
+                <circle class="rm-edge" cx="210" cy="130" r="48" stroke-dasharray="4 6" opacity=".45"/>
+                <circle class="rm-edge" cx="210" cy="130" r="88" stroke-dasharray="3 7" opacity=".35"/>
+                <circle class="rm-edge" cx="210" cy="130" r="118" opacity=".25"/>
+                <circle class="rm-node root craft-node" data-craft="任务枢纽 · JOB" cx="210" cy="130" r="18"/>
+                <text class="rm-lab" x="210" y="134" text-anchor="middle" fill="#fff" style="fill:#fff;font-size:9px">JOB</text>
+                <circle class="rm-node craft-node" data-craft="排队 · JOB-016" cx="120" cy="72" r="10" style="fill:color-mix(in srgb,var(--c-sun) 55%,#fff)"/>
+                <text class="rm-lab" x="120" y="56" text-anchor="middle">排队</text>
+                <circle class="rm-node craft-node" data-craft="读取 · 源扫描" cx="310" cy="68" r="9" style="fill:color-mix(in srgb,var(--c-blue) 45%,#fff)"/>
+                <text class="rm-lab" x="310" y="52" text-anchor="middle">读取</text>
+                <circle class="rm-node craft-node is-on" data-craft="蒸馏中 · JOB-017" cx="318" cy="178" r="11"/>
+                <text class="rm-lab" x="318" y="202" text-anchor="middle">蒸馏</text>
+                <circle class="rm-node craft-node" data-craft="完成 · JOB-015" cx="118" cy="188" r="10" style="fill:var(--c-mint-soft)"/>
+                <text class="rm-lab" x="118" y="212" text-anchor="middle">完成</text>
+                <path class="rm-edge" d="M192 118 L130 82 M228 118 L298 78 M228 142 L306 168 M192 146 L128 176"/>
+              </svg>
+            </div>
+            <span class="map-leg">点星 · 听回声</span>
+          </div>
+        </div>
+      </div>
+
+      <aside class="deck">
+        <div class="deck-panel glass">
+          <span class="tape alt"></span>
+          <h3 class="font-display">状态说明</h3>
+          <div class="legend">
+            <div class="l-row"><span class="dot" style="background:var(--c-sun)"></span>排队中</div>
+            <div class="l-row"><span class="dot" style="background:var(--c-blue)"></span>读取中</div>
+            <div class="l-row"><span class="dot" style="background:var(--room)"></span>蒸馏中（闪烁）</div>
+            <div class="l-row"><span class="dot" style="background:var(--c-mint)"></span>已完成</div>
+          </div>
+        </div>
+        <div class="deck-panel glass">
+          <h3 class="font-display">操作</h3>
+          <div class="col-stack">
+            <button type="button" class="chip-btn sm" data-toast="已刷新任务列表">刷新列表</button>
+            <button type="button" class="chip-btn sm danger" data-toast="已清空已完成任务">清空已完成</button>
+            <button type="button" class="chip-btn sm" data-go="ingest">去采集</button>
+          </div>
+        </div>
+        <div class="room-bars chart-panel" data-room-bars title="点柱回响">
+          <div class="chart-grid"></div>
+          <span class="chart-cap">吞吐柱</span>
+          <div class="rb-row"><b style="height:58%"></b><b></b><b></b><b></b><b></b></div>
+          <span class="rb-foot">拨一下 · 会回声</span>
+        </div>
+        <div class="cta-foot">
+          <div><div class="lbl font-display">精读列表</div><div class="sub">查看全部精读</div></div>
+          <button type="button" class="chip-btn primary sm" data-go="notes">→</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ PAGE 3: NOTES ═══════════════════ -->
+  <section id="page-notes" class="page" hidden aria-label="精读列表">
+    <div class="shell">
+      <div class="obs-field" aria-hidden="true">
+        <div class="obs-prop sat-l craft-hit" role="button" tabindex="0" title="卫星" data-craft="档案卫星 · 过境">
+          <svg viewBox="0 0 52 36"><rect class="fill" x="18" y="12" width="16" height="12" rx="2"/><rect class="stroke" x="4" y="14" width="12" height="8" rx="1"/><rect class="stroke" x="36" y="14" width="12" height="8" rx="1"/><circle class="accent blue" cx="26" cy="18" r="2"/></svg>
+        </div>
+        <div class="obs-prop scope craft-hit" role="button" tabindex="0" title="望远镜" data-craft="档案镜 · 调焦">
+          <svg viewBox="0 0 54 48"><path class="stroke" d="M10 40 L26 18"/><path class="fill" d="M22 12 L42 6 L46 16 L26 22 Z"/><circle class="stroke" cx="44" cy="11" r="5"/><circle class="accent blue" cx="44" cy="11" r="2"/></svg>
+        </div>
+        <div class="obs-prop comet craft-hit" role="button" tabindex="0" title="彗星" data-craft="档案彗星 · 唰">
+          <svg viewBox="0 0 78 28"><path class="stroke thin" d="M4 18 Q28 8 48 14"/><circle class="fill" cx="58" cy="14" r="7"/><circle class="accent sun" cx="60" cy="13" r="2.5"/></svg>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="side-card glass">
+          <span class="tape"></span>
+          <h3 class="font-display">精读列表</h3>
+          <div class="filter-row" id="notesFilter">
+            <button type="button" class="f-btn on" data-filter="all">全部</button>
+            <button type="button" class="f-btn" data-filter="published">已发布</button>
+            <button type="button" class="f-btn" data-filter="saved">已入库</button>
+          </div>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">房间页</h3>
+          <div class="col-stack" data-room-nav="notes"></div>
+        </div>
+        <div class="room-log chart-panel">
+          <div class="chart-grid"></div>
+          <div class="log-cap">档案日志 · <b>3</b></div>
+          <div class="log-list">
+            <div class="log-line mint"><span class="t">昨天</span><span class="m">发布 · Security</span><span class="dot"></span></div>
+            <div class="log-line"><span class="t">07-24</span><span class="m">入库 · Clean Arch</span><span class="dot"></span></div>
+            <div class="log-line sun"><span class="t">07-22</span><span class="m">草稿 · Hooks</span><span class="dot"></span></div>
+          </div>
+        </div>
+      </aside>
+
+      <div class="mid-bay">
+        <div class="notes-top">
+          <div class="notes-controls">
+            <div class="band note-list-panel" id="noteList">
+              <div class="note-card selected" data-note="0" ondblclick="setPage('detail')">
+                <div class="nc-icon">SS</div>
+                <div class="nc-body">
+                  <div class="nc-title">Spring Security 6 合蒸笔记</div>
+                  <div class="nc-meta">
+                    <span>2026-07-26</span><span>3 源</span>
+                    <span class="nc-tag pub">已发布</span>
+                  </div>
+                </div>
+                <button type="button" class="chip-btn sm primary" data-go="detail">打开</button>
+              </div>
+              <div class="note-card" data-note="1" ondblclick="setPage('detail')">
+                <div class="nc-icon">CA</div>
+                <div class="nc-body">
+                  <div class="nc-title">Clean Architecture 实践笔记</div>
+                  <div class="nc-meta">
+                    <span>2026-07-24</span><span>4 源</span>
+                    <span class="nc-tag">已入库</span>
+                  </div>
+                </div>
+                <button type="button" class="chip-btn sm" data-go="detail">打开</button>
+              </div>
+              <div class="note-card" data-note="2" ondblclick="setPage('detail')">
+                <div class="nc-icon">RH</div>
+                <div class="nc-body">
+                  <div class="nc-title">React Hooks 最佳实践摘要</div>
+                  <div class="nc-meta">
+                    <span>2026-07-22</span><span>2 源</span>
+                    <span class="nc-tag" style="background:#fff3e8;color:#b06020">草稿</span>
+                  </div>
+                </div>
+                <button type="button" class="chip-btn sm" data-go="detail">打开</button>
+              </div>
+              <div class="note-card" data-note="3" ondblclick="setPage('detail')">
+                <div class="nc-icon">K8</div>
+                <div class="nc-body">
+                  <div class="nc-title">Kubernetes 生产实践合蒸</div>
+                  <div class="nc-meta">
+                    <span>2026-07-20</span><span>5 源</span>
+                    <span class="nc-tag pub">已发布</span>
+                  </div>
+                </div>
+                <button type="button" class="chip-btn sm" data-go="detail">打开</button>
+              </div>
+            </div>
+          </div>
+          <div class="notes-index room-map chart-panel" id="notesIndex">
+            <div class="chart-grid"></div>
+            <span class="chart-cap">索引环 · <b>24</b></span>
+            <div class="map-body">
+              <svg viewBox="0 0 280 200" preserveAspectRatio="xMidYMid meet">
+                <circle class="rm-edge" cx="140" cy="100" r="58" stroke-dasharray="70 120" stroke="var(--room)" stroke-width="7" opacity=".55"/>
+                <circle class="rm-edge" cx="140" cy="100" r="58" stroke-dasharray="40 150" stroke="var(--c-mint)" stroke-width="7" opacity=".5" transform="rotate(80 140 100)"/>
+                <circle class="rm-edge" cx="140" cy="100" r="58" stroke-dasharray="22 170" stroke="var(--c-sun)" stroke-width="7" opacity=".45" transform="rotate(160 140 100)"/>
+                <circle class="rm-node root craft-node" data-craft="索引核 · 24 篇" cx="140" cy="100" r="28"/>
+                <text class="rm-lab" x="140" y="96" text-anchor="middle" style="fill:var(--room);font-size:11px">已发布 12</text>
+                <text class="rm-lab" x="140" y="110" text-anchor="middle" style="font-size:9px">入库 8 · 草稿 4</text>
+              </svg>
+            </div>
+            <span class="map-leg">点核 · 听统计</span>
+          </div>
+        </div>
+        <div class="notes-bars room-bars chart-panel" data-room-bars title="发布柱阵">
+          <div class="chart-grid"></div>
+          <span class="chart-cap">发布柱阵</span>
+          <div class="rb-row">
+            <b style="height:78%" title="Spring Sec"></b>
+            <b style="height:55%" title="Clean Arch"></b>
+            <b style="height:32%" title="Hooks"></b>
+            <b style="height:88%" title="K8s"></b>
+            <b style="height:46%" title="其他"></b>
+          </div>
+          <span class="rb-foot">四篇光柱 · 点一下回声</span>
+        </div>
+      </div>
+
+      <aside class="deck">
+        <div class="deck-panel glass">
+          <span class="tape alt"></span>
+          <h3 class="font-display">统计</h3>
+          <div class="stat-row">
+            <div class="stat-pill"><div class="n">24</div><div class="l">总计</div></div>
+            <div class="stat-pill"><div class="n">18</div><div class="l">已发布</div></div>
+          </div>
+          <div class="stat-row" style="margin-top:8px">
+            <div class="stat-pill"><div class="n">12</div><div class="l">已入库</div></div>
+            <div class="stat-pill"><div class="n">3</div><div class="l">草稿</div></div>
+          </div>
+        </div>
+        <div class="deck-panel glass">
+          <h3 class="font-display">操作</h3>
+          <div class="col-stack">
+            <button type="button" class="chip-btn sm primary" data-go="ingest">去采集</button>
+            <button type="button" class="chip-btn sm" data-go="detail">打开详情</button>
+            <button type="button" class="chip-btn sm" data-go="jobs">任务流水</button>
+          </div>
+        </div>
+        <div class="room-bars chart-panel" data-room-bars title="周吞吐">
+          <div class="chart-grid"></div>
+          <span class="chart-cap">周吞吐</span>
+          <div class="rb-row"><b style="height:40%"></b><b></b><b></b><b></b><b></b></div>
+          <span class="rb-foot">近 5 日</span>
+        </div>
+        <div class="cta-foot">
+          <div><div class="lbl font-display">精读详情</div><div class="sub">查看最近精读</div></div>
+          <button type="button" class="chip-btn primary sm" data-go="detail">→</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ PAGE 4: DETAIL ═══════════════════ -->
+  <section id="page-detail" class="page" hidden aria-label="精读详情">
+    <div class="shell">
+      <div class="obs-field" aria-hidden="true">
+        <div class="obs-prop probe craft-hit" role="button" tabindex="0" title="探针" data-craft="详情探针 · 对准正文">
+          <svg viewBox="0 0 44 44"><circle class="stroke thin" cx="22" cy="22" r="16"/><circle class="stroke thin" cx="22" cy="22" r="10"/><circle class="fill" cx="22" cy="22" r="5"/><circle class="accent" cx="22" cy="22" r="2"/></svg>
+        </div>
+        <div class="obs-prop ufo-sm craft-hit" role="button" tabindex="0" title="小UFO" data-craft="详情碟 · 悬停">
+          <svg viewBox="0 0 48 30"><ellipse class="fill" cx="24" cy="17" rx="18" ry="6"/><ellipse class="stroke" cx="24" cy="14" rx="9" ry="6"/><circle class="accent sun" cx="24" cy="18" r="1.3"/></svg>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="side-card glass">
+          <span class="tape"></span>
+          <div style="margin-bottom:8px">
+            <button type="button" class="chip-btn sm" data-go="notes">← 列表</button>
+          </div>
+          <h3 class="font-display">精读详情</h3>
+          <p class="about text-pretty">精读条目全文 · Markdown 预览 / 源码切换 · 状态流转 · 同步发布</p>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">房间页</h3>
+          <div class="col-stack" data-room-nav="detail"></div>
+        </div>
+        <div class="quote-deco">
+          无状态不等于不可失效——把失效放到可撤销的侧车存储里。
+        </div>
+        <div class="room-map chart-panel" style="min-height:140px">
+          <div class="chart-grid"></div>
+          <span class="chart-cap">源图 · <b>3</b></span>
+          <div class="map-body" style="padding:26px 8px 18px">
+            <svg viewBox="0 0 200 110" preserveAspectRatio="xMidYMid meet">
+              <path class="rm-edge" d="M100 55 L40 30 M100 55 L160 28 M100 55 L150 82"/>
+              <circle class="rm-node root craft-node" data-craft="合蒸核 · 本篇" cx="100" cy="55" r="12"/>
+              <circle class="rm-node craft-node" data-craft="源 · docs" cx="40" cy="30" r="7"/>
+              <circle class="rm-node craft-node" data-craft="源 · blog" cx="160" cy="28" r="7"/>
+              <circle class="rm-node craft-node" data-craft="源 · method" cx="150" cy="82" r="7"/>
+              <text class="rm-lab" x="100" y="100" text-anchor="middle">3 源合蒸</text>
+            </svg>
+          </div>
+        </div>
+      </aside>
+
+      <!-- MID -->
+      <div class="mid-bay">
+
+        <!-- title + folio meta -->
+        <div class="band glass" style="padding:14px 18px">
+          <div class="detail-title font-display">Spring Security 6 合蒸笔记</div>
+          <div class="folio-meta">
+            <span>2026-07-26</span>
+            <span class="folio-tag">security</span>
+            <span class="folio-tag">spring</span>
+            <span>3 源合蒸</span>
+            <span>约 1,240 字</span>
+          </div>
+        </div>
+
+        <!-- status step mini -->
+        <div class="band status-mini">
+          <span class="s done">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            采集
+          </span>
+          <span class="arrow">→</span>
+          <span class="s done">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            蒸馏
+          </span>
+          <span class="arrow">→</span>
+          <span class="s done">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            发布
+          </span>
+          <span class="arrow">→</span>
+          <span class="s on">入库</span>
+        </div>
+
+        <!-- md-preview: fills remaining mid height -->
+        <div class="md-preview" id="detailMdPreview">
+          <div class="md-toolbar">
+            <span class="lab font-display">MARKDOWN · 精读全文</span>
+            <div class="md-seg" id="detailMdSeg" role="tablist">
+              <button type="button" class="on" data-md="render">预览</button>
+              <button type="button" data-md="raw">源码</button>
+            </div>
+          </div>
+          <div class="md-body" id="detailMdRender">
+            <h1>Spring Security 6 合蒸笔记</h1>
+            <p>JWT 无状态签发结合 Redis 登录态，实现主动失效；过滤器链按路径挂载，避免全局过重。</p>
+            <h2>摘要</h2>
+            <p>本篇合并 3 个来源：官方架构文档、JWT+Redis 实践文、方法级鉴权章节。聚焦 FilterChain 组装与会话失效策略。</p>
+            <h2>要点</h2>
+            <ul>
+              <li>Token 与会话解耦，退出即删 Redis key</li>
+              <li><code>SecurityFilterChain</code> 按路径拆分，优于单一全局链</li>
+              <li>方法安全用 <code>@PreAuthorize</code> 补齐接口层</li>
+            </ul>
+            <h2>金句</h2>
+            <blockquote>无状态不等于不可失效——把失效放到可撤销的侧车存储里。</blockquote>
+            <h2>参考来源</h2>
+            <ul>
+              <li>Spring Security 官方文档 — 架构概览（<code>docs.spring.io</code>）</li>
+              <li>JWT + Redis 主动失效实践（<code>example.com/blog/jwt-redis-logout</code>）</li>
+              <li>方法级鉴权 @PreAuthorize 章节（<code>docs.spring.io</code>）</li>
+            </ul>
+            <h2>代码示例</h2>
+            <pre>http.authorizeHttpRequests(auth -> auth
+    .requestMatchers("/api/public/**").permitAll()
+    .anyRequest().authenticated())
+  .sessionManagement(s -> s.sessionCreationPolicy(STATELESS))
+  .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);</pre>
+            <h2>延伸阅读</h2>
+            <p>可进一步关注 Spring Authorization Server，结合 OAuth2 实现更完整的认证授权体系。建议配合 <code>spring-security-test</code> 做接口层单测覆盖。</p>
+          </div>
+          <div class="md-body raw" id="detailMdRaw" hidden># Spring Security 6 合蒸笔记
+
+JWT 无状态签发结合 Redis 登录态，实现主动失效；过滤器链按路径挂载，避免全局过重。
+
+## 摘要
+
+本篇合并 3 个来源：官方架构文档、JWT+Redis 实践文、方法级鉴权章节。
+
+## 要点
+
+- Token 与会话解耦，退出即删 Redis key
+- `SecurityFilterChain` 按路径拆分，优于单一全局链
+- 方法安全用 `@PreAuthorize` 补齐接口层
+
+## 金句
+
+> 无状态不等于不可失效——把失效放到可撤销的侧车存储里。
+
+## 参考来源
+
+- Spring Security 官方文档 — 架构概览 (docs.spring.io)
+- JWT + Redis 主动失效实践 (example.com/blog/jwt-redis-logout)
+- 方法级鉴权 @PreAuthorize 章节 (docs.spring.io)
+
+## 代码示例
+
+```java
+http.authorizeHttpRequests(auth -> auth
+    .requestMatchers("/api/public/**").permitAll()
+    .anyRequest().authenticated())
+  .sessionManagement(s -> s.sessionCreationPolicy(STATELESS))
+  .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+```
+
+## 延伸阅读
+
+可进一步关注 Spring Authorization Server，结合 OAuth2 实现更完整的认证授权体系。</div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT -->
+      <aside class="deck">
+        <div class="deck-panel glass">
+          <span class="tape alt"></span>
+          <h3 class="font-display">这篇</h3>
+          <div class="stat-row">
+            <div class="stat-pill"><div class="n">3</div><div class="l">来源</div></div>
+            <div class="stat-pill"><div class="n">1.2k</div><div class="l">字</div></div>
+          </div>
+          <div class="stat-row" style="margin-top:8px">
+            <div class="stat-pill"><div class="n font-display" style="font-size:13px">已发布</div><div class="l">状态</div></div>
+            <div class="stat-pill"><div class="n font-display" style="font-size:11px">07-26</div><div class="l">采集</div></div>
+          </div>
+        </div>
+        <div class="deck-panel glass">
+          <h3 class="font-display">操作</h3>
+          <div class="col-stack">
+            <button type="button" class="chip-btn sm" data-toast="已同步到博客草稿">同步博客</button>
+            <button type="button" class="chip-btn sm" data-toast="已入库知识库">入库知识库</button>
+            <button type="button" class="chip-btn sm" data-toast="重新蒸馏中…">再蒸馏</button>
+            <button type="button" class="chip-btn sm" data-go="learning">挂到领域树</button>
+          </div>
+        </div>
+        <div class="room-bars chart-panel" data-room-bars title="阅读回响">
+          <div class="chart-grid"></div>
+          <span class="chart-cap">阅读回响</span>
+          <div class="rb-row"><b style="height:50%"></b><b></b><b></b><b></b><b></b></div>
+          <span class="rb-foot">已发布 · 1.2k 字</span>
+        </div>
+        <div class="cta-foot">
+          <div><div class="lbl font-display">再采一篇</div><div class="sub">返回采集台</div></div>
+          <button type="button" class="chip-btn primary sm" data-go="ingest">→</button>
+        </div>
+      </aside>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════ PAGE 5: LEARNING ═══════════════════ -->
+  <section id="page-learning" class="page" aria-label="领域知识树" hidden>
+    <div class="shell">
+      <div class="obs-field" aria-hidden="true">
+        <div class="obs-prop tower craft-hit" role="button" tabindex="0" title="天线塔" data-craft="领域塔 · 在听">
+          <svg viewBox="0 0 46 92"><path class="stroke thin" d="M8 88 H38"/><path class="stroke" d="M23 88 V18"/><path class="stroke thin" d="M14 70 L23 52 L32 70"/><circle class="fill" cx="23" cy="14" r="5"/><circle class="accent" cx="23" cy="14" r="2"/></svg>
+        </div>
+        <div class="obs-prop ufo craft-hit" role="button" tabindex="0" title="UFO" data-craft="领域 UFO · 掠过树脉">
+          <svg viewBox="0 0 64 40"><ellipse class="fill" cx="32" cy="22" rx="24" ry="8"/><ellipse class="stroke" cx="32" cy="18" rx="12" ry="8"/><circle class="accent" cx="26" cy="22" r="1.6"/><circle class="accent sun" cx="32" cy="23" r="1.6"/><circle class="accent blue" cx="38" cy="22" r="1.6"/></svg>
+        </div>
+        <div class="obs-prop antenna craft-hit" role="button" tabindex="0" title="碟天线" data-craft="领域碟 · 回声">
+          <svg viewBox="0 0 42 70"><path class="stroke thin" d="M6 66 H36"/><path class="fill" d="M16 66 L19 40 H23 L26 66 Z"/><path class="stroke" d="M21 40 V16"/><path class="stroke" d="M12 28 Q21 18 30 28"/><circle class="fill" cx="21" cy="12" r="5"/><circle class="accent" cx="21" cy="12" r="2"/></svg>
+        </div>
+      </div>
+
+      <aside class="side anim" style="animation-delay:.06s">
+        <button type="button" class="chip-btn sm" data-go="detail" style="align-self:flex-start">← 详情</button>
+        <div class="side-card glass">
+          <span class="tape"></span>
+          <h3 class="font-display">领域知识树</h3>
+          <p class="about text-pretty">选领域 → 枝 → 叶（精读）。对应 /admin/knowledge/learning。领域手动建，AI 不自动建域。</p>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">领域</h3>
+          <div class="domain-chips" id="domainChips">
+            <button type="button" class="chip-btn sm on" data-domain="Java">Java</button>
+            <button type="button" class="chip-btn sm" data-domain="前端">前端</button>
+            <button type="button" class="chip-btn sm" data-toast="创建领域 · stub">+ 新建</button>
+          </div>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">房间页</h3>
+          <div class="col-stack" data-room-nav="learning"></div>
+        </div>
+        <div class="room-log chart-panel">
+          <div class="chart-grid"></div>
+          <div class="log-cap">树脉日志 · <b>3</b></div>
+          <div class="log-list">
+            <div class="log-line"><span class="t">域</span><span class="m">Java · 当前</span><span class="dot"></span></div>
+            <div class="log-line blue"><span class="t">枝</span><span class="m">Security · 选中</span><span class="dot"></span></div>
+            <div class="log-line mint"><span class="t">叶</span><span class="m">挂载 2 篇</span><span class="dot"></span></div>
+          </div>
+        </div>
+      </aside>
+
+      <div class="mid-bay anim" style="animation-delay:.14s">
+        <div class="learn-stage">
+          <div class="learn-controls">
+            <div class="learn-toolbar">
+              <button type="button" class="chip-btn sm" data-toast="回挂未挂笔记 · stub">回挂笔记</button>
+              <button type="button" class="chip-btn sm" id="btnTreeEdit" data-toast="编辑树 · stub">编辑树</button>
+              <button type="button" class="chip-btn sm" data-toast="新建 L1 枝 · stub">新建 L1</button>
+              <button type="button" class="chip-btn sm" id="btnTreeViz" data-toast="树图叠层 · stub">树图</button>
+              <span class="hint">左树右图 · leftover 星图</span>
+            </div>
+            <div class="learn-row">
+              <div class="tree-box glass" id="learnTree">
+                <div class="dom font-display" id="learnDomLabel">DOMAIN · JAVA</div>
+                <button type="button" class="tree-node" data-branch="spring" data-title="Spring 生态" data-path="Java / Spring 生态" data-count="4">
+                  Spring 生态 <span class="n">4</span>
+                </button>
+                <button type="button" class="tree-node l2 on" data-branch="security" data-title="Security" data-path="Java / Spring 生态 / Security" data-count="2">
+                  Security <span class="n">2</span>
+                </button>
+                <button type="button" class="tree-node l2" data-branch="jpa" data-title="Data JPA" data-path="Java / Spring 生态 / Data JPA" data-count="1">
+                  Data JPA <span class="n">1</span>
+                </button>
+                <button type="button" class="tree-node" data-branch="perf" data-title="并发与性能" data-path="Java / 并发与性能" data-count="3">
+                  并发与性能 <span class="n">3</span>
+                </button>
+                <button type="button" class="tree-node stub" data-toast="空枝 stub · 可补学">[stub] 新枝…</button>
+              </div>
+              <div class="leaf-box glass" id="learnLeaves">
+                <h2 class="font-display" id="leafTitle">Security · 叶</h2>
+                <div class="meta" id="leafMeta">已挂载精读 · 可取消挂载 / 移叶</div>
+                <button type="button" class="leaf-chip" data-go="detail">
+                  Spring 鉴权合蒸
+                  <div class="m">已发布 · 点开详情</div>
+                </button>
+                <button type="button" class="leaf-chip" data-go="detail">
+                  JWT + Redis 失效
+                  <div class="m">已入库</div>
+                </button>
+                <button type="button" class="chip-btn sm" style="margin-top:8px" data-toast="挂载笔记 · stub">+ 挂载笔记</button>
+              </div>
+            </div>
+          </div>
+          <div class="learn-sky room-map chart-panel" id="learnSky">
+            <div class="chart-grid"></div>
+            <span class="chart-cap">领域星图 · <b id="pathSlip">…/Security</b></span>
+            <div class="map-body">
+              <svg viewBox="0 0 640 320" preserveAspectRatio="xMidYMid meet">
+                <path class="rm-edge" d="M320 48 L180 120 M320 48 L320 120 M320 48 L460 120"/>
+                <path class="rm-edge" d="M180 120 L120 200 M180 120 L230 200"/>
+                <path class="rm-edge" d="M460 120 L410 200 M460 120 L520 200"/>
+                <circle class="rm-node root craft-node" data-craft="域 · Java" data-branch-map="java" cx="320" cy="48" r="22"/>
+                <text class="rm-lab" x="320" y="52" text-anchor="middle" style="fill:#fff">Java</text>
+                <circle class="rm-node craft-node" data-craft="枝 · Spring" data-branch-map="spring" cx="180" cy="120" r="16"/>
+                <text class="rm-lab" x="180" y="124" text-anchor="middle">Spring</text>
+                <circle class="rm-node craft-node" data-craft="枝 · 并发" data-branch-map="perf" cx="320" cy="120" r="16"/>
+                <text class="rm-lab" x="320" y="124" text-anchor="middle">并发</text>
+                <circle class="rm-node craft-node" data-craft="枝 · JVM" cx="460" cy="120" r="16"/>
+                <text class="rm-lab" x="460" y="124" text-anchor="middle">JVM</text>
+                <circle class="rm-node craft-node is-on" data-craft="叶簇 · Security" data-branch-map="security" cx="120" cy="200" r="13"/>
+                <text class="rm-lab" x="120" y="204" text-anchor="middle">Sec</text>
+                <circle class="rm-badge" cx="138" cy="186" r="8"/><text class="rm-badge-t" x="138" y="189" text-anchor="middle">2</text>
+                <circle class="rm-node craft-node" data-craft="叶簇 · JPA" data-branch-map="jpa" cx="230" cy="200" r="13"/>
+                <text class="rm-lab" x="230" y="204" text-anchor="middle">JPA</text>
+                <circle class="rm-node craft-node" data-craft="叶 · 锁" cx="410" cy="200" r="13"/>
+                <text class="rm-lab" x="410" y="204" text-anchor="middle">锁</text>
+                <circle class="rm-node craft-node" data-craft="叶 · GC" cx="520" cy="200" r="13"/>
+                <text class="rm-lab" x="520" y="204" text-anchor="middle">GC</text>
+              </svg>
+            </div>
+            <span class="map-leg">点节点 · 同步左树</span>
+          </div>
+        </div>
+      </div>
+
+      <aside class="deck anim" style="animation-delay:.22s">
+        <div class="deck-panel glass">
+          <span class="tape alt"></span>
+          <h3 class="font-display">当前枝</h3>
+          <p class="about text-pretty" id="branchAbout" style="font-size:12px;line-height:1.65">Java / Spring 生态 / Security<br>叶 2 · 可学空枝 · 可合并</p>
+          <div class="stat-row" style="margin-top:10px">
+            <div class="stat-pill"><div class="n" id="branchLeafN">2</div><div class="l">叶</div></div>
+            <div class="stat-pill"><div class="n font-display" style="font-size:13px">L2</div><div class="l">层级</div></div>
+          </div>
+        </div>
+        <div class="deck-panel glass">
+          <h3 class="font-display">树操作</h3>
+          <div class="col-stack">
+            <button type="button" class="chip-btn sm" data-toast="重命名枝 · stub">重命名枝</button>
+            <button type="button" class="chip-btn sm" data-toast="合并枝 · stub">合并枝</button>
+            <button type="button" class="chip-btn sm" data-toast="取消挂载 · 不解绑笔记">取消挂载</button>
+            <button type="button" class="chip-btn sm" data-toast="树可视化 · stub">打开树图</button>
+          </div>
+        </div>
+        <div class="room-bars chart-panel" data-room-bars title="叶密度">
+          <div class="chart-grid"></div>
+          <span class="chart-cap">叶密度</span>
+          <div class="rb-row"><b style="height:70%"></b><b></b><b></b><b></b><b></b></div>
+          <span class="rb-foot">各枝挂载量</span>
+        </div>
+        <div class="cta-foot">
+          <div><div class="lbl font-display">再采一篇</div><div class="sub">回采集台补叶</div></div>
+          <button type="button" class="chip-btn primary sm" data-go="ingest">→</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+</div><!-- /stage -->
+</div><!-- /stageWrap -->
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div id="tweaks">
+  <div class="panel">
+    <h4>TWEAKS</h4>
+    <div class="row">
+      <label>页面</label>
+      <div class="seg" id="twPage">
+        <button type="button" class="on" data-page="ingest">采集</button>
+        <button type="button" data-page="jobs">任务</button>
+        <button type="button" data-page="notes">列表</button>
+        <button type="button" data-page="detail">详情</button>
+        <button type="button" data-page="learning">领域树</button>
+      </div>
+    </div>
+    <div class="row" id="twModeRow">
+      <label>模式</label>
+      <div class="seg" id="twMode">
+        <button type="button" data-mode="url">URL</button>
+        <button type="button" data-mode="file">文件</button>
+        <button type="button" data-mode="agent" class="on">搜索</button>
+      </div>
+    </div>
+    <div class="row" id="twFbRow">
+      <label>反馈态</label>
+      <div class="seg" id="twFb">
+        <button type="button" data-fb="idle">空闲</button>
+        <button type="button" data-fb="candidates" class="on">候选</button>
+        <button type="button" data-fb="progress">进度</button>
+        <button type="button" data-fb="success">成功</button>
+        <button type="button" data-fb="fail">失败</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>时段</label>
+      <div class="seg" id="twTheme">
+        <button type="button" class="on" data-theme="morning">晨</button>
+        <button type="button" data-theme="noon">午</button>
+        <button type="button" data-theme="dusk">昏</button>
+        <button type="button" data-theme="night">夜</button>
+      </div>
+    </div>
+  </div>
+  <button class="fab" id="tweaksFab" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2.4"/><circle cx="8" cy="16" r="2.4"/></svg>
+    Tweaks
+  </button>
+</div>
+
+<script>
+/* ══════════ constants & state ══════════ */
+const STAGE_W = 1920, STAGE_H = 1080;
+const stageWrap = document.getElementById('stageWrap');
+const stage = document.getElementById('stage');
+const WEEK = ['周日','周一','周二','周三','周四','周五','周六'];
+const PERIOD = {morning:'晨光',noon:'午间',dusk:'暮色',night:'星夜'};
+const PAGES = ['ingest','jobs','notes','detail','learning'];
+const PAGE_LABELS = {ingest:'采集台',jobs:'任务流水',notes:'精读列表',detail:'精读详情',learning:'领域知识树'};
+const PAGE_SUB = {ingest:'INGEST',jobs:'JOBS',notes:'NOTES',detail:'DETAIL',learning:'TREE'};
+let currentPage = 'ingest';
+
+const LEAF_BY_BRANCH = {
+  security:[
+    {t:'Spring 鉴权合蒸',m:'已发布 · 点开详情'},
+    {t:'JWT + Redis 失效',m:'已入库'},
+  ],
+  jpa:[{t:'JPA 懒加载陷阱',m:'草稿'}],
+  spring:[
+    {t:'Spring 鉴权合蒸',m:'已发布'},
+    {t:'JWT + Redis 失效',m:'已入库'},
+    {t:'FilterChain 合蒸',m:'已发布'},
+    {t:'方法级鉴权笔记',m:'草稿'},
+  ],
+  perf:[
+    {t:'线程池背压',m:'已发布'},
+    {t:'锁升级观察',m:'已入库'},
+    {t:'GC 日志精读',m:'草稿'},
+  ],
+};
+
+/* ══════════ stage fit ══════════ */
+function fit(){
+  const s = Math.min(innerWidth/STAGE_W, innerHeight/STAGE_H, 1.15);
+  stage.style.transform = `scale(${s})`;
+  stageWrap.style.width  = STAGE_W*s+'px';
+  stageWrap.style.height = STAGE_H*s+'px';
+}
+addEventListener('resize', fit);
+
+/* ══════════ utilities ══════════ */
+function pad(n){ return String(n).padStart(2,'0'); }
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), 1600);
+}
+function popAnim(el, cls, ms){
+  if(!el) return;
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+  clearTimeout(el._popT);
+  el._popT = setTimeout(() => el.classList.remove(cls), ms || 500);
+}
+function bindCraftTap(el, fn){
+  if(!el) return;
+  el.addEventListener('click', e => { e.stopPropagation(); fn(e); });
+  el.addEventListener('keydown', e => {
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); fn(e); }
+  });
+}
+
+/* ══════════ clock ══════════ */
+function tickClock(){
+  const now = new Date();
+  document.getElementById('clockTime').innerHTML =
+    `${pad(now.getHours())}<span class="colon">:</span>${pad(now.getMinutes())}<span class="sec"> ${pad(now.getSeconds())}</span>`;
+  document.getElementById('clockDate').textContent =
+    `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${WEEK[now.getDay()]}`;
+}
+
+/* ══════════ nav pill ══════════ */
+function placeNavPill(){
+  const nav  = document.getElementById('mainnav');
+  const pill = document.getElementById('navPill');
+  const active = nav.querySelector('button.active');
+  if(!active) return;
+  pill.style.opacity = '1';
+  pill.style.left  = active.offsetLeft+'px';
+  pill.style.width = active.offsetWidth+'px';
+}
+
+/* ══════════ room nav builder ══════════ */
+function buildAllRoomNavs(){
+  document.querySelectorAll('[data-room-nav]').forEach(container => {
+    container.innerHTML = PAGES.map(p => {
+      const active = p === currentPage;
+      return `<button type="button" class="chip-btn sm${active?' primary on':''}" data-go="${p}">${PAGE_LABELS[p]}</button>`;
+    }).join('');
+  });
+}
+
+/* ══════════ page navigation ══════════ */
+function setPage(name){
+  if(!PAGES.includes(name)) return;
+  const prev = currentPage;
+  currentPage = name;
+  PAGES.forEach(p => {
+    const el = document.getElementById('page-'+p);
+    if(!el) return;
+    const on = p === name;
+    if(on){
+      const wasHidden = el.hidden;
+      el.hidden = false;
+      if(wasHidden || prev !== name){
+        el.classList.remove('is-enter');
+        void el.offsetWidth;
+        el.classList.add('is-enter');
+      }
+    } else {
+      el.hidden = true;
+      el.classList.remove('is-enter');
+    }
+  });
+  buildAllRoomNavs();
+  document.querySelectorAll('#twPage button').forEach(b =>
+    b.classList.toggle('on', b.dataset.page === name));
+  const ingest = name === 'ingest';
+  document.getElementById('twModeRow').style.display = ingest ? '' : 'none';
+  document.getElementById('twFbRow').style.display   = ingest ? '' : 'none';
+  document.getElementById('brandSub').textContent = 'READING · '+PAGE_SUB[name]+' · V1';
+}
+
+/* ══════════ theme ══════════ */
+function setTheme(t){
+  document.documentElement.dataset.theme = t;
+  document.querySelectorAll('#twTheme button').forEach(b =>
+    b.classList.toggle('on', b.dataset.theme === t));
+  toast('时段 · '+PERIOD[t]);
+}
+
+/* ══════════ ingest: mode / feedback ══════════ */
+const MODE_COPY = {
+  url:{
+    title:'贴链接',hint:'URL 采集：抓正文 → 出一篇精读',deco:'URL',showMerge:false,
+    work:'单源精炼 · 无候选勾选',warn:'',
+    idle:[['01','粘贴文章链接'],['02','可选标题/标签'],['03','开始精炼'],['04','打开详情']],
+  },
+  file:{
+    title:'上传文件',hint:'文件上传：PDF/Word/TXT/Markdown → 精炼',deco:'文件',showMerge:false,
+    work:'已选文件 · 可移除重选',warn:'',
+    idle:[['01','选择本地文件'],['02','确认文件条'],['03','上传并精炼'],['04','打开详情']],
+  },
+  agent:{
+    title:'告诉 AI',hint:'AI 搜索合蒸：主题 → 候选勾选 → 合蒸 1 篇',deco:'搜索',showMerge:true,
+    work:'已选 <b>2</b> / 建议 2～5 · 上限 8',warn:'1 条风险未勾选',
+    idle:[['01','填写学习目标'],['02','搜索候选页'],['03','勾选 2～5 源'],['04','合蒸成 1 篇']],
+  },
+};
+const CANDIDATES = [
+  {title:'Spring Security 过滤器链',
+   url:'https://docs.spring.io/spring-security/reference/servlet/architecture.html',
+   summary:'SecurityFilterChain 如何挂载、与 Servlet Filter 的关系，官方架构说明。',
+   source:'docs',risk:[],reason:'官方文档，结构完整，适合做主干源',on:true},
+  {title:'JWT + Redis 主动失效',
+   url:'https://example.com/blog/jwt-redis-logout',
+   summary:'无状态 JWT 结合 Redis 黑名单实现退出即失效，含代码示例。',
+   source:'blog',risk:[],reason:'实践向，与目标互补',on:true},
+  {title:'Spring Security 实战课落地页',
+   url:'https://example.com/course/security',
+   summary:'课程售卖页，正文薄，可能需登录后才见内容。',
+   source:'web',risk:['课程落地页','可能需登录'],reason:'相关但材料可能过薄',on:false},
+  {title:'方法级鉴权 @PreAuthorize',
+   url:'https://docs.spring.io/spring-security/reference/servlet/authorization/method-security.html',
+   summary:'方法安全注解与表达式，适合作为第三源补全实践细节。',
+   source:'docs',risk:[],reason:'官方方法安全章节',on:false},
+];
+
+let manualCand = { on:false, open:false, text:'' };
+
+function renderCands(){
+  const list = document.getElementById('candList');
+  const items = CANDIDATES.map((c,i) => `
+    <button type="button" class="cand${c.on?' on':''}${c.risk.length?' risk':''}" data-i="${i}">
+      <span class="ck"></span>
+      <span>
+        <div class="title text-pretty">${c.title}</div>
+        <div class="sum text-pretty">${c.summary}</div>
+        <div class="meta">
+          <span class="tag src">${c.source}</span>
+          ${c.risk.map(r=>`<span class="tag risk">${r}</span>`).join('')}
+        </div>
+        <div class="reason">${c.reason}</div>
+      </span>
+      <a class="url" href="${c.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${c.url.replace(/^https?:\/\//,'')}</a>
+    </button>`).join('');
+
+  const manual = `
+    <div class="cand cand-manual${manualCand.on?' on':''}${manualCand.open?' is-open':''}" id="candManual" data-manual>
+      <button type="button" class="ck" data-manual-ck aria-label="勾选手动 URL"></button>
+      <span>
+        <button type="button" class="manual-head" data-manual-toggle style="all:unset;cursor:pointer;display:block;width:100%;text-align:left">
+          <div class="title text-pretty">手动追加 URL</div>
+          <div class="sum text-pretty">自填源 · 与上方候选同级勾选，点开后填写</div>
+          <div class="hint-open">点击展开填写 · 不会常驻占位</div>
+        </button>
+        <div class="manual-fold">
+          <textarea class="area" id="manualUrls" placeholder="每行一个 URL">${manualCand.text || ''}</textarea>
+          <div class="row">
+            <button type="button" class="chip-btn sm primary" data-manual-confirm>确认并勾选</button>
+            <button type="button" class="chip-btn sm" data-manual-collapse>收起</button>
+          </div>
+        </div>
+      </span>
+      <span class="tag manual">manual</span>
+    </div>`;
+
+  list.innerHTML = items + manual;
+  const n = CANDIDATES.filter(c=>c.on).length + (manualCand.on ? 1 : 0);
+  const bad = CANDIDATES.filter(c=>c.risk.length&&!c.on).length;
+  document.getElementById('workMeta').innerHTML = `已选 <b>${n}</b> / 建议 2～5 · 上限 8`;
+  document.getElementById('workWarn').textContent = bad ? `${bad} 条风险未勾选` : '';
+}
+
+function setIdleSteps(mode){
+  document.getElementById('idleSteps').innerHTML = MODE_COPY[mode].idle
+    .map(([n,t]) => `<div class="step"><div class="n">${n}</div><div class="t text-pretty">${t}</div></div>`)
+    .join('');
+}
+
+function setMode(mode){
+  const m = MODE_COPY[mode];
+  document.querySelectorAll('#modeBar button,#twMode button').forEach(b =>
+    b.classList.toggle('on', b.dataset.mode === mode));
+  document.querySelectorAll('.field').forEach(f =>
+    f.classList.toggle('on', f.dataset.field === mode));
+  document.getElementById('inputTitle').textContent = m.title;
+  document.getElementById('modeHint').textContent   = m.hint;
+  document.getElementById('workMeta').innerHTML     = m.work;
+  document.getElementById('workWarn').textContent   = m.warn;
+  document.getElementById('btnMerge').style.display = m.showMerge ? '' : 'none';
+  document.getElementById('workCta').style.display  = m.showMerge ? '' : 'none';
+  setIdleSteps(mode);
+  if(mode==='agent') setFeedback('candidates');
+  else if(mode==='file') setFeedback('file-ready');
+  else setFeedback('idle');
+}
+
+function setFeedback(name){
+  const mode = document.querySelector('#modeBar button.on')?.dataset.mode || 'agent';
+  let key = name;
+  if(key==='file-ready' && mode!=='file') key='idle';
+  if(key==='candidates' && mode!=='agent') key='idle';
+  const body = document.querySelector('#page-ingest .fb-body');
+  const apply = () => {
+    document.querySelectorAll('.fb-panel').forEach(p => {
+      const on = p.dataset.fb === key;
+      if(on){
+        p.classList.remove('on');
+        void p.offsetWidth;
+        p.classList.add('on');
+      } else {
+        p.classList.remove('on');
+      }
+    });
+    document.querySelectorAll('#twFb button').forEach(b =>
+      b.classList.toggle('on', b.dataset.fb === key));
+    const TITLES = {idle:'流程说明','file-ready':'已选文件',candidates:'搜索候选',progress:'蒸馏进度',success:'本次结果',fail:'失败与重试'};
+    const HINTS  = {idle:'短清单 · 轻托底','file-ready':'提交前展示',candidates:'候选同级 · 手动 URL 点开填写',progress:'排队→读取→蒸馏→完成',success:'结果条 · 进详情查预览',fail:'失败源 + 重试'};
+    document.getElementById('fbTitle').textContent = TITLES[key] || '反馈';
+    document.getElementById('fbHint').textContent  = HINTS[key]  || '';
+    document.getElementById('jobChip').hidden = key !== 'progress';
+    if(body) body.classList.remove('is-switching');
+  };
+  if(body){
+    body.classList.add('is-switching');
+    clearTimeout(setFeedback._t);
+    setFeedback._t = setTimeout(apply, 140);
+  } else apply();
+}
+
+/* ══════════ event wiring ══════════ */
+document.getElementById('modeBar').addEventListener('click', e => {
+  const b = e.target.closest('button[data-mode]'); if(b) setMode(b.dataset.mode);
+});
+document.getElementById('twMode').addEventListener('click', e => {
+  const b = e.target.closest('button[data-mode]'); if(b) setMode(b.dataset.mode);
+});
+document.getElementById('twFb').addEventListener('click', e => {
+  const b = e.target.closest('button[data-fb]'); if(b) setFeedback(b.dataset.fb);
+});
+document.getElementById('twTheme').addEventListener('click', e => {
+  const b = e.target.closest('button[data-theme]'); if(b) setTheme(b.dataset.theme);
+});
+document.getElementById('twPage').addEventListener('click', e => {
+  const b = e.target.closest('button[data-page]'); if(b) setPage(b.dataset.page);
+});
+document.getElementById('tweaksFab').addEventListener('click', () =>
+  document.getElementById('tweaks').classList.add('open'));
+document.addEventListener('click', e => {
+  const tw = document.getElementById('tweaks');
+  if(tw.classList.contains('open') && !tw.contains(e.target)) tw.classList.remove('open');
+});
+
+/* global click delegation */
+document.body.addEventListener('click', e => {
+  const t   = e.target.closest('[data-toast]');
+  if(t) toast(t.dataset.toast);
+
+  const go  = e.target.closest('[data-go]');
+  if(go) setPage(go.dataset.go);
+
+  const fb  = e.target.closest('[data-fb]');
+  if(fb && !fb.closest('#twFb')) setFeedback(fb.dataset.fb);
+
+  const cnd = e.target.closest('.cand[data-i]');
+  if(cnd){
+    const i=+cnd.dataset.i; CANDIDATES[i].on=!CANDIDATES[i].on; renderCands();
+    const next = document.querySelector(`.cand[data-i="${i}"]`);
+    popAnim(next, 'is-pop', 420);
+    return;
+  }
+  if(e.target.closest('[data-manual-ck]')){
+    const ta = document.getElementById('manualUrls');
+    if(ta) manualCand.text = ta.value;
+    manualCand.on = !manualCand.on;
+    if(manualCand.on) manualCand.open = true;
+    renderCands();
+    return;
+  }
+  if(e.target.closest('[data-manual-toggle]')){
+    const ta = document.getElementById('manualUrls');
+    if(ta) manualCand.text = ta.value;
+    manualCand.open = !manualCand.open;
+    renderCands();
+    return;
+  }
+  if(e.target.closest('[data-manual-collapse]')){
+    const ta = document.getElementById('manualUrls');
+    if(ta) manualCand.text = ta.value;
+    manualCand.open = false;
+    renderCands();
+    return;
+  }
+  if(e.target.closest('[data-manual-confirm]')){
+    const ta = document.getElementById('manualUrls');
+    if(ta) manualCand.text = ta.value.trim();
+    manualCand.on = !!(manualCand.text);
+    manualCand.open = false;
+    renderCands();
+    if(manualCand.on) toast('已追加并勾选手动 URL');
+  }
+});
+
+function pushLog(msg, kind){
+  const list = document.getElementById('logList');
+  if(!list) return;
+  const now = new Date();
+  const t = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const line = document.createElement('div');
+  line.className = 'log-line' + (kind ? ' '+kind : '');
+  line.innerHTML = `<span class="t">${t}</span><span class="m"></span><span class="dot"></span>`;
+  line.querySelector('.m').textContent = msg;
+  list.appendChild(line);
+  while(list.children.length > 6) list.removeChild(list.firstChild);
+  list.querySelectorAll('.log-line').forEach(el => el.classList.remove('is-pulse'));
+  line.classList.add('is-pulse');
+  const cnt = document.getElementById('logCount');
+  if(cnt) cnt.textContent = String(list.children.length);
+  setTimeout(() => line.classList.remove('is-pulse'), 700);
+}
+/* note card click → select */
+document.getElementById('noteList').addEventListener('click', e => {
+  const card = e.target.closest('.note-card'); if(!card) return;
+  document.querySelectorAll('.note-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  popAnim(card, 'is-pop', 420);
+});
+
+/* notes filter */
+document.getElementById('notesFilter').addEventListener('click', e => {
+  const b = e.target.closest('.f-btn'); if(!b) return;
+  document.querySelectorAll('#notesFilter .f-btn').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  toast('筛选：'+b.textContent.trim());
+});
+
+/* detail md-seg toggle */
+document.getElementById('detailMdSeg').addEventListener('click', e => {
+  const b = e.target.closest('button[data-md]'); if(!b) return;
+  document.querySelectorAll('#detailMdSeg button').forEach(x => x.classList.toggle('on', x===b));
+  const raw = b.dataset.md === 'raw';
+  document.getElementById('detailMdRender').hidden = raw;
+  document.getElementById('detailMdRaw').hidden    = !raw;
+});
+
+/* learning: domain chips */
+document.getElementById('domainChips').addEventListener('click', e => {
+  const b = e.target.closest('[data-domain]'); if(!b) return;
+  document.querySelectorAll('#domainChips [data-domain]').forEach(x => x.classList.toggle('on', x===b));
+  document.getElementById('learnDomLabel').textContent = 'DOMAIN · '+b.dataset.domain.toUpperCase();
+  toast('领域 · '+b.dataset.domain);
+});
+
+/* learning: select branch → refresh leaves */
+document.getElementById('learnTree').addEventListener('click', e => {
+  const node = e.target.closest('.tree-node[data-branch]'); if(!node) return;
+  document.querySelectorAll('#learnTree .tree-node').forEach(n => n.classList.remove('on'));
+  node.classList.add('on');
+  const id = node.dataset.branch;
+  const title = node.dataset.title;
+  const path = node.dataset.path;
+  const count = node.dataset.count || '0';
+  document.getElementById('leafTitle').textContent = title+' · 叶';
+  document.getElementById('leafMeta').textContent = '已挂载精读 · 可取消挂载 / 移叶';
+  document.getElementById('branchAbout').innerHTML = path+'<br>叶 '+count+' · 可学空枝 · 可合并';
+  document.getElementById('branchLeafN').textContent = count;
+  document.getElementById('pathSlip').textContent = '…/'+title;
+  const leaves = LEAF_BY_BRANCH[id] || [];
+  const box = document.getElementById('learnLeaves');
+  box.querySelectorAll('.leaf-chip').forEach(el => el.remove());
+  const mountBtn = box.querySelector('.chip-btn');
+  leaves.forEach(L => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'leaf-chip';
+    btn.dataset.go = 'detail';
+    btn.innerHTML = `${L.t}<div class="m">${L.m}</div>`;
+    box.insertBefore(btn, mountBtn);
+  });
+});
+
+/* craft props · Diary-style tap feedback */
+document.querySelectorAll('.obs-prop.craft-hit').forEach(el => {
+  bindCraftTap(el, () => {
+    popAnim(el, 'is-pop', 500);
+    toast(el.dataset.craft || '观测站 · 收到');
+  });
+});
+
+/* room bars bounce */
+document.querySelectorAll('[data-room-bars] .rb-row').forEach(row => {
+  row.addEventListener('click', e => {
+    const b = e.target.closest('b'); if(!b) return;
+    b.classList.remove('is-bounce');
+    void b.offsetWidth;
+    b.classList.add('is-bounce');
+    toast('回响 · 柱阵');
+  });
+});
+
+/* room map nodes */
+document.querySelectorAll('.room-map .craft-node').forEach(node => {
+  node.style.cursor = 'pointer';
+  node.addEventListener('click', () => {
+    const map = node.closest('.room-map');
+    if(map) map.querySelectorAll('.craft-node').forEach(n => n.classList.remove('is-on'));
+    node.classList.add('is-on');
+    toast(node.dataset.craft || '节点 · 对准');
+    const branch = node.dataset.branchMap;
+    if(branch){
+      const btn = document.querySelector(`#learnTree .tree-node[data-branch="${branch}"]`);
+      if(btn) btn.click();
+    }
+  });
+});
+
+/* dropzone stub */
+document.querySelectorAll('.dropzone').forEach(dz => {
+  dz.addEventListener('click', () => toast('选择文件 · stub'));
+});
+
+/* job row soft feedback */
+document.querySelectorAll('#page-jobs .job-row').forEach(row => {
+  row.addEventListener('click', () => {
+    toast(row.querySelector('.j-title')?.textContent?.trim() || '任务');
+  });
+});
+
+/* keyboard 1-5 to switch pages · Esc closes tweaks / returns ingest */
+document.addEventListener('keydown', e => {
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+  const tw = document.getElementById('tweaks');
+  if(e.key === 'Escape'){
+    if(tw.classList.contains('open')){ tw.classList.remove('open'); return; }
+    if(currentPage !== 'ingest'){ setPage('ingest'); return; }
+  }
+  const map = {'1':'ingest','2':'jobs','3':'notes','4':'detail','5':'learning'};
+  if(map[e.key]) setPage(map[e.key]);
+});
+
+/* ══════════ 装饰联动 · 接收站 / 天区图 / 回响柱（不接业务） ══════════ */
+(function wireIngestCraft(){
+  const dish = document.getElementById('ingestDish');
+  const dishStatus = document.getElementById('dishStatus');
+  const galaxy = document.getElementById('ingestGalaxy');
+  const chart = document.getElementById('starChart');
+  const telemetry = document.getElementById('ingestTelemetry');
+  const bars = telemetry ? [...telemetry.querySelectorAll('#telBars b')] : [];
+  const stars = galaxy ? [...galaxy.querySelectorAll('.sc-star')] : [];
+  const NAMES = ['星尘','流光','涟漪','暗斑'];
+  const timers = [];
+  let barRaf = 0;
+  let beamRaf = 0;
+
+  function later(fn, ms){
+    const t = setTimeout(fn, ms);
+    timers.push(t);
+    return t;
+  }
+  function clearCraftTimers(){
+    while(timers.length) clearTimeout(timers.pop());
+  }
+  function setDishStatus(text){
+    if(dishStatus) dishStatus.textContent = text;
+  }
+  function clearFocus(){
+    if(!galaxy) return;
+    galaxy.className = galaxy.className.replace(/\bis-focus-\d\b/g, '').trim();
+  }
+  function focusStar(i){
+    if(!galaxy) return;
+    clearFocus();
+    if(i != null) galaxy.classList.add('is-focus-' + i);
+  }
+  function clearBarHot(){
+    bars.forEach(b => b.classList.remove('is-hot','is-bounce'));
+  }
+  function pulseBar(i){
+    const b = bars[i];
+    if(!b) return;
+    b.classList.remove('is-bounce');
+    void b.offsetWidth;
+    b.classList.add('is-bounce','is-hot');
+    later(() => b.classList.remove('is-bounce'), 750);
+  }
+  function flashStar(i){
+    const st = stars[i];
+    if(!st) return;
+    st.classList.remove('is-flash');
+    void st.offsetWidth;
+    st.classList.add('is-flash');
+    later(() => st.classList.remove('is-flash'), 600);
+  }
+  function aimDish(name){
+    if(!dish) return;
+    dish.classList.remove('is-aim');
+    void dish.offsetWidth;
+    dish.classList.add('is-aim');
+    setDishStatus(name ? ('对准 · ' + name) : '对准');
+    later(() => {
+      dish.classList.remove('is-aim');
+      if(!dish.classList.contains('is-scanning')) setDishStatus('静听');
+    }, 1100);
+  }
+
+  function chartCenter(){
+    if(!chart) return null;
+    const r = chart.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, r };
+  }
+
+  function starAngle(st, c){
+    const r = st.getBoundingClientRect();
+    const x = r.left + r.width / 2 - c.x;
+    const y = r.top + r.height / 2 - c.y;
+    return Math.atan2(y, x); // -PI..PI, 0=右, -PI/2=上
+  }
+
+  function normDelta(a, b){
+    let d = a - b;
+    while(d > Math.PI) d -= Math.PI * 2;
+    while(d < -Math.PI) d += Math.PI * 2;
+    return Math.abs(d);
+  }
+
+  /* 柱高跟随对应星的竖直位置：越靠上越高 */
+  function syncBarsToStars(){
+    const c = chartCenter();
+    if(!c || !stars.length) return;
+    const maxR = Math.max(c.r.width, c.r.height) * 0.42 || 1;
+    const heights = [];
+    for(let i = 0; i < 4; i++){
+      const st = stars[i];
+      if(!st || !bars[i]) continue;
+      const r = st.getBoundingClientRect();
+      const y = r.top + r.height / 2 - c.y;
+      // y 负=靠上 → 高；映射到 28%～88%
+      const t = Math.max(-1, Math.min(1, -y / maxR));
+      const h = 28 + (t + 1) * 0.5 * 60;
+      bars[i].style.height = h.toFixed(1) + '%';
+      heights.push(h);
+    }
+    if(bars[4] && heights.length){
+      const avg = heights.reduce((a,b)=>a+b,0) / heights.length;
+      bars[4].style.height = Math.max(22, Math.min(80, avg * 0.85)).toFixed(1) + '%';
+    }
+  }
+
+  function loopBars(){
+    const onIngest = document.getElementById('page-ingest')?.classList.contains('on')
+      || document.querySelector('#page-ingest:not([hidden])')
+      || (galaxy && galaxy.offsetParent !== null);
+    if(onIngest) syncBarsToStars();
+    barRaf = requestAnimationFrame(loopBars);
+  }
+
+  /* 扫光期间：按光束角度提亮靠近的星，不改轨道动画 */
+  function runBeamHighlight(duration){
+    cancelAnimationFrame(beamRaf);
+    stars.forEach(st => st.classList.remove('is-beam'));
+    const t0 = performance.now();
+    // 光束从正上方开始顺时针转一圈：角度从 -PI/2 增到 -PI/2+2PI
+    const startAng = -Math.PI / 2;
+    function tick(now){
+      const p = Math.min(1, (now - t0) / duration);
+      const beamAng = startAng + p * Math.PI * 2;
+      const c = chartCenter();
+      if(c){
+        stars.forEach(st => {
+          const a = starAngle(st, c);
+          const hit = normDelta(a, beamAng) < 0.28;
+          st.classList.toggle('is-beam', hit);
+          if(hit && !st.dataset.beamed){
+            st.dataset.beamed = '1';
+            const i = Number(st.dataset.i);
+            flashStar(i);
+            pulseBar(i);
+          }
+        });
+      }
+      if(p < 1) beamRaf = requestAnimationFrame(tick);
+      else {
+        stars.forEach(st => {
+          st.classList.remove('is-beam');
+          delete st.dataset.beamed;
+        });
+      }
+    }
+    beamRaf = requestAnimationFrame(tick);
+  }
+
+  function startSweep(){
+    if(!galaxy) return;
+    galaxy.classList.remove('is-sweep');
+    void galaxy.offsetWidth;
+    galaxy.classList.add('is-sweep');
+    runBeamHighlight(1400);
+    later(() => galaxy.classList.remove('is-sweep'), 1450);
+  }
+
+  function runScanChain(){
+    if(!dish) return;
+    clearCraftTimers();
+    clearFocus();
+    clearBarHot();
+    stars.forEach(st => {
+      st.classList.remove('is-flash','is-beam');
+      delete st.dataset.beamed;
+    });
+
+    dish.classList.add('is-scanning');
+    dish.classList.remove('is-aim');
+    setDishStatus('扫描…');
+    if(typeof pushLog === 'function') pushLog('扫描开始 · 天区', 'sun');
+
+    later(() => startSweep(), 160);
+
+    later(() => {
+      if(telemetry){
+        telemetry.classList.add('is-record');
+        later(() => telemetry.classList.remove('is-record'), 900);
+      }
+      if(typeof pushLog === 'function') pushLog('回响写入 · 柱阵', 'mint');
+    }, 1100);
+
+    later(() => {
+      dish.classList.remove('is-scanning');
+      clearFocus();
+      setDishStatus('静听');
+      if(typeof pushLog === 'function') pushLog('静听中 · 待命', '');
+    }, 1750);
+  }
+
+  function pickStar(i){
+    const idx = Number(i);
+    const st = stars[idx];
+    if(!st) return;
+    clearCraftTimers();
+    st.classList.toggle('is-lit');
+    focusStar(idx);
+    flashStar(idx);
+    aimDish(NAMES[idx] || '星');
+    clearBarHot();
+    pulseBar(idx);
+    later(() => clearFocus(), 1400);
+  }
+
+  function pickCross(){
+    clearCraftTimers();
+    clearFocus();
+    startSweep();
+    aimDish('满天');
+    if(telemetry){
+      telemetry.classList.add('is-record');
+      later(() => telemetry.classList.remove('is-record'), 900);
+    }
+  }
+
+  function pickBar(i){
+    const idx = Number(i);
+    clearCraftTimers();
+    clearBarHot();
+    pulseBar(idx);
+    if(idx <= 3){
+      focusStar(idx);
+      flashStar(idx);
+      const st = stars[idx];
+      if(st) st.classList.add('is-lit');
+      aimDish(NAMES[idx] || '星');
+      later(() => clearFocus(), 1200);
+    } else {
+      aimDish('回响');
+      startSweep();
+    }
+  }
+
+  if(dish){
+    dish.addEventListener('click', e => {
+      e.stopPropagation();
+      runScanChain();
+    });
+  }
+
+  if(galaxy){
+    galaxy.addEventListener('click', e => {
+      const st = e.target.closest('.sc-star');
+      if(st){ pickStar(st.dataset.i); return; }
+      if(e.target.closest('#scCross')){ pickCross(); }
+    });
+    galaxy.addEventListener('mouseover', e => {
+      const st = e.target.closest('.sc-star');
+      if(st) focusStar(st.dataset.i);
+    });
+    galaxy.addEventListener('mouseleave', () => {
+      if(!dish || !dish.classList.contains('is-scanning')) clearFocus();
+    });
+  }
+
+  if(telemetry){
+    telemetry.addEventListener('click', e => {
+      const b = e.target.closest('#telBars b');
+      if(b) pickBar(b.dataset.i);
+    });
+  }
+
+  syncBarsToStars();
+  barRaf = requestAnimationFrame(loopBars);
+})();
+
+
+/* ══════════ init ══════════ */
+fit();
+placeNavPill();
+tickClock();
+setInterval(tickClock, 1000);
+renderCands();
+setMode('agent');
+setPage('ingest');
+addEventListener('load', placeNavPill);
+</script>
+</body>
+</html>

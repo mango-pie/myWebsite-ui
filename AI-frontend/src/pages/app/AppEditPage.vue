@@ -13,6 +13,7 @@ import { getAppById, getAppByIdByAdmin, updateApp, updateAppByAdmin } from '@/ap
 import { useLoginUserStore } from '@/stores/loginUser'
 import { isAdminRole } from '@/config/permission'
 import { loadAppSettings, resolveDeployBaseUrl, type AppUxSettings } from '@/utils/appSettings'
+import StationRoomShell from '@/components/shared/StationRoomShell.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -108,6 +109,7 @@ onMounted(async () => {
 </script>
 
 <template>
+  <StationRoomShell brand-path="/lab" note-label="Lab · 实验档案" room="lab">
   <div class="edit-page">
     <a-spin :spinning="loading">
       <div class="edit-layout">
@@ -197,6 +199,7 @@ onMounted(async () => {
       </div>
     </a-spin>
   </div>
+  </StationRoomShell>
 </template>
 
 <style scoped>

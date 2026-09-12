@@ -33,6 +33,14 @@ coverage
 
 # Vitest
 __screenshots__/
+qa-reports/
+
+# Agent scratch
+.mimosa/
 
 # Vite
 *.timestamp-*-*.mjs
+/dist-music/
+
+# Tauri
+/src-tauri/target/

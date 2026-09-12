@@ -139,6 +139,7 @@ cd Ai-Backend/src/main/resources/sql
 mysql -u ${DB_USER} -p${DB_PASSWORD} ${DB_NAME} < schema_core.sql
 mysql -u ${DB_USER} -p${DB_PASSWORD} ${DB_NAME} < chat_conversation_schema.sql
 mysql -u ${DB_USER} -p${DB_PASSWORD} ${DB_NAME} < diary_schema.sql
+mysql -u ${DB_USER} -p${DB_PASSWORD} ${DB_NAME} < worklog_schema.sql
 mysql -u ${DB_USER} -p${DB_PASSWORD} ${DB_NAME} < study_schema.sql
 mysql -u ${DB_USER} -p${DB_PASSWORD} ${DB_NAME} < tts_schema.sql
 ```
@@ -147,7 +148,8 @@ mysql -u ${DB_USER} -p${DB_PASSWORD} ${DB_NAME} < tts_schema.sql
 
 ```bash
 mysql -u ${DB_USER} -p${DB_PASSWORD} ${DB_NAME} -e "SHOW TABLES;"
-# 应包含 user, app, blog_post, chat_conversation, diary_entry, study_list 等
+# 应包含 user, app, blog_post, chat_conversation, diary_entry, worklog_entry, study_list 等
+# EchoBot 设备表 pet_device / 工作日志 worklog_entry 也可由 Flyway V17、V18 自动创建
 ```
 
 > **已有数据迁移**：从本地 Windows 导出完整库  

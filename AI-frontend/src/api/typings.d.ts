@@ -10,6 +10,9 @@ declare namespace API {
     message?: string
   }
 
+  type ModuleCapabilitiesVO = AppModulesVO
+  type BaseResponseModuleCapabilitiesVO = BaseResponseAppModulesVO
+
   type addPostTagParams = {
     postId: number
     tagId: number
@@ -1777,6 +1780,8 @@ declare namespace API {
     /** 本次合蒸覆盖 Prompt；为空时使用 reading.distill.system_prompt */
     distillPrompt?: string
     tags?: string
+    /** 复用搜索阶段 Job（AWAITING_SELECT） */
+    jobId?: number | string
   }
 
   type KnowledgeIngestFailedSourceVO = {
@@ -1792,9 +1797,11 @@ declare namespace API {
     bodyChars?: number | null
   }
 
-  /** GET /admin/knowledge/reading-jobs/{jobId}；batch-url 异步提交也返回此 VO */
-  type KnowledgeReadingJobStatus = 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED'
+  /** GET/POST reading-jobs；batch-url / reading-jobs/search 异步提交也返回此 VO */
+  type KnowledgeReadingJobStatus = 'PENDING' | 'RUNNING' | 'WAITING' | 'SUCCESS' | 'FAILED'
   type KnowledgeReadingJobProgress =
+    | 'SEARCHING'
+    | 'AWAITING_SELECT'
     | 'QUEUED'
     | 'READING'
     | 'DISTILLING'
@@ -1816,6 +1823,35 @@ declare namespace API {
     warning?: string | null
     usedSources?: KnowledgeIngestUsedSourceVO[]
     failedSources?: KnowledgeIngestFailedSourceVO[]
+    goal?: string | null
+    outline?: string | null
+    candidates?: KnowledgeSearchCandidate[]
+    createTime?: string | null
+    startedAt?: string | null
+    finishedAt?: string | null
+  }
+
+  type KnowledgeReadingJobQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    /** PENDING / RUNNING / WAITING / SUCCESS / FAILED */
+    status?: KnowledgeReadingJobStatus | string
+    /** true：仅进行中（PENDING + RUNNING + WAITING） */
+    activeOnly?: boolean
+  }
+
+  type PageKnowledgeReadingJobVO = {
+    records?: KnowledgeReadingJobVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type BaseResponsePageKnowledgeReadingJobVO = {
+    code?: number
+    data?: PageKnowledgeReadingJobVO
+    message?: string
   }
 
   /** @deprecated 使用 KnowledgeReadingJobVO（同步/异步统一） */
@@ -2123,11 +2159,13 @@ declare namespace API {
     errorMessage?: string | null
     requestSummary?: string | null
     createTime?: string
+    jobId?: number | string | null
   }
 
   type OpsUsageLogQueryRequest = {
     scene?: string
     userId?: number | string
+    jobId?: number | string
     from?: string
     to?: string
     pageNum?: number
@@ -2145,6 +2183,42 @@ declare namespace API {
   type BaseResponsePageOpsUsageLogVO = {
     code?: number
     data?: PageOpsUsageLogVO
+    message?: string
+  }
+
+  /** 运维可观测 · AI 用量月度视图 */
+  type OpsUsageMonthlyModelStat = {
+    requestCount?: number
+    totalTokens?: number
+  }
+
+  type OpsUsageMonthlyDayStat = {
+    date?: string
+    requestCount?: number
+    successCount?: number
+    errorCount?: number
+    totalTokens?: number | null
+    avgLatencyMs?: number | null
+  }
+
+  type OpsUsageMonthlyVO = {
+    month?: string
+    requestCount?: number
+    successCount?: number
+    errorCount?: number
+    totalTokens?: number | null
+    byScene?: Record<string, number>
+    byModel?: Record<string, OpsUsageMonthlyModelStat>
+    days?: OpsUsageMonthlyDayStat[]
+  }
+
+  type OpsUsageMonthlyQueryRequest = {
+    month?: string
+  }
+
+  type BaseResponseOpsUsageMonthlyVO = {
+    code?: number
+    data?: OpsUsageMonthlyVO
     message?: string
   }
 
@@ -2252,6 +2326,38 @@ declare namespace API {
   type BaseResponsePageOpsAccessLogVO = {
     code?: number
     data?: PageOpsAccessLogVO
+    message?: string
+  }
+
+  /** EchoBot 桌宠设备令牌 */
+  type PetDeviceVO = {
+    id?: number
+    deviceName?: string
+    clientInfo?: string
+    tokenPrefix?: string
+    lastUsedAt?: string
+    createdTime?: string
+    revoked?: boolean
+  }
+
+  type PetDeviceBindVO = {
+    id?: number
+    deviceName?: string
+    /** 明文 token，仅绑定响应一次 */
+    token?: string
+    tokenPrefix?: string
+    envHint?: string
+  }
+
+  type BaseResponsePetDeviceBindVO = {
+    code?: number
+    data?: PetDeviceBindVO
+    message?: string
+  }
+
+  type BaseResponseListPetDeviceVO = {
+    code?: number
+    data?: PetDeviceVO[]
     message?: string
   }
 

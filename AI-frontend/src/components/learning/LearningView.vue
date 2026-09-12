@@ -3,10 +3,11 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Modal } from 'ant-design-vue'
 import { message } from 'ant-design-vue'
-import { Plus, FolderTree, Share2, Paperclip, Pencil } from 'lucide-vue-next'
-import type { GateResponse } from '@/api/learning.types'
+import { Plus, FolderTree, Share2, Paperclip, Pencil, GraduationCap } from 'lucide-vue-next'
+import type { GateResponse, LearningReviewQuizVO } from '@/api/learning.types'
 import type { LearningBranchTreeNode, LearningLeafVO, AttachRequest } from '@/api/learning.types'
 import * as learningKnowledgeApi from '@/api/knowledge'
+import { getBranchReviewQuiz } from '@/api/learning'
 import DomainTree from './DomainTree.vue'
 import ContentPanel from './ContentPanel.vue'
 import AttachConfirm from './AttachConfirm.vue'
@@ -14,13 +15,14 @@ import ReattachNotesModal from './ReattachNotesModal.vue'
 import TreeVizOverlay from './TreeVizOverlay.vue'
 import IconAction from '@/components/ui/IconAction.vue'
 import { useLearningWorkbenchStore } from '@/stores/learning-workbench.store'
+import ReadingRoomShell from '@/components/reading/ReadingRoomShell.vue'
 
-import '@/assets/admin-theme.css'
 import '@/assets/learning-tokens.css'
 import './learning-view.css'
 
 const router = useRouter()
 const store = useLearningWorkbenchStore()
+const contentPanelRef = ref<InstanceType<typeof ContentPanel> | null>(null)
 
 const createL1Trigger = ref(false)
 
@@ -30,10 +32,6 @@ const currentDomainId = computed({
   set: (v: number | string | null) => store.setCurrentDomainId(v),
 })
 
-const domainSelectOptions = computed(() =>
-  store.domains.map((d) => ({ value: d.id, label: d.name })),
-)
-
 const currentDomainName = computed(() => store.currentDomainName)
 const treeLoading = computed(() => store.treeLoading)
 const branches = computed<LearningBranchTreeNode[]>(() => store.branches)
@@ -42,6 +40,29 @@ const snapshotMessage = computed(() => store.snapshotMessage)
 
 const selectedBranchId = computed(() => store.selectedBranchId)
 const selectedBranchTitle = computed(() => store.selectedBranchTitle)
+const selectedBranch = computed(() => store.selectedBranch)
+const selectedBranchDepth = computed(() => selectedBranch.value?.depth ?? null)
+const selectedBranchLeafCount = computed(() => selectedBranch.value?.leafCount ?? branchLeaves.value.length)
+const branchDensity = computed(() => {
+  const highest = Math.max(...branches.value.map((branch) => branch.leafCount), 1)
+  return branches.value.slice(0, 5).map((branch) => ({
+    id: branch.id,
+    title: branch.title,
+    leafCount: branch.leafCount,
+    height: `${Math.max(18, Math.round((branch.leafCount / highest) * 100))}%`,
+  }))
+})
+const skyNodes = computed(() =>
+  branches.value.slice(0, 6).map((branch, index) => {
+    // 320×240 右栏星图坐标（原 640×320 缩放一半）
+    const positions: Array<{ x: number; y: number }> = [
+      { x: 60, y: 71 }, { x: 125, y: 56 }, { x: 195, y: 71 },
+      { x: 260, y: 56 }, { x: 95, y: 118 }, { x: 225, y: 118 },
+    ]
+    const position = positions[index] ?? { x: 160, y: 110 }
+    return { ...branch, ...position, shortTitle: branch.title.slice(0, 5) }
+  }),
+)
 
 const selectedBranchPath = computed(() => {
   const b = store.selectedBranch
@@ -50,6 +71,12 @@ const selectedBranchPath = computed(() => {
 
 const leavesLoading = computed(() => store.leavesLoading)
 const branchLeaves = computed<LearningLeafVO[]>(() => store.branchLeaves)
+const leavesReviewing = computed(
+  () => branchLeaves.value.filter((l) => String(l.reviewStatus || 'NEW') === 'REVIEWING').length,
+)
+const leavesMastered = computed(
+  () => branchLeaves.value.filter((l) => String(l.reviewStatus || 'NEW') === 'MASTERED').length,
+)
 
 const gateLoading = computed(() => store.gateLoading)
 const gateResult = computed<GateResponse | null>(() => store.gateResult)
@@ -75,6 +102,72 @@ const mergeVisible = ref(false)
 const mergeSourceId = ref<number | string | null>(null)
 const mergeTargetId = ref<number | string | null>(null)
 const mergeSubmitting = ref(false)
+
+// ── 复习 UI ──
+const reviewOpen = ref(false)
+const reviewLoading = ref(false)
+const reviewQuiz = ref<LearningReviewQuizVO | null>(null)
+const revealedAnswers = ref<Record<number, boolean>>({})
+
+async function openReview() {
+  if (selectedBranchId.value == null) {
+    message.warning('请先选择一个枝')
+    return
+  }
+  reviewLoading.value = true
+  reviewOpen.value = true
+  reviewQuiz.value = null
+  revealedAnswers.value = {}
+  try {
+    const res = await getBranchReviewQuiz(selectedBranchId.value)
+    if (res.data.code === 0 && res.data.data) {
+      reviewQuiz.value = res.data.data
+    } else {
+      message.error(res.data.message || '生成复习题失败')
+    }
+  } catch {
+    message.error('生成复习题失败（请检查后端与 Key 配置）')
+  } finally {
+    reviewLoading.value = false
+  }
+}
+
+function toggleAnswer(index: number) {
+  revealedAnswers.value = { ...revealedAnswers.value, [index]: !revealedAnswers.value[index] }
+}
+
+// ── 键盘流：/ 聚焦提问 · R 复习当前枝 · ? 查看快捷键 ──
+function onGlobalKeydown(e: KeyboardEvent) {
+  const target = e.target as HTMLElement | null
+  const tag = target?.tagName || ''
+  const typing = tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable
+  if (typing) return
+  if (e.key === '/') {
+    e.preventDefault()
+    contentPanelRef.value?.focusInput()
+  } else if (e.key.toLowerCase() === 'r' && selectedBranchId.value != null) {
+    e.preventDefault()
+    void openReview()
+  } else if (e.key === '?') {
+    message.info('键盘流：/ 聚焦提问 · R 复习当前枝', 3)
+  }
+}
+
+// ── 断线恢复：网络恢复 / 回到前台时重新挂接进行中的合蒸 job ──
+function resumeLearningJobPoll() {
+  if (currentJobId == null || jobPollTimer) return
+  const goalTitle = store.gateResult?.answer || selectedBranchTitle.value || ''
+  message.info('网络已恢复，正在重新连接进行中的合蒸任务…', 3)
+  void pollJobOnce(currentJobId, goalTitle)
+  jobPollTimer = setInterval(() => {
+    if (currentJobId != null) void pollJobOnce(currentJobId, goalTitle)
+  }, JOB_POLL_MS)
+}
+
+const onWindowOnline = () => resumeLearningJobPoll()
+const onWindowVisibility = () => {
+  if (document.visibilityState === 'visible') resumeLearningJobPoll()
+}
 
 // ── handlers ──
 function onSelectBranch(branchId: number | string | null) {
@@ -201,8 +294,15 @@ async function onCreateL1Branch(title: string) {
 }
 
 async function onCreateL2Branch(parentBranchId: number | string, title: string) {
+  const parent = parentBranchId != null && String(parentBranchId) !== '' && String(parentBranchId) !== '0'
+    ? String(parentBranchId)
+    : ''
+  if (!parent) {
+    message.error('缺少父枝 ID，无法创建子枝（请从某条 L1 上添加子枝）')
+    return
+  }
   try {
-    await store.confirmBranch({ title, parentBranchId })
+    await store.confirmBranch({ title, parentBranchId: parent })
     message.success(`已创建「${title}」`)
   } catch (e) {
     message.error(String((e as Error)?.message || '建枝失败'))
@@ -411,6 +511,9 @@ function onAttachCancel() {
 
 // ── lifecycle ──
 onMounted(async () => {
+  window.addEventListener('online', onWindowOnline)
+  document.addEventListener('visibilitychange', onWindowVisibility)
+  window.addEventListener('keydown', onGlobalKeydown)
   try {
     await store.loadDomains()
     if (store.currentDomainId) {
@@ -451,137 +554,213 @@ watch(skipGateContext, (ctx) => {
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('online', onWindowOnline)
+  document.removeEventListener('visibilitychange', onWindowVisibility)
+  window.removeEventListener('keydown', onGlobalKeydown)
   stopJobPoll()
 })
 </script>
 
 <template>
-  <div class="learning-domain admin-theme-page">
-    <!-- ============== 1. 页面头部（面包屑 + 工具栏合并） ============== -->
-    <div class="admin-page-hero">
-      <div class="hero-left">
-        <div class="hero-title">
-          <router-link to="/admin/knowledge/ingest" class="ld-breadcrumb-link">AI 精读工作台</router-link>
-          <span class="ld-breadcrumb-sep">/</span>
-          <FolderTree :size="18" />
-          领域知识树
-          <span v-if="store.domains.length" class="hero-subtitle">· {{ store.domains.length }} 个领域</span>
-        </div>
+  <ReadingRoomShell>
+    <div id="page-learning" class="learning-domain">
+      <div class="page-title">
+        <h1 class="font-display">领域知识树</h1>
+        <span class="sub">门闩 → 搜文 → 挂叶 · 空枝可补学</span>
       </div>
-      <div class="hero-extra">
-        <a-space :size="8">
-          <a-select
-            :value="currentDomainId"
-            :options="domainSelectOptions"
-            allow-clear
-            placeholder="选择领域"
-            size="small"
-            style="min-width: 180px"
-            @update:value="(v: any) => (currentDomainId = v ?? null)"
-          />
-          <a-button size="small" type="text" @click="treeVizOpen = !treeVizOpen">
-            <template #icon><Share2 :size="14" /></template>
-            树图
-          </a-button>
-          <a-button size="small" type="primary" ghost @click="onCreateDomain">
-            <template #icon><Plus :size="14" /></template>
-            创建领域
-          </a-button>
-        </a-space>
+
+      <div v-if="currentDomainId" class="learn-toolbar">
+        <button type="button" class="chip-btn sm" @click="onOpenReattach"><Paperclip :size="13" /> 回挂笔记</button>
+        <button type="button" class="chip-btn sm" :class="{ on: treeEditMode }" @click="treeEditMode = !treeEditMode"><Pencil :size="13" /> {{ treeEditMode ? '完成编辑' : '编辑树' }}</button>
+        <button type="button" class="chip-btn sm" @click="createL1Trigger = true"><Plus :size="13" /> 新建 L1</button>
+        <button type="button" class="chip-btn sm" @click="treeVizOpen = !treeVizOpen"><Share2 :size="13" /> 树图</button>
+        <button type="button" class="chip-btn sm primary" :disabled="selectedBranchId == null" @click="openReview"><GraduationCap :size="13" /> 复习</button>
+        <span v-if="snapshotTruncated" class="snapshot-hint" :title="snapshotMessage">{{ snapshotMessage }}</span>
+        <span v-else class="hint">键盘流：/ 聚焦提问 · R 复习当前枝</span>
       </div>
-    </div>
 
-    <!-- ============== 3. 工具栏 ============== -->
-    <div v-if="currentDomainId" class="admin-filter-bar">
-      <a-space>
-        <a-button size="small" @click="onOpenReattach">
-          <template #icon><Paperclip :size="14" /></template>
-          回挂笔记
-        </a-button>
-        <a-button size="small" @click="treeEditMode = !treeEditMode">
-          <template #icon><Pencil :size="14" /></template>
-          {{ treeEditMode ? '完成编辑' : '编辑树' }}
-        </a-button>
-        <a-button size="small" @click="createL1Trigger = true">
-          <template #icon><Plus :size="14" /></template>
-          新建 L1 枝
-        </a-button>
-      </a-space>
-      <span
-        v-if="snapshotTruncated"
-        class="snapshot-hint"
-        :title="snapshotMessage"
-      >⚠ {{ snapshotMessage }}</span>
-    </div>
+      <div class="layout-3 learning-layout">
+        <aside class="side learning-side" aria-label="领域与房间导航">
+          <div class="side-card glass">
+            <span class="tape"></span>
+            <h3 class="font-display">领域</h3>
+            <div class="domain-chips">
+              <button
+                v-for="domain in store.domains"
+                :key="domain.id"
+                type="button"
+                class="chip-btn sm"
+                :class="{ on: String(domain.id) === String(currentDomainId) }"
+                @click="currentDomainId = domain.id"
+              >
+                {{ domain.name }}
+              </button>
+              <button type="button" class="chip-btn sm" @click="onCreateDomain"><Plus :size="13" /> 新建</button>
+            </div>
+          </div>
+          <div class="side-card glass">
+            <h3 class="font-display">树脉日志</h3>
+            <div class="log-list">
+              <div class="log-line"><span class="t">域</span><span class="m">{{ currentDomainName || '等待选择' }}</span><span class="dot"></span></div>
+              <div class="log-line blue"><span class="t">枝</span><span class="m">{{ selectedBranchTitle || '尚未选中' }}</span><span class="dot"></span></div>
+              <div class="log-line mint"><span class="t">叶</span><span class="m">挂载 {{ selectedBranchLeafCount }} 篇</span><span class="dot"></span></div>
+            </div>
+          </div>
+        </aside>
 
-    <!-- ============== 4. 工作区：左树右文 ============== -->
-    <div v-if="currentDomainId" class="learning-workspace">
-      <aside class="learning-workspace__tree" aria-label="知识目录">
-        <DomainTree
-          :loading="treeLoading"
-          :domain-name="currentDomainName"
-          :branches="branches"
-          :selected-branch-id="selectedBranchId"
-          :snapshot-truncated="snapshotTruncated"
-          :snapshot-message="snapshotMessage"
-          :edit-mode="treeEditMode"
-          :create-l1-requested="createL1Trigger"
-          @update:create-l1-requested="(v: boolean) => (createL1Trigger = v)"
-          @update:selected-branch-id="onSelectBranch"
-          @learn-empty="onLearnEmpty"
-          @rename-branch="onRenameBranch"
-          @delete-branch="onDeleteBranch"
-          @merge-branch="onMergeBranch"
-          @create-l1-branch="onCreateL1Branch"
-          @create-l2-branch="onCreateL2Branch"
-        />
-      </aside>
+        <main class="mid-bay learning-mid">
+          <template v-if="currentDomainId">
+            <div class="learn-row">
+              <aside class="tree-box glass" aria-label="知识目录">
+                <DomainTree
+                  :loading="treeLoading"
+                  :domain-name="currentDomainName"
+                  :branches="branches"
+                  :selected-branch-id="selectedBranchId"
+                  :snapshot-truncated="snapshotTruncated"
+                  :snapshot-message="snapshotMessage"
+                  :edit-mode="treeEditMode"
+                  :create-l1-requested="createL1Trigger"
+                  @update:create-l1-requested="(v: boolean) => (createL1Trigger = v)"
+                  @update:selected-branch-id="onSelectBranch"
+                  @learn-empty="onLearnEmpty"
+                  @rename-branch="onRenameBranch"
+                  @delete-branch="onDeleteBranch"
+                  @merge-branch="onMergeBranch"
+                  @create-l1-branch="onCreateL1Branch"
+                  @create-l2-branch="onCreateL2Branch"
+                />
+              </aside>
+              <section class="leaf-box glass" aria-label="枝叶内容">
+                <ContentPanel
+                  ref="contentPanelRef"
+                  :domain-id="currentDomainId"
+                  :domain-name="currentDomainName"
+                  :branch-id="selectedBranchId"
+                  :branch-title="selectedBranchTitle"
+                  :branch-path="selectedBranchPath"
+                  :leaves="branchLeaves"
+                  :leaves-loading="leavesLoading"
+                  :branches="branches"
+                  :gate-loading="gateLoading"
+                  :gate-result="gateResult"
+                  :gate-error="gateError"
+                  :search-blocked="searchBlocked"
+                  :v2-phase="v2Phase"
+                  :skip-gate-context="skipGateContext"
+                  @open-note="onOpenNote"
+                  @move-leaf="onMoveLeaf"
+                  @detach-leaf="onDetachLeaf"
+                  @gate-submit="onGateSubmit"
+                  @gate-re-submit="onGateReSubmit"
+                  @confirm-branch="onConfirmBranch"
+                  @batch-url-submit="onBatchUrlSubmit"
+                  @skip-gate="(p) => onLearnEmpty(p)"
+                />
+              </section>
+            </div>
+          </template>
+          <div v-else class="learning-welcome glass">
+            <FolderTree :size="54" class="learning-welcome__icon" :stroke-width="1" />
+            <div>
+              <span class="eyebrow">领域观测站</span>
+              <h2 class="font-display">先点亮一座知识塔</h2>
+              <p>创建 Java、前端或算法等领域，再把精读笔记挂成可追溯的叶。</p>
+            </div>
+            <button type="button" class="chip-btn primary" @click="onCreateDomain"><Plus :size="15" /> 创建领域</button>
+          </div>
+        </main>
 
-      <section class="learning-workspace__detail">
-        <ContentPanel
-          :domain-id="currentDomainId"
-          :domain-name="currentDomainName"
-          :branch-id="selectedBranchId"
-          :branch-title="selectedBranchTitle"
-          :branch-path="selectedBranchPath"
-          :leaves="branchLeaves"
-          :leaves-loading="leavesLoading"
-          :branches="branches"
-          :gate-loading="gateLoading"
-          :gate-result="gateResult"
-          :gate-error="gateError"
-          :search-blocked="searchBlocked"
-          :v2-phase="v2Phase"
-          :skip-gate-context="skipGateContext"
-          @open-note="onOpenNote"
-          @move-leaf="onMoveLeaf"
-          @detach-leaf="onDetachLeaf"
-          @gate-submit="onGateSubmit"
-          @gate-re-submit="onGateReSubmit"
-          @confirm-branch="onConfirmBranch"
-          @batch-url-submit="onBatchUrlSubmit"
-          @skip-gate="(p) => onLearnEmpty(p)"
-        />
-      </section>
-    </div>
-
-    <!-- ============== 5. 空状态（无领域） ============== -->
-    <div v-else class="learning-welcome">
-      <div class="learning-welcome__card">
-        <FolderTree :size="56" class="learning-welcome__icon" :stroke-width="1" />
-        <h2 class="learning-welcome__title">创建你的第一个学习领域</h2>
-        <p class="learning-welcome__desc">
-          创建 Java、前端等领域后，就能使用 AI 门闩与知识树挂叶功能
-        </p>
-        <IconAction
-          :icon="Plus"
-          label="创建领域"
-          variant="primary"
-          size="lg"
-          @click="onCreateDomain"
-        />
+        <aside class="deck learning-deck" aria-label="当前枝摘要">
+          <div class="deck-panel glass">
+            <span class="tape alt"></span>
+            <h3 class="font-display">当前枝</h3>
+            <div class="stat-row">
+              <div class="stat-pill"><div class="n">{{ selectedBranchLeafCount }}</div><div class="l">叶</div></div>
+              <div class="stat-pill"><div class="n font-display">{{ selectedBranchDepth ? `L${selectedBranchDepth}` : '—' }}</div><div class="l">层级</div></div>
+            </div>
+            <div class="stat-row" style="margin-top: 10px">
+              <div class="stat-pill"><div class="n">{{ leavesReviewing }}</div><div class="l">复习中</div></div>
+              <div class="stat-pill"><div class="n">{{ leavesMastered }}</div><div class="l">已掌握</div></div>
+            </div>
+          </div>
+          <section
+            class="chart-panel sky-panel sky-panel--clickable"
+            aria-label="领域星图"
+            title="点击展开完整树图"
+            role="button"
+            tabindex="0"
+            @click="treeVizOpen = true"
+            @keydown.enter.prevent="treeVizOpen = true"
+          >
+            <div class="chart-grid"></div>
+            <span class="chart-cap">领域星图 · <b>{{ selectedBranchTitle || currentDomainName || '…' }}</b></span>
+            <div class="map-body">
+              <svg viewBox="0 0 260 220" preserveAspectRatio="xMidYMid meet">
+                <path
+                  v-for="node in skyNodes"
+                  :key="`edge-${node.id}`"
+                  class="rm-edge"
+                  :class="{ lit: String(node.id) === String(selectedBranchId) }"
+                  :d="`M130 50 L${Math.round(node.x * 0.8125)} ${Math.round(node.y * 0.916)}`"
+                />
+                <circle class="rm-node root" cx="130" cy="50" r="18" />
+                <text class="rm-lab root-label" x="130" y="54" text-anchor="middle">{{ currentDomainName?.slice(0, 6) || 'DOMAIN' }}</text>
+                <g
+                  v-for="node in skyNodes"
+                  :key="node.id"
+                  class="learn-sky__node"
+                  @click.stop="onSelectBranch(node.id); treeVizOpen = true"
+                >
+                  <circle
+                    class="rm-node"
+                    :class="{ 'is-on': String(node.id) === String(selectedBranchId), empty: !node.leafCount }"
+                    :cx="Math.round(node.x * 0.8125)"
+                    :cy="Math.round(node.y * 0.916)"
+                    :r="node.depth === 1 ? 14 : 11"
+                  />
+                  <text
+                    class="rm-lab"
+                    :class="{ on: String(node.id) === String(selectedBranchId) }"
+                    :x="Math.round(node.x * 0.8125)"
+                    :y="Math.round(node.y * 0.916) + 4"
+                    text-anchor="middle"
+                  >{{ node.shortTitle }}</text>
+                  <circle
+                    v-if="node.leafCount"
+                    class="rm-badge"
+                    :cx="Math.round(node.x * 0.8125) + 12"
+                    :cy="Math.round(node.y * 0.916) - 12"
+                    r="7"
+                  />
+                  <text
+                    v-if="node.leafCount"
+                    class="rm-badge-t"
+                    :x="Math.round(node.x * 0.8125) + 12"
+                    :y="Math.round(node.y * 0.916) - 9.5"
+                    text-anchor="middle"
+                  >{{ node.leafCount }}</text>
+                </g>
+              </svg>
+            </div>
+            <span class="map-leg">点击展开完整树图 · Esc 关闭</span>
+          </section>
+          <div class="room-bars chart-panel" data-room-bars title="叶密度">
+            <div class="chart-grid"></div>
+            <span class="chart-cap">叶密度 · <b>各枝挂载量</b></span>
+            <div class="rb-row">
+              <b
+                v-for="(branch, i) in branchDensity"
+                :key="branch.id"
+                :class="['mint', 'blue', 'sun', ''][i % 4]"
+                :style="{ height: branch.height }"
+                :title="`${branch.title} · ${branch.leafCount} 叶`"
+              />
+            </div>
+            <span class="rb-foot">各枝挂载量（真实 leafCount）</span>
+          </div>
+        </aside>
       </div>
-    </div>
 
     <!-- ============== 6. 滑出面板 / 弹窗 ============== -->
     <AttachConfirm
@@ -621,6 +800,32 @@ onBeforeUnmount(() => {
       />
     </a-modal>
 
+    <a-modal
+      v-model:open="reviewOpen"
+      :title="`复习 · ${reviewQuiz?.branchTitle || selectedBranchTitle || '当前枝'}`"
+      width="760px"
+      :footer="null"
+      destroy-on-close
+    >
+      <div v-if="reviewLoading" class="review-box review-box--loading">
+        正在根据枝下笔记生成自测题…
+      </div>
+      <template v-else-if="reviewQuiz && reviewQuiz.questions?.length">
+        <div v-for="(q, index) in reviewQuiz.questions" :key="index" class="review-card">
+          <div class="review-q">
+            <b>Q{{ index + 1 }}</b> {{ q.question }}
+          </div>
+          <button type="button" class="chip-btn sm" @click="toggleAnswer(index)">
+            {{ revealedAnswers[index] ? '收起答案' : '显示答案' }}
+          </button>
+          <div v-if="revealedAnswers[index]" class="review-a">{{ q.answer }}</div>
+        </div>
+      </template>
+      <div v-else class="review-empty">
+        {{ reviewQuiz ? '该枝还没有可复习的笔记，先挂叶或空枝补学后再生成自测题。' : '正在出题…' }}
+      </div>
+    </a-modal>
+
     <ReattachNotesModal
       v-model:open="reattachOpen"
       :domain-id="currentDomainId"
@@ -655,8 +860,9 @@ onBeforeUnmount(() => {
       :branches="branches"
       :selected-branch-id="selectedBranchId"
       @close="treeVizOpen = false"
-      @update:selected-branch-id="(id) => (store.selectedBranchId = id)"
-      @learn-empty="onLearnEmpty"
+      @update:selected-branch-id="(id) => { store.selectedBranchId = id }"
+      @learn-empty="(p) => { onLearnEmpty(p); treeVizOpen = false }"
     />
   </div>
+  </ReadingRoomShell>
 </template>

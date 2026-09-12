@@ -1,0 +1,975 @@
+/* 每日工作日志页面样式（独立于日记房间，深色卡片风） */
+:root {
+  --worklog-accent: #7fd8c8;
+  --worklog-accent-soft: rgba(127, 216, 200, 0.14);
+}
+
+.worklog-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 20px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ── 头部 ── */
+.worklog-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.worklog-hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.worklog-eyebrow {
+  color: var(--worklog-accent);
+  font: 600 12px/1 var(--font-sans);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.worklog-hero h1 {
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.worklog-hero p {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  max-width: 60ch;
+}
+.worklog-cloud-line {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 12.5px !important;
+  color: var(--worklog-accent) !important;
+}
+.worklog-hero-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── 通用按钮 ── */
+.antd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.antd-btn:hover {
+  border-color: var(--color-border-hover);
+  background: var(--color-surface-hover);
+}
+.antd-btn.primary {
+  background: var(--worklog-accent-soft);
+  border-color: rgba(127, 216, 200, 0.4);
+  color: var(--worklog-accent);
+}
+.antd-btn.primary:hover {
+  background: rgba(127, 216, 200, 0.22);
+}
+.antd-btn.ghost {
+  background: transparent;
+}
+.antd-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+.icon-btn:hover {
+  border-color: var(--color-border-hover);
+  color: var(--color-text-primary);
+}
+.icon-btn.danger:hover {
+  color: var(--color-error);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+.text-btn {
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--worklog-accent);
+  font-size: 13px;
+  cursor: pointer;
+}
+.text-btn:hover {
+  background: var(--worklog-accent-soft);
+}
+
+/* ── 统计 ── */
+.worklog-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+@media (max-width: 760px) {
+  .worklog-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.worklog-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+}
+.worklog-stat strong {
+  font-size: 26px;
+  line-height: 1;
+  color: var(--worklog-accent);
+}
+.worklog-stat span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+/* ── 类别分布条 ── */
+.worklog-category-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+}
+.worklog-category-title {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-right: 2px;
+}
+.worklog-category-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+.worklog-category-chip em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--worklog-accent);
+}
+.worklog-category-bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--worklog-accent);
+  opacity: 0.7;
+}
+
+/* ── 类别快捷按钮 ── */
+.worklog-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.worklog-category-tools {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.worklog-cat-btn {
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+.worklog-cat-btn:hover {
+  border-color: var(--worklog-accent);
+  color: var(--worklog-accent);
+}
+.worklog-cat-btn[data-cat='新增'] {
+  color: #7dd3a8;
+}
+.worklog-cat-btn[data-cat='修改'] {
+  color: #8fb9f0;
+}
+.worklog-cat-btn[data-cat='删除'] {
+  color: #f09696;
+}
+.worklog-cat-btn[data-cat='修复'] {
+  color: #f0c27d;
+}
+.worklog-cat-btn[data-cat='重构'] {
+  color: #c9a0dc;
+}
+.worklog-cat-btn[data-cat='优化'] {
+  color: #7fd8c8;
+}
+.worklog-cat-btn[data-cat='文档'] {
+  color: #9bb5eb;
+}
+.worklog-cat-btn[data-cat='其他'] {
+  color: var(--color-text-muted);
+}
+
+/* ── 主体网格 ── */
+.worklog-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .worklog-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.worklog-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+.worklog-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.worklog-panel-index {
+  color: var(--worklog-accent);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  font-weight: 600;
+}
+.worklog-panel-head h2 {
+  font-size: 16px;
+}
+.spacer {
+  flex: 1;
+}
+.worklog-save-state {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-surface-hover);
+}
+.worklog-save-state[data-state='saved'] {
+  color: var(--color-success);
+  background: rgba(16, 185, 129, 0.12);
+}
+.worklog-save-state[data-state='dirty'] {
+  color: var(--color-warning);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+/* ── 编辑器 ── */
+.worklog-editor-meta {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.worklog-day-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-bottom: 2px;
+}
+.worklog-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.worklog-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 640px) {
+  .worklog-two {
+    grid-template-columns: 1fr;
+  }
+}
+.worklog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.worklog-field > span {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.worklog-field input,
+.worklog-field textarea,
+.worklog-select {
+  width: 100%;
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  resize: vertical;
+  transition: border-color var(--transition-fast);
+}
+.worklog-field input:focus,
+.worklog-field textarea:focus,
+.worklog-select:focus {
+  outline: none;
+  border-color: rgba(127, 216, 200, 0.55);
+}
+.worklog-field textarea::placeholder {
+  color: var(--color-text-muted);
+}
+.worklog-field--date input {
+  width: 148px;
+  color-scheme: dark;
+}
+.worklog-field--title {
+  flex: 1;
+  min-width: 180px;
+}
+.worklog-editor-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.worklog-editor-foot kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  font: 600 11px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--color-text-secondary);
+}
+
+/* ── 历史列表 ── */
+.worklog-select {
+  width: auto;
+  padding: 6px 8px;
+  font-size: 12.5px;
+  color-scheme: dark;
+}
+.worklog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 560px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.worklog-entry {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: var(--color-surface-hover);
+  cursor: pointer;
+  text-align: left;
+  color: var(--color-text-primary);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.worklog-entry:hover {
+  border-color: var(--color-border-hover);
+  background: rgba(127, 216, 200, 0.07);
+}
+.worklog-entry.is-today {
+  border-color: rgba(127, 216, 200, 0.35);
+}
+.worklog-entry-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 52px;
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  background: var(--worklog-accent-soft);
+  align-self: flex-start;
+}
+.worklog-entry-date strong {
+  font-size: 20px;
+  line-height: 1;
+  color: var(--worklog-accent);
+}
+.worklog-entry-date small {
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+.worklog-entry-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.worklog-entry-title {
+  font-size: 14px;
+}
+.worklog-entry-main p {
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.worklog-entry-meta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.worklog-entry-actions {
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.worklog-entry:hover .worklog-entry-actions {
+  opacity: 1;
+}
+@media (hover: none) {
+  .worklog-entry-actions {
+    opacity: 1;
+  }
+}
+.worklog-more-hint {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 6px;
+}
+.worklog-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 20px;
+}
+
+/* ── 左列（编辑卡 + 日历卡） ── */
+.worklog-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* ── 备份提醒 ── */
+.worklog-backup-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(127, 216, 200, 0.4);
+  background: var(--worklog-accent-soft);
+}
+.worklog-backup-banner strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--worklog-accent);
+}
+.worklog-backup-banner p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.worklog-backup-interval {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.worklog-backup-interval input {
+  width: 56px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+/* ── 连续缺口 / 洞察 ── */
+.worklog-gap-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--color-warning);
+  font-size: 13px;
+}
+.worklog-insights {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+}
+.worklog-insight {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 140px;
+}
+.worklog-insight--grow {
+  flex: 1;
+  min-width: 220px;
+}
+.worklog-insight-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.worklog-kw-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.worklog-kw-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.worklog-kw-chip:hover {
+  border-color: var(--worklog-accent);
+  color: var(--worklog-accent);
+}
+.worklog-kw-chip em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--worklog-accent);
+}
+.worklog-category-chip.is-static {
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+/* ── 标签 ── */
+.worklog-tags-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.worklog-tags-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-right: 2px;
+}
+.worklog-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.worklog-tag.is-sys {
+  cursor: default;
+  opacity: 0.75;
+}
+.worklog-tag.is-active,
+.worklog-tag:hover:not(.is-sys) {
+  border-color: var(--worklog-accent);
+  color: var(--worklog-accent);
+}
+.worklog-tag.is-mini {
+  padding: 1px 7px;
+  font-size: 11px;
+}
+.worklog-tag-x {
+  display: inline-grid;
+  place-items: center;
+  opacity: 0.7;
+}
+.worklog-tag-x:hover {
+  opacity: 1;
+  color: var(--color-error);
+}
+.worklog-tag-input {
+  min-width: 140px;
+  flex: 1;
+  max-width: 220px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+}
+.worklog-tag-input:focus {
+  outline: none;
+  border-color: rgba(127, 216, 200, 0.55);
+}
+.worklog-entry-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+/* ── 右键菜单 ── */
+.worklog-ctx {
+  position: fixed;
+  z-index: 80;
+  min-width: 168px;
+  padding: 6px;
+  border-radius: 10px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.28));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.worklog-ctx button {
+  text-align: left;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+.worklog-ctx button:hover {
+  background: var(--worklog-accent-soft);
+  color: var(--worklog-accent);
+}
+.worklog-ctx button.danger:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--color-error);
+}
+
+/* ── 导入冲突提示 ── */
+.worklog-import-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.1);
+}
+.worklog-import-banner strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--color-warning);
+}
+.worklog-import-banner p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  max-width: 62ch;
+}
+.worklog-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── 编辑/预览切换 ── */
+.worklog-preview-switch {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+}
+.worklog-preview-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+.worklog-preview-btn.is-on {
+  color: var(--color-text-primary);
+  background: var(--worklog-accent-soft);
+}
+
+/* ── 格式工具栏 ── */
+.worklog-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+}
+.worklog-fmt-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.worklog-fmt-btn:hover {
+  border-color: var(--worklog-accent);
+  color: var(--worklog-accent);
+}
+.worklog-toolbar-hint {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  margin-right: 2px;
+}
+
+/* ── 编辑/预览分栏 ── */
+.worklog-split {
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+}
+.worklog-split.is-edit {
+  grid-template-columns: 1fr;
+}
+.worklog-split.is-preview {
+  grid-template-columns: 1fr;
+}
+.worklog-split.is-split {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+@media (max-width: 760px) {
+  .worklog-split.is-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── 预览面板 ── */
+.worklog-preview {
+  min-height: 320px;
+  max-height: 560px;
+  overflow-y: auto;
+  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  line-height: 1.75;
+  font-size: 14px;
+}
+.worklog-split.is-split .worklog-preview {
+  min-height: 100%;
+}
+.worklog-preview h1 {
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  margin-bottom: 6px;
+}
+.worklog-preview h2 {
+  font-size: 15px;
+  margin: 16px 0 6px;
+  color: var(--worklog-accent);
+}
+.worklog-preview h3 {
+  font-size: 13.5px;
+  margin: 12px 0 4px;
+}
+.worklog-preview p,
+.worklog-preview li {
+  color: var(--color-text-secondary);
+}
+.worklog-preview ul {
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.worklog-preview blockquote {
+  border-left: 2px solid var(--worklog-accent);
+  padding-left: 10px;
+  color: var(--color-text-muted);
+  margin: 6px 0;
+}
+.worklog-preview code {
+  background: var(--color-surface-hover);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 12.5px;
+}
+
+/* ── 日历 ── */
+.worklog-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+.worklog-cal-week {
+  text-align: center;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  padding: 2px 0;
+}
+.worklog-cal-cell {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.worklog-cal-cell.is-empty {
+  background: transparent;
+  pointer-events: none;
+}
+.worklog-cal-cell:hover:not(.is-empty) {
+  border-color: var(--color-border-hover);
+  background: var(--worklog-accent-soft);
+}
+.worklog-cal-cell.has-log {
+  border-color: rgba(127, 216, 200, 0.35);
+  color: var(--worklog-accent);
+  font-weight: 700;
+}
+.worklog-cal-cell.is-today {
+  outline: 1px solid var(--worklog-accent);
+  outline-offset: 1px;
+}
+.worklog-cal-cell.is-draft {
+  background: var(--worklog-accent-soft);
+}
+.worklog-cal-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+}
+.worklog-cal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--worklog-accent);
+}
+
+/* ── 历史搜索 ── */
+.worklog-history-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+.worklog-history-search input {
+  width: 130px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+}
+.worklog-history-search input:focus {
+  border-color: rgba(127, 216, 200, 0.55);
+}
+
+/* ── 类别分布可点击 ── */
+.worklog-category-chip {
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+.worklog-category-chip:hover,
+.worklog-category-chip.is-active {
+  border-color: var(--worklog-accent);
+  color: var(--worklog-accent);
+}
+
+/* ── 加载更多 / 移动端适配 ── */
+.worklog-more-btn {
+  align-self: center;
+  margin-top: 6px;
+}
+@media (max-width: 640px) {
+  .worklog-history-search input {
+    width: 90px;
+  }
+}

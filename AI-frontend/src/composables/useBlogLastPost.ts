@@ -20,9 +20,9 @@ export function getBlogMenuPath(): string {
   return id ? `/blog/${id}` : '/blog'
 }
 
-/** 导航栏点击「随笔」：已在文章/编辑等子页则回列表，否则恢复最近阅读或进列表 */
+/** 导航栏点击「随笔」：已在文章/编辑/筛选等子页则回列表，否则恢复最近阅读或进列表 */
 export function resolveBlogMenuClickPath(currentPath: string): string {
-  if (currentPath.startsWith('/blog/')) {
+  if (currentPath.startsWith('/blog/') || currentPath.startsWith('/category/') || currentPath.startsWith('/tag/')) {
     return '/blog'
   }
   return getBlogMenuPath()

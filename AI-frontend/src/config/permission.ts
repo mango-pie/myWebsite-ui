@@ -32,6 +32,7 @@ export const ROUTE_PERMISSIONS: Record<string, RequiredRole | undefined> = {
   '/administrator/study': 'administrator',
   '/chat': 'user',
   '/diary': 'user',
+  '/worklog': 'user',
   '/knowledge': 'user',
 }
 
@@ -67,6 +68,8 @@ export const MENU_ITEMS: MenuItemConfig[] = [
   { key: 'blogHome', label: '随笔', path: '/blog', requireModule: 'blog' },
   { key: 'knowledge', label: '知识库', path: '/knowledge', requiredRole: 'user', requireModule: 'knowledge' },
   { key: 'diary', label: '日记', path: '/diary', requiredRole: 'user', requireModule: 'diary' },
+  /** 工作日志独立模块（与 diary 分离） */
+  { key: 'worklog', label: '工作日志', path: '/worklog', requiredRole: 'user', requireModule: 'worklog' },
   { key: 'lab', label: '实验室', path: '/lab', requireModule: 'app-lab' },
   {
     key: 'readingWorkbench',
@@ -112,6 +115,7 @@ export function getRequiredRole(path: string): RequiredRole | undefined {
   if (path.startsWith('/administrator')) return 'administrator'
   if (path === '/chat' || path.startsWith('/chat/')) return 'user'
   if (path === '/diary' || path.startsWith('/diary/')) return 'user'
+  if (path === '/worklog' || path.startsWith('/worklog/')) return 'user'
   if (path === '/knowledge' || path.startsWith('/knowledge/')) return 'user'
   return undefined
 }

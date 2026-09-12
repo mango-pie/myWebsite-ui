@@ -12,6 +12,7 @@ import type {
   AttachRequest,
   AttachResponse,
   BatchSuggestItem,
+  LearningReviewQuizVO,
 } from './learning.types'
 
 const BASE = '/admin/knowledge/learning'
@@ -178,4 +179,19 @@ export async function batchSuggest(
       data: { domainId, notes },
     },
   )
+}
+
+/** GET /branches/{branchId}/review-quiz — 枝级复习自测（答案折叠） */
+export async function getBranchReviewQuiz(branchId: number | string) {
+  return request<API.BaseResponse<LearningReviewQuizVO>>(
+    `${BASE}/branches/${branchId}/review-quiz`,
+    { method: 'GET' },
+  )
+}
+
+/** DELETE /material-cache — 强制刷新材料缓存（清 learning:material:*） */
+export async function clearMaterialCache() {
+  return request<API.BaseResponse<number>>(`${BASE}/material-cache`, {
+    method: 'DELETE',
+  })
 }

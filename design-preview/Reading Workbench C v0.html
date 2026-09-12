@@ -1,0 +1,1492 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="aurora" data-motion="on">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>精读工作台 · 方向 C 沉浸式观测站 v0（设计稿）</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/zcool-kuaile@5/index.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   方向 C · 沉浸式观测站 v0
+   Field.io / Active Theory · near-black + electric violet + aurora
+   ============================================================ */
+:root{
+  --bg:#0b0b0f;--bg-2:#10101a;--bg-3:#0e0e16;
+  --panel:rgba(11,11,15,.72);--panel-solid:#101018;--panel-raise:rgba(18,18,28,.86);
+  --line:rgba(255,255,255,.08);--line-strong:rgba(255,255,255,.16);
+  --violet:#5b2eff;--violet-2:#9b8ce8;--violet-soft:rgba(91,46,255,.16);
+  --cyan:#0ce0e5;--cyan-soft:rgba(12,224,229,.14);
+  --mint:#3ddc97;--mint-soft:rgba(61,220,151,.14);
+  --sun:#ffcf6e;--sun-soft:rgba(255,207,110,.14);
+  --sakura:#ff5d8f;--sakura-soft:rgba(255,93,143,.14);
+  --text:#ffffff;--text-2:#a0a4b0;--text-3:#5f6370;
+  --glow:0 0 24px rgba(91,46,255,.22);
+  --glow-cyan:0 0 18px rgba(12,224,229,.18);
+  --r-panel:0;--r-card:8px;--r-ctl:6px;
+  --ease-expo:cubic-bezier(.83,0,.17,1);
+  --ease-spring:cubic-bezier(.34,1.56,.5,1);
+  --mono:"IBM Plex Mono",ui-monospace,"Cascadia Code",Consolas,monospace;
+  --display:"Space Grotesk","ZCOOL KuaiLe","PingFang SC",sans-serif;
+  --body:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Source Han Sans SC",sans-serif;
+  --col-side:248px;--col-deck:280px;
+}
+:root[data-theme="aurora"]{--aurora-opacity:.55;--aurora-blur:64px}
+:root[data-theme="starfield"]{--aurora-opacity:.28;--aurora-blur:50px}
+:root[data-theme="void"]{--aurora-opacity:0;--aurora-blur:0px}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--body);color:var(--text);min-height:100vh;background:var(--bg);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+button,input,textarea,select{font-family:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none;padding:0}
+input,textarea,select{border:none;outline:none;background:transparent;color:inherit}
+::placeholder{color:var(--text-3)}
+:focus{outline:none}
+:focus-visible{outline:1.5px solid var(--violet-2);outline-offset:2px;border-radius:4px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.font-display{font-family:var(--display)}
+.text-pretty{text-wrap:pretty}
+[hidden]{display:none!important}
+
+/* ---------- atmosphere ---------- */
+.aurora{
+  position:fixed;inset:-18%;z-index:0;pointer-events:none;filter:blur(var(--aurora-blur));
+  opacity:var(--aurora-opacity);
+  background:
+    radial-gradient(42% 38% at 28% 22%,rgba(91,46,255,.4),transparent 70%),
+    radial-gradient(36% 32% at 72% 30%,rgba(12,224,229,.26),transparent 70%),
+    radial-gradient(40% 36% at 55% 80%,rgba(155,140,232,.2),transparent 70%),
+    radial-gradient(30% 28% at 82% 78%,rgba(91,46,255,.18),transparent 70%);
+  animation:auroraDrift 20s var(--ease-expo) infinite alternate;
+  transition:opacity 1.2s var(--ease-expo),filter 1.2s var(--ease-expo);
+}
+@keyframes auroraDrift{
+  from{transform:translate3d(-2.5%,-1.5%,0) rotate(-1deg) scale(1)}
+  to{transform:translate3d(2.5%,1.5%,0) rotate(1deg) scale(1.06)}
+}
+#stardust{position:fixed;inset:0;z-index:0;pointer-events:none}
+.stage-root,.elastic{position:relative;z-index:2}
+body.screen-stage{overflow:hidden;height:100vh}
+
+/* ---------- topbar ---------- */
+.topbar{height:84px;padding:0 48px;display:flex;align-items:center;gap:28px;position:relative;z-index:5;border-bottom:1px solid var(--line)}
+.topbar-elastic{height:72px;padding:0 32px;position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 78%,transparent);backdrop-filter:blur(16px)}
+.brand{display:flex;align-items:center;gap:12px;text-align:left;color:inherit}
+.brand-mark{
+  width:44px;height:44px;border-radius:var(--r-ctl);flex:none;
+  border:1px solid var(--line-strong);background:linear-gradient(140deg,var(--violet-soft),transparent);
+  display:grid;place-items:center;box-shadow:var(--glow);
+  transition:transform .4s var(--ease-spring),box-shadow .4s;
+}
+.brand:hover .brand-mark{transform:rotate(6deg) scale(1.05);box-shadow:0 0 34px rgba(91,46,255,.35)}
+.brand-mark svg{width:22px;height:22px;display:block}
+.brand-mark .stroke{fill:none;stroke:var(--violet-2);stroke-width:1.6;stroke-linecap:round}
+.brand-mark .accent{fill:var(--cyan)}
+.brand-name{font-family:var(--display);font-size:20px;letter-spacing:1px;line-height:1.1;font-weight:500}
+.brand-sub{font-size:10px;color:var(--text-3);letter-spacing:3px;margin-top:3px;font-family:var(--mono)}
+#mainnav{
+  display:flex;gap:2px;margin:0 auto;position:relative;
+  border:1px solid var(--line);background:var(--panel);border-radius:var(--r-ctl);padding:4px;
+  backdrop-filter:blur(10px);
+}
+#mainnav button{
+  padding:9px 18px;border-radius:4px;font-size:13px;letter-spacing:2px;color:var(--text-2);
+  position:relative;z-index:1;transition:color .25s,background .25s;font-family:var(--display);
+}
+#mainnav button:hover{color:var(--text)}
+#mainnav button.active{color:#fff}
+#navPill{
+  position:absolute;top:4px;left:0;height:calc(100% - 8px);border-radius:4px;z-index:0;
+  background:linear-gradient(135deg,var(--violet),var(--violet-2));
+  box-shadow:var(--glow);transition:left .45s var(--ease-expo),width .45s var(--ease-expo);opacity:0;
+}
+#mainnav:has(.active) #navPill{opacity:1}
+.top-right{display:flex;align-items:center;gap:14px;margin-left:auto}
+.clock-chip{
+  border:1px solid var(--line);border-radius:var(--r-ctl);padding:6px 14px;text-align:right;line-height:1.25;
+  background:var(--panel);backdrop-filter:blur(10px);
+}
+.clock-time{font-size:17px;font-weight:500;letter-spacing:2px;font-variant-numeric:tabular-nums;font-family:var(--display)}
+.clock-time .sec{font-size:11px;color:var(--text-3);font-family:var(--mono)}
+.clock-date{font-size:9px;color:var(--text-3);letter-spacing:1.5px;font-family:var(--mono)}
+.avatar{
+  width:44px;height:44px;border-radius:50%;flex:none;display:grid;place-items:center;
+  border:1px solid var(--line-strong);background:linear-gradient(140deg,var(--violet-soft),transparent);
+  color:var(--violet-2);font-size:16px;font-family:var(--display);box-shadow:var(--glow);
+}
+.note-chip{
+  position:absolute;z-index:6;top:92px;left:48px;right:48px;max-width:960px;
+  font-size:11px;letter-spacing:1.2px;color:var(--text-2);font-family:var(--mono);
+  border:1px dashed var(--line-strong);border-radius:var(--r-ctl);padding:5px 14px;
+  display:flex;align-items:center;gap:10px;background:var(--panel);backdrop-filter:blur(10px);
+}
+.elastic .note-chip{position:static;margin:10px 32px 0;max-width:none;flex:none}
+.sample-tag{
+  margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--cyan);
+  border:1px solid var(--cyan-soft);background:var(--cyan-soft);border-radius:999px;padding:2px 9px;white-space:nowrap;
+}
+
+/* ---------- stage (ingest only) ---------- */
+#stageWrap{display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:24px 0}
+#stage{
+  position:relative;width:1920px;height:1080px;flex:none;transform-origin:top left;
+  border-radius:0;overflow:hidden;background:transparent;
+  border:1px solid var(--line);box-shadow:0 0 90px rgba(91,46,255,.16);
+}
+.reading-page{position:absolute;top:84px;left:0;right:0;bottom:0;z-index:4;padding:8px 48px 28px;overflow:hidden}
+
+/* ---------- shared components ---------- */
+.glass{
+  background:var(--panel);backdrop-filter:blur(14px);
+  border:1px solid var(--line);border-radius:var(--r-panel);
+}
+.shell{
+  display:grid;grid-template-columns:var(--col-side) minmax(0,1fr) var(--col-deck);
+  gap:16px;height:100%;padding-top:36px;min-height:0;overflow:hidden;
+}
+.side,.deck{display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0;overflow:hidden}
+.side-card,.deck-panel{padding:14px 16px;position:relative;border-radius:var(--r-card);transition:border-color .3s,background .3s}
+.side-card:hover,.deck-panel:hover{border-color:var(--line-strong)}
+.side-card h3,.deck-panel h3{font-size:12px;letter-spacing:2px;margin:0 0 8px;font-family:var(--display);font-weight:500;color:var(--text-2)}
+.about{font-size:12px;line-height:1.65;color:var(--text-2)}
+.tape{display:none}
+.chip-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:36px;padding:0 14px;border-radius:var(--r-ctl);font-size:12px;letter-spacing:1px;
+  border:1px solid var(--line);background:var(--panel-raise);color:var(--text-2);white-space:nowrap;
+  transition:transform .3s var(--ease-spring),color .2s,border-color .2s,box-shadow .25s;
+}
+.chip-btn:hover{transform:translateY(-1px);color:var(--text);border-color:var(--line-strong)}
+.chip-btn:active{transform:scale(.96)}
+.chip-btn.primary{
+  background:linear-gradient(135deg,var(--violet),var(--violet-2));color:#fff;border-color:transparent;
+  box-shadow:var(--glow);
+}
+.chip-btn.primary:hover{color:#fff;box-shadow:0 0 32px rgba(91,46,255,.4)}
+.chip-btn.sm{height:30px;padding:0 11px;font-size:11px}
+.chip-btn.on{color:var(--violet-2);border-color:var(--violet-soft);background:var(--violet-soft)}
+.chip-btn.danger{color:var(--sakura);border-color:var(--sakura-soft);background:var(--sakura-soft)}
+.chip-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.col-stack{display:flex;flex-direction:column;gap:6px}
+.mid-bay{display:flex;flex-direction:column;gap:10px;min-height:0;min-width:0;overflow:hidden}
+.band{flex:none;width:100%;max-width:100%}
+.chart-panel{
+  position:relative;overflow:hidden;border-radius:var(--r-panel);
+  background:linear-gradient(165deg,var(--panel),rgba(16,16,24,.4));
+  border:1px solid var(--line);
+}
+.chart-panel::before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 45%,var(--violet-soft),transparent 70%),
+    radial-gradient(ellipse 45% 40% at 88% 88%,var(--cyan-soft),transparent);
+}
+.chart-panel .chart-cap{
+  position:absolute;top:10px;left:14px;z-index:6;
+  font-size:9px;letter-spacing:2.5px;color:var(--text-3);font-family:var(--mono);
+}
+.chart-panel .chart-cap b{color:var(--violet-2);font-weight:500}
+.chart-grid{
+  position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.4;
+  background-image:
+    linear-gradient(var(--violet-soft) 1px,transparent 1px),
+    linear-gradient(90deg,var(--violet-soft) 1px,transparent 1px);
+  background-size:26px 26px;
+  mask-image:radial-gradient(ellipse 78% 70% at 50% 50%,#000 35%,transparent 78%);
+}
+.stat-pill{text-align:center}
+.stat-pill .n{font-size:21px;font-weight:700;color:var(--text);line-height:1.15;font-variant-numeric:tabular-nums;font-family:var(--display)}
+.stat-pill .l{font-size:9px;color:var(--text-3);letter-spacing:1.5px;margin-top:2px;font-family:var(--mono)}
+.stat-row{display:flex;gap:12px}
+.focus-kpi{display:flex;gap:10px;margin-top:10px}
+.focus-kpi .stat-pill{flex:1;padding:8px 6px;border-radius:var(--r-card);background:var(--panel);border:1px solid var(--line)}
+
+/* ---------- ingest ---------- */
+.ingest-top{display:flex;gap:12px;align-items:stretch;flex:1;min-height:0}
+.ingest-controls{
+  flex:none;width:min(var(--mid-input-w,680px),54%);
+  display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0;overflow:auto;padding-right:2px;
+}
+.mode-bar{display:flex;gap:4px;padding:4px;border:1px solid var(--line);background:var(--panel);border-radius:var(--r-ctl)}
+.mode-bar button{
+  flex:1;padding:8px 10px;border-radius:4px;font-size:12px;letter-spacing:2px;color:var(--text-2);
+  font-family:var(--display);transition:background .2s,color .2s,box-shadow .2s;
+}
+.mode-bar button.on{background:var(--violet-soft);color:var(--text);box-shadow:inset 0 0 0 1px var(--violet-soft)}
+.input-card{padding:14px 16px;display:flex;flex-direction:column;gap:10px;border-radius:var(--r-card)}
+.field label{display:block;font-size:10px;letter-spacing:2px;color:var(--text-3);margin-bottom:6px;font-family:var(--mono)}
+.field .inp,.field .area{
+  width:100%;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--panel-raise);
+  padding:9px 12px;font-size:14px;transition:box-shadow .25s,border-color .25s,background .25s;
+}
+.field .area{resize:vertical;min-height:64px;line-height:1.65}
+.field .inp:focus,.field .area:focus{
+  border-color:var(--violet);background:var(--panel-solid);
+  box-shadow:var(--glow),inset 0 1px 2px rgba(0,0,0,.4);
+}
+.row{display:flex;gap:10px}
+.row>*{flex:1;min-width:0}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+.work-bar{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--r-card);
+  border:1px solid var(--line);background:var(--panel);font-size:12px;color:var(--text-2);
+}
+.work-bar .meta b{color:var(--text);font-family:var(--mono)}
+.work-bar .warn{color:var(--sun);border:1px solid var(--sun-soft);background:var(--sun-soft);border-radius:999px;padding:2px 9px;font-size:11px}
+.job-chip{display:inline-flex;align-items:center;gap:7px;color:var(--cyan);font-family:var(--mono);font-size:11px}
+.job-chip i{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);animation:inkPulse 1.6s ease-in-out infinite}
+.work-bar .spacer{flex:1}
+.cand{
+  display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:var(--r-card);
+  border:1px solid var(--line);background:var(--panel-raise);cursor:pointer;
+  transition:border-color .2s,transform .2s var(--ease-spring),box-shadow .2s;
+}
+.cand:hover{transform:translateY(-1px);border-color:var(--line-strong)}
+.cand.on{border-color:var(--violet);box-shadow:var(--glow);background:var(--violet-soft)}
+.cand.risk{border-color:var(--sun-soft)}
+.cand .ck{width:16px;height:16px;margin-top:3px;accent-color:var(--violet);flex:none}
+.cand .title{display:block;font-size:13px;font-weight:500;color:var(--text);font-family:var(--display)}
+.cand .sum{display:block;font-size:12px;color:var(--text-2);line-height:1.6;margin-top:2px}
+.cand .meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
+.tag{font-size:9px;padding:2px 8px;border-radius:999px;letter-spacing:1px;font-family:var(--mono);border:1px solid var(--violet-soft);color:var(--violet-2);background:var(--violet-soft)}
+.tag.risk{color:var(--sun);border-color:var(--sun-soft);background:var(--sun-soft)}
+.tag.src{color:var(--cyan);border-color:var(--cyan-soft);background:var(--cyan-soft)}
+.cand .reason{display:block;font-size:11px;color:var(--text-3);margin-top:5px;line-height:1.55}
+.cand .url{font-size:11px;color:var(--cyan);text-decoration:none;white-space:nowrap;flex:none;font-family:var(--mono)}
+.cand .url:hover{text-decoration:underline}
+.fb-panel{
+  border-radius:var(--r-card);padding:14px 16px;min-height:120px;
+  border:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;gap:10px;
+}
+.fb-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.fb-head h3{margin:0;font-size:14px;font-family:var(--display);font-weight:500;letter-spacing:1px}
+.fb-head .hint{font-size:11px;color:var(--text-3);font-family:var(--mono)}
+.progress-steps{display:flex;gap:6px}
+.progress-steps .s{
+  flex:1;display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:var(--r-ctl);
+  border:1px solid var(--line);background:var(--panel-raise);font-size:11px;color:var(--text-3);
+  transition:all .3s var(--ease-expo);font-family:var(--display);
+}
+.progress-steps .s .n{font-family:var(--mono);font-size:9px}
+.progress-steps .s.on{color:var(--text);border-color:var(--violet);background:var(--violet-soft);box-shadow:var(--glow)}
+.progress-steps .s.done{color:var(--mint);border-color:var(--mint-soft);background:var(--mint-soft)}
+.progress-steps .s.fail{color:var(--sakura);border-color:var(--sakura-soft);background:var(--sakura-soft)}
+
+/* phase radar */
+.radar-wrap{flex:1;min-width:0;min-height:0;position:relative;overflow:hidden;border-radius:var(--r-panel)}
+.radar{height:100%;display:flex;flex-direction:column;padding:32px 16px 14px}
+.radar .chart-cap{top:14px}
+.radar svg{flex:1;min-height:0;width:100%}
+.radar-link{fill:none;stroke:var(--line-strong);stroke-width:1.4;stroke-dasharray:4 8;transition:stroke .4s,stroke-dashoffset .6s var(--ease-expo)}
+.radar-link.lit{stroke:var(--violet);stroke-dasharray:none;filter:drop-shadow(0 0 6px rgba(91,46,255,.5))}
+.radar-node{cursor:pointer;transition:filter .25s,transform .25s var(--ease-spring)}
+.radar-node circle{fill:var(--bg-2);stroke:var(--line-strong);stroke-width:1.4;transition:fill .3s,stroke .3s,filter .3s}
+.radar-node text{font-size:12px;fill:var(--text-2);font-family:var(--body);pointer-events:none}
+.radar-node .phase-idx{font-family:var(--mono);font-size:9px;fill:var(--text-3)}
+.radar-node.active circle{fill:var(--violet);stroke:var(--violet-2);stroke-width:2;filter:drop-shadow(0 0 12px rgba(91,46,255,.7));animation:nodePulse 1.8s ease-in-out infinite}
+.radar-node.active text{fill:var(--text);font-weight:500}
+.radar-node.done circle{fill:var(--mint);stroke:transparent;filter:drop-shadow(0 0 8px rgba(61,220,151,.5))}
+.radar-node.fail circle{fill:var(--sakura);stroke:transparent;filter:drop-shadow(0 0 8px rgba(255,93,143,.5))}
+.radar-hub{fill:var(--violet);opacity:.18}
+.radar-hub-ring{fill:none;stroke:var(--line-strong);stroke-width:1}
+.phase-sim{display:flex;gap:6px;flex-wrap:wrap;padding-top:4px;position:relative;z-index:6}
+.phase-sim .chip-btn{height:26px;font-size:10px;padding:0 9px}
+.radar-state{
+  position:absolute;top:14px;right:16px;z-index:6;font-family:var(--mono);font-size:10px;letter-spacing:1px;
+  color:var(--cyan);border:1px solid var(--cyan-soft);background:var(--cyan-soft);padding:3px 10px;border-radius:999px;
+}
+@keyframes nodePulse{0%,100%{opacity:1}50%{opacity:.7}}
+@keyframes inkPulse{0%,100%{opacity:.55}50%{opacity:1}}
+
+/* telemetry bars */
+.tel-panel{min-height:150px;padding:26px 14px 10px;display:flex;flex-direction:column}
+.tel-bars{flex:1;min-height:0;display:flex;align-items:flex-end;gap:6px;position:relative;z-index:2;padding-top:10px}
+.tel-bars .tb{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
+.tel-bars .tb b{
+  width:100%;max-width:34px;border-radius:2px 2px 0 0;min-height:8%;
+  background:var(--line);transition:height .5s var(--ease-expo),background .3s,box-shadow .3s;
+}
+.tel-bars .tb .lb{font-size:9px;color:var(--text-3);letter-spacing:.5px;font-family:var(--mono)}
+.tel-bars .tb.ok b{background:linear-gradient(180deg,var(--mint),transparent);box-shadow:0 0 10px rgba(61,220,151,.25)}
+.tel-bars .tb.warn b{background:linear-gradient(180deg,var(--sun),transparent);box-shadow:0 0 10px rgba(255,207,110,.22)}
+.tel-bars .tb.err b{background:linear-gradient(180deg,var(--sakura),transparent);box-shadow:0 0 10px rgba(255,93,143,.22)}
+.tel-bars .tb.read b{background:linear-gradient(180deg,var(--violet),transparent);box-shadow:0 0 10px rgba(91,46,255,.35);animation:inkPulse 1.6s ease-in-out infinite}
+.tel-foot{position:absolute;left:16px;bottom:8px;z-index:4;font-size:9px;letter-spacing:1.5px;color:var(--text-3);font-family:var(--mono)}
+.tel-legend{display:flex;gap:8px;flex-wrap:wrap;position:relative;z-index:2;padding-top:4px}
+.tel-legend span{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--text-2);font-family:var(--mono)}
+.tel-legend i{width:7px;height:7px;border-radius:2px;background:var(--line)}
+.tel-legend i.ok{background:var(--mint)}.tel-legend i.warn{background:var(--sun)}.tel-legend i.err{background:var(--sakura)}.tel-legend i.read{background:var(--violet)}
+
+/* ---------- elastic pages ---------- */
+.screen.elastic{min-height:100vh;display:flex;flex-direction:column}
+.elastic .page{flex:1;min-height:0;padding:12px 32px 28px;display:flex;flex-direction:column}
+.layout-3{
+  display:grid;grid-template-columns:220px minmax(0,1fr) 260px;gap:14px;
+  flex:1;min-height:0;overflow:hidden;
+}
+.layout-3 .mid-bay{overflow:auto;padding-right:4px}
+.page-title{display:flex;align-items:baseline;gap:10px;flex:none;margin-bottom:10px}
+.page-title h1{margin:0;font-size:22px;font-family:var(--display);font-weight:500;letter-spacing:1px}
+.page-title .sub{font-size:11px;color:var(--text-3);letter-spacing:1px;font-family:var(--mono)}
+.panel-title{font-size:12px;letter-spacing:1.5px;color:var(--text-2);margin:0 0 8px;display:flex;align-items:center;gap:8px;font-family:var(--display)}
+.panel-title b{color:var(--violet-2);font-weight:500}
+
+/* notes list */
+.notes-toolbar{
+  flex:none;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  padding:10px 12px;border-radius:var(--r-card);border:1px solid var(--line);background:var(--panel);margin-bottom:10px;
+}
+.search-wrap{flex:1;min-width:200px;display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:var(--r-ctl);background:var(--panel-raise);border:1px solid var(--line)}
+.search-wrap input{flex:1;font-size:13px;min-width:0}
+.search-wrap:focus-within{border-color:var(--violet);box-shadow:var(--glow)}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap}
+.f-btn{
+  padding:6px 12px;border-radius:var(--r-ctl);font-size:11px;letter-spacing:1px;
+  border:1px solid var(--line);background:var(--panel-raise);color:var(--text-2);font-family:var(--display);
+  transition:transform .25s var(--ease-spring),color .2s,background .2s,border-color .2s;
+}
+.f-btn:hover{transform:translateY(-1px);color:var(--text)}
+.f-btn.on{color:var(--violet-2);border-color:var(--violet-soft);background:var(--violet-soft)}
+.note-list{display:flex;flex-direction:column;gap:5px}
+.list-row{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 14px;align-items:center;
+  padding:10px 14px;border-radius:var(--r-card);cursor:pointer;
+  border:1px solid var(--line);background:var(--panel-raise);
+  transition:border-color .2s,transform .3s var(--ease-spring),box-shadow .25s,background .2s;
+}
+.list-row:hover{transform:translateY(-1px) translateX(2px);border-color:var(--line-strong);box-shadow:var(--glow)}
+.list-row:active{transform:scale(.997)}
+.list-row .lr-title{font-size:14px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--display)}
+.list-row .lr-meta{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--text-3)}
+.list-row .lr-right{display:flex;align-items:center;gap:10px;flex:none}
+.lr-time{font-size:11px;color:var(--text-3);white-space:nowrap;font-family:var(--mono)}
+.lr-align{font-family:var(--mono);font-size:11px;color:var(--mint);border:1px solid var(--mint-soft);background:var(--mint-soft);border-radius:999px;padding:2px 8px}
+.lr-align.low{color:var(--sun);border-color:var(--sun-soft);background:var(--sun-soft)}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:9px;padding:2px 8px;border-radius:999px;letter-spacing:1px;white-space:nowrap;font-family:var(--mono)}
+.chip.pub{color:var(--mint);border:1px solid var(--mint-soft);background:var(--mint-soft)}
+.chip.idx{color:var(--cyan);border:1px solid var(--cyan-soft);background:var(--cyan-soft)}
+.chip.rev{color:var(--violet-2);border:1px solid var(--violet-soft);background:var(--violet-soft)}
+.chip.rev.done{color:var(--mint);border-color:var(--mint-soft);background:var(--mint-soft)}
+.chip.src{color:var(--text-2);border:1px solid var(--line)}
+.chip.none{color:var(--text-3);border:1px solid var(--line)}
+.pager{flex:none;display:flex;align-items:center;gap:10px;justify-content:flex-end;margin-top:10px;font-size:12px;color:var(--text-2);font-family:var(--mono)}
+.pager .page-btn{width:30px;height:30px;border-radius:var(--r-ctl);border:1px solid var(--line);background:var(--panel-raise);color:var(--text-2);transition:transform .2s var(--ease-spring),border-color .2s}
+.pager .page-btn:hover{transform:translateY(-1px);color:var(--text);border-color:var(--violet)}
+.pager .page-btn.on{background:var(--violet);color:#fff;border-color:transparent;box-shadow:var(--glow)}
+.tag-cloud{display:flex;flex-wrap:wrap;gap:6px}
+.tag-cloud .t{font-size:11px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel-raise);color:var(--text-2);cursor:pointer;transition:transform .2s var(--ease-spring),color .2s,border-color .2s}
+.tag-cloud .t:hover{transform:translateY(-1px);color:var(--violet-2);border-color:var(--violet-soft)}
+.tag-cloud .t b{font-family:var(--mono);color:var(--text-3);font-weight:400;margin-left:3px}
+
+/* detail */
+.detail-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,.42fr);gap:10px 14px;padding:14px 18px;border-radius:var(--r-card)}
+.detail-head .field{display:flex;flex-direction:column;gap:5px}
+.detail-head .field label{font-size:9px;letter-spacing:2px;color:var(--text-3);font-family:var(--mono)}
+.detail-head .inp{font-size:17px;font-family:var(--display);letter-spacing:1px;padding:4px 0;border-bottom:1px solid var(--line)}
+.detail-head .inp.small{font-size:13px;font-family:var(--body)}
+.folio-meta{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--text-3);letter-spacing:1px;padding-top:4px}
+.folio-meta .link{color:var(--cyan);text-decoration:none;cursor:pointer;font-family:var(--mono);font-size:11px}
+.folio-meta .link:hover{text-decoration:underline}
+.status-mini{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 18px}
+.status-mini .s{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;font-size:10px;letter-spacing:1px;color:var(--text-3);border:1px solid var(--line);font-family:var(--mono)}
+.status-mini .s.done{color:var(--mint);border-color:var(--mint-soft);background:var(--mint-soft)}
+.status-mini .s.on{color:var(--text);border-color:var(--violet);background:var(--violet-soft);box-shadow:var(--glow)}
+.status-mini .arrow{color:var(--text-3);font-size:12px}
+.split-panel{
+  flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;
+  border-radius:var(--r-panel);overflow:hidden;border:1px solid var(--line);background:var(--panel);
+}
+.split-panel .pane{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.split-panel .pane + .pane{border-left:1px solid var(--line)}
+.pane-head{flex:none;display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--line);font-size:9px;letter-spacing:2px;color:var(--text-3);font-family:var(--mono)}
+.pane-head .tools{display:flex;gap:4px}
+.pane-head .tools button{font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid var(--line);color:var(--text-2);transition:border-color .2s,color .2s}
+.pane-head .tools button:hover{border-color:var(--violet);color:var(--violet-2)}
+.editor-area{flex:1;min-height:0;resize:none;padding:14px 18px;font-family:var(--mono);font-size:12.5px;line-height:1.75;color:var(--text);background:transparent;white-space:pre-wrap}
+.preview-area{flex:1;min-height:0;overflow:auto;padding:14px 20px;font-size:14px;line-height:1.85;color:var(--text)}
+.preview-area h1{font-family:var(--display);font-size:24px;margin:0 0 12px;letter-spacing:1px;font-weight:500}
+.preview-area h2{font-family:var(--display);font-size:18px;margin:18px 0 8px;font-weight:500}
+.preview-area p{margin:0 0 10px;max-width:72ch;color:var(--text-2)}
+.preview-area code{font-family:var(--mono);font-size:11.5px;border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--cyan);background:var(--panel-solid)}
+.preview-area pre{background:var(--panel-solid);border:1px solid var(--line);border-radius:var(--r-ctl);padding:12px 14px;overflow:auto;font-family:var(--mono);font-size:11.5px;line-height:1.7}
+.preview-area .src-note{color:var(--text-3);font-size:10px;font-family:var(--mono)}
+.preview-area blockquote{margin:12px 0;padding:8px 14px;border-left:2px solid var(--cyan);color:var(--text-2);font-size:13px}
+.quote-deco{
+  padding:12px 14px;border-radius:var(--r-card);border-left:2px solid var(--violet);
+  background:var(--violet-soft);font-size:12px;line-height:1.7;color:var(--text-2);margin:0 0 10px;
+}
+.src-map{min-height:130px;padding:26px 12px 10px;display:flex;flex-direction:column}
+.src-map svg{flex:1;min-height:0;width:100%}
+.src-map .sm-edge{fill:none;stroke:var(--line-strong);stroke-width:1.3}
+.src-map .sm-node circle{fill:var(--bg-2);stroke:var(--line-strong);stroke-width:1.4}
+.src-map .sm-node text{font-size:9px;fill:var(--text-3);font-family:var(--mono)}
+.src-map .sm-node.live circle{fill:var(--mint);stroke:transparent;filter:drop-shadow(0 0 8px rgba(61,220,151,.5))}
+.src-map .sm-node.live text{fill:var(--mint)}
+.src-map .sm-node.miss circle{fill:var(--bg-2);stroke:var(--text-3);stroke-dasharray:3 3}
+.src-map .sm-node.miss text{fill:var(--text-3)}
+
+/* learning */
+.learn-toolbar{
+  flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:8px 12px;border-radius:var(--r-card);width:100%;max-width:100%;
+  border:1px solid var(--line);background:var(--panel);margin-bottom:10px;
+}
+.learn-toolbar .hint{font-size:10px;color:var(--text-3);letter-spacing:1px;margin-left:4px;font-family:var(--mono)}
+.learn-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:12px;flex:1;min-height:0;overflow:hidden}
+.tree-box,.leaf-box{padding:12px;min-height:0;overflow:auto;border-radius:var(--r-card)}
+.tree-box .dom{font-size:10px;letter-spacing:2px;color:var(--text-3);margin-bottom:8px;font-family:var(--mono)}
+.tree-node{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;
+  padding:7px 9px;border-radius:var(--r-ctl);font-size:13px;color:var(--text-2);margin-bottom:3px;
+  font-family:var(--display);transition:background .2s,color .2s,border-color .2s,box-shadow .2s;
+}
+.tree-node:hover{background:var(--panel-raise);color:var(--text)}
+.tree-node.on{background:var(--violet-soft);color:var(--text);box-shadow:var(--glow)}
+.tree-node.l2{padding-left:22px;font-size:12px}
+.tree-node .n{color:var(--text-3);font-size:10px;flex:none;font-family:var(--mono)}
+.tree-node.stub{border:1px dashed var(--cyan-soft);color:var(--text-3)}
+.tree-node.stub .go{font-size:10px;color:var(--cyan);letter-spacing:1px;font-family:var(--mono)}
+.leaf-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px}
+.leaf-head h2{margin:0;font-size:15px;font-family:var(--display);font-weight:500;letter-spacing:1px}
+.leaf-head .meta{font-size:10px;color:var(--text-3);letter-spacing:1px;font-family:var(--mono)}
+.leaf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.leaf-card{
+  display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:var(--r-card);cursor:pointer;
+  border:1px solid var(--line);background:var(--panel-raise);
+  transition:transform .25s var(--ease-spring),box-shadow .25s,border-color .2s;
+}
+.leaf-card:hover{transform:translateY(-2px);border-color:var(--violet);box-shadow:var(--glow)}
+.leaf-card .lc-title{font-size:13px;font-weight:500;color:var(--text);line-height:1.5;font-family:var(--display)}
+.leaf-card .lc-meta{display:flex;gap:6px;flex-wrap:wrap}
+.empty-branch{
+  grid-column:1/-1;padding:18px;text-align:center;border-radius:var(--r-card);
+  border:1px dashed var(--cyan-soft);color:var(--text-3);font-size:12px;line-height:1.8;
+}
+.empty-branch .chip-btn{margin-top:8px}
+.sky-panel{min-height:220px;padding:28px 12px 12px;display:flex;flex-direction:column}
+.sky-panel .map-body{flex:1;min-height:0;position:relative;z-index:2}
+.sky-panel svg{width:100%;height:100%;overflow:visible}
+.rm-edge{fill:none;stroke:var(--line-strong);stroke-width:1.2;stroke-dasharray:5 6;transition:stroke .4s,stroke-dashoffset .6s var(--ease-expo)}
+.rm-edge.lit{stroke:var(--violet-2);stroke-width:1.8;stroke-dasharray:none;filter:drop-shadow(0 0 6px rgba(155,140,232,.6))}
+.rm-node{fill:var(--bg-2);stroke:var(--line-strong);stroke-width:1.4;cursor:pointer;transition:filter .2s,stroke .2s,fill .3s}
+.rm-node:hover,.rm-node.is-on{filter:drop-shadow(0 0 10px rgba(91,46,255,.6));stroke:var(--violet-2)}
+.rm-node.is-on{fill:var(--violet);stroke:var(--violet-2)}
+.rm-node.empty{stroke-dasharray:4 4}
+.rm-lab{font-size:10px;fill:var(--text-2);pointer-events:none;font-family:var(--mono)}
+.rm-badge{fill:var(--mint);filter:drop-shadow(0 0 6px rgba(61,220,151,.5))}
+.rm-badge-t{font-size:8px;fill:#04120c;font-weight:700;font-family:var(--mono)}
+.room-bars{min-height:110px;padding:26px 14px 10px;display:flex;flex-direction:column}
+.rb-row{flex:1;min-height:0;display:flex;align-items:flex-end;gap:6px;position:relative;z-index:2}
+.rb-row b{flex:1;border-radius:2px 2px 0 0;background:linear-gradient(180deg,var(--violet),transparent);min-height:10%;transition:height .5s var(--ease-expo),background .3s;box-shadow:0 0 12px rgba(91,46,255,.16)}
+.rb-row b.mint{background:linear-gradient(180deg,var(--mint),transparent);box-shadow:0 0 12px rgba(61,220,151,.16)}
+.rb-row b.blue{background:linear-gradient(180deg,var(--cyan),transparent);box-shadow:0 0 12px rgba(12,224,229,.16)}
+.rb-row b.sun{background:linear-gradient(180deg,var(--sun),transparent);box-shadow:0 0 12px rgba(255,207,110,.16)}
+.rb-foot{position:absolute;left:16px;bottom:6px;z-index:4;font-size:9px;letter-spacing:1.5px;color:var(--text-3);font-family:var(--mono)}
+
+/* review modal */
+.modal-mask{position:fixed;inset:0;z-index:80;background:rgba(4,4,8,.66);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px}
+.modal{
+  width:720px;max-width:100%;max-height:84vh;overflow:auto;border-radius:var(--r-panel);padding:18px 20px;
+  border:1px solid var(--line-strong);background:var(--panel-raise);backdrop-filter:blur(18px);
+  box-shadow:0 0 80px rgba(91,46,255,.22);animation:modalIn .35s var(--ease-expo);
+}
+@keyframes modalIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.modal h3{margin:0 0 4px;font-size:18px;font-family:var(--display);font-weight:500;letter-spacing:1px}
+.modal .modal-sub{font-size:10px;color:var(--text-3);margin-bottom:14px;font-family:var(--mono)}
+.review-card{border:1px solid var(--line);border-radius:var(--r-card);padding:12px 14px;margin-bottom:10px;background:var(--panel)}
+.review-q{font-size:13px;line-height:1.75;color:var(--text);margin-bottom:8px}
+.review-q b{color:var(--violet-2);margin-right:6px;font-family:var(--mono)}
+.review-a{margin-top:10px;padding:10px 12px;border-radius:var(--r-ctl);background:var(--violet-soft);border:1px solid var(--violet-soft);font-size:12px;line-height:1.75;color:var(--text-2);white-space:pre-wrap}
+.modal-close{position:absolute;top:14px;right:16px;width:30px;height:30px;border-radius:var(--r-ctl);border:1px solid var(--line);background:var(--panel-raise);color:var(--text-2);font-size:14px;display:grid;place-items:center}
+.modal-close:hover{color:var(--sakura);border-color:var(--sakura-soft)}
+
+/* toast + tweaks */
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(16px);z-index:100;
+  border:1px solid var(--line-strong);background:rgba(11,11,15,.92);backdrop-filter:blur(12px);
+  color:var(--text);padding:10px 18px;border-radius:var(--r-ctl);
+  font-size:12px;letter-spacing:1px;opacity:0;pointer-events:none;font-family:var(--mono);
+  transition:opacity .3s,transform .3s var(--ease-expo);max-width:80vw;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#tweaks{position:fixed;right:22px;bottom:22px;z-index:99;font-size:13px}
+#tweaks .panel{
+  display:none;width:330px;padding:16px 18px;margin-bottom:10px;
+  border:1px solid var(--line-strong);background:var(--panel-raise);backdrop-filter:blur(18px);
+  border-radius:var(--r-card);box-shadow:0 0 60px rgba(91,46,255,.2);
+}
+#tweaks.open .panel{display:block;animation:modalIn .3s var(--ease-expo)}
+#tweaks h4{font-size:11px;letter-spacing:3px;color:var(--text-3);margin:0 0 12px;font-weight:500;font-family:var(--display)}
+#tweaks .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
+#tweaks .row:last-child{margin-bottom:0}
+#tweaks label{color:var(--text-2);letter-spacing:1px;flex:none;font-size:11px;font-family:var(--display)}
+.seg{display:flex;border:1px solid var(--line);background:var(--panel);border-radius:var(--r-ctl);padding:3px;gap:2px;flex-wrap:wrap;justify-content:flex-end}
+.seg button{padding:5px 8px;border-radius:4px;font-size:10px;color:var(--text-3);letter-spacing:1px;font-family:var(--mono);transition:transform .25s var(--ease-spring),background .2s,box-shadow .2s,color .2s}
+.seg button:hover{color:var(--text);transform:translateY(-1px)}
+.seg button.on{background:var(--violet);color:#fff;box-shadow:var(--glow)}
+#tweaks .fab{
+  display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;border-radius:var(--r-ctl);
+  border:1px solid var(--line-strong);background:var(--panel-raise);backdrop-filter:blur(12px);
+  box-shadow:0 0 30px rgba(91,46,255,.16);color:var(--text);letter-spacing:1px;font-size:12px;
+  font-family:var(--display);transition:transform .3s var(--ease-spring),box-shadow .3s;
+}
+#tweaks .fab:hover{transform:translateY(-2px);box-shadow:0 0 40px rgba(91,46,255,.3)}
+#tweaks.open .fab{display:none}
+.hint-keys{margin-top:8px;font-size:10px;letter-spacing:1px;color:var(--text-3);line-height:1.7;font-family:var(--mono)}
+
+/* motion gate */
+html[data-motion="off"] *,html[data-motion="off"] *::before,html[data-motion="off"] *::after{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){
+  *{animation:none!important;transition:none!important}
+  .aurora{animation:none}
+}
+@media (max-width:1280px){
+  .layout-3{grid-template-columns:minmax(0,1fr) 260px}
+  .layout-3 .side{display:none}
+}
+@media (max-width:900px){
+  .layout-3{grid-template-columns:1fr;overflow:auto}
+  .layout-3 .deck{display:none}
+  .elastic .page{padding:10px 16px 20px}
+  .elastic .note-chip{margin:8px 16px 0}
+  .topbar-elastic{padding:0 16px}
+  #mainnav button{padding:8px 10px;font-size:11px}
+}
+</style>
+</head>
+<body class="screen-stage">
+
+<div class="aurora" aria-hidden="true"></div>
+<canvas id="stardust" aria-hidden="true"></canvas>
+
+<!-- ============ 屏幕 1 · 采集（固定舞台 1920×1080） ============ -->
+<div id="stageWrap" class="screen stage-root" data-screen="1" data-screen-label="01 采集">
+  <div id="stage">
+    <header class="topbar">
+      <button class="brand" type="button" title="精读观测站">
+        <span class="brand-mark">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle class="accent" cx="12" cy="12" r="3.2"/></svg>
+        </span>
+        <span><span class="brand-name">精读观测站</span><div class="brand-sub">READING OBSERVATORY</div></span>
+      </button>
+      <nav id="mainnav" aria-label="主导航">
+        <button type="button" data-nav="1" class="active">采集</button>
+        <button type="button" data-nav="2">笔记</button>
+        <button type="button" data-nav="3">详情</button>
+        <button type="button" data-nav="4">学习</button>
+        <span id="navPill"></span>
+      </nav>
+      <div class="top-right">
+        <div class="clock-chip"><div class="clock-time">--<span class="colon">:</span>-- <span class="sec">--</span></div><div class="clock-date">----年--月--日</div></div>
+        <div class="avatar">管</div>
+      </div>
+    </header>
+    <div class="note-chip">工作台 · 搜索 → 勾选 → 生成文章<span class="sample-tag">示例数据</span></div>
+    <div class="shell">
+      <aside class="side" aria-label="采集侧栏">
+        <div class="side-card glass">
+          <h3>精读工作台</h3>
+          <p class="about text-pretty">URL / 文件 / AI 搜索三路入口。任务可离页跟踪，回来自动接续。</p>
+          <div class="focus-kpi">
+            <div class="stat-pill"><div class="n" id="kpiCand">0</div><div class="l">候选</div></div>
+            <div class="stat-pill"><div class="n" id="kpiSel">0</div><div class="l">已选</div></div>
+          </div>
+        </div>
+        <div class="side-card glass">
+          <h3>房间页</h3>
+          <div class="col-stack">
+            <button class="chip-btn sm on" type="button" data-goto="1">采集</button>
+            <button class="chip-btn sm" type="button" data-goto="2">我的文章</button>
+            <button class="chip-btn sm" type="button" data-goto="3">审阅文章</button>
+            <button class="chip-btn sm" type="button" data-goto="4">领域学习</button>
+          </div>
+        </div>
+        <div class="side-card glass">
+          <h3>材料缓存</h3>
+          <p class="about">30 天 TTL。页面提供「强制刷新缓存」入口，清空后同 URL 重新读页。</p>
+          <button class="chip-btn sm danger" type="button" id="btnClearCache">强制刷新材料缓存</button>
+        </div>
+      </aside>
+
+      <main class="mid-bay">
+        <div class="ingest-top">
+          <div class="ingest-controls">
+            <div class="mode-bar" role="tablist" aria-label="采集方式">
+              <button type="button" class="on">URL</button>
+              <button type="button">文件</button>
+              <button type="button">AI 搜索</button>
+            </div>
+            <div class="input-card glass band">
+              <div class="field">
+                <label for="ingest-goal">学习目标</label>
+                <input id="ingest-goal" class="inp" placeholder="例如：我想学 Spring Security 6" value="HashMap 扩容原理与并发陷阱">
+              </div>
+              <div class="row">
+                <input class="inp" placeholder="偏好说明（可选）">
+                <input class="inp" placeholder="标签（可选）" value="Java, 集合">
+              </div>
+              <div class="actions">
+                <button class="chip-btn primary" type="button" id="btnSearch">开始搜索</button>
+                <button class="chip-btn" type="button" id="btnBatch">生成文章（0）</button>
+              </div>
+            </div>
+            <div class="work-bar band">
+              <span class="meta">已选 <b id="selCount">0</b> / 建议 2～5 · 上限 8</span>
+              <span class="spacer"></span>
+              <span class="job-chip" id="jobChip" hidden><i></i><span id="jobChipText">任务进行中</span></span>
+              <button class="chip-btn sm primary" type="button">生成文章</button>
+            </div>
+            <div class="fb-panel band" id="fbPanel">
+              <div class="fb-head"><h3 id="fbTitle">搜索候选</h3><span class="hint">建议 2～5 条 · 限 8 条</span></div>
+              <div class="progress-steps" id="progressSteps">
+                <div class="s" data-step="1"><span class="n">01</span>搜索</div>
+                <div class="s" data-step="2"><span class="n">02</span>候选</div>
+                <div class="s" data-step="3"><span class="n">03</span>勾选</div>
+                <div class="s" data-step="4"><span class="n">04</span>生成文章</div>
+              </div>
+              <div id="candList" style="display:flex;flex-direction:column;gap:8px">
+                <label class="cand on">
+                  <input class="ck" type="checkbox" checked>
+                  <span style="flex:1;min-width:0">
+                    <span class="title">HashMap 扩容原理（JDK 8 源码解读）</span>
+                    <span class="sum">详解 resize() 触发条件、树化阈值与并发下的丢数据风险。</span>
+                    <span class="meta"><span class="tag src">web</span><span class="tag">官方文档</span></span>
+                    <span class="reason">与目标高度相关：扩容机制是核心考点</span>
+                  </span>
+                  <a class="url" href="#" onclick="return false">查看来源</a>
+                </label>
+                <label class="cand">
+                  <input class="ck" type="checkbox">
+                  <span style="flex:1;min-width:0">
+                    <span class="title">Java 集合面试 20 问：HashMap 与 ConcurrentHashMap</span>
+                    <span class="sum">面试向整理，覆盖扩容、红黑树、CAS 与分段锁演进。</span>
+                    <span class="meta"><span class="tag src">web</span><span class="tag risk">登录墙</span></span>
+                    <span class="reason">覆盖全面，含并发对比</span>
+                  </span>
+                  <a class="url" href="#" onclick="return false">查看来源</a>
+                </label>
+                <label class="cand">
+                  <input class="ck" type="checkbox">
+                  <span style="flex:1;min-width:0">
+                    <span class="title">JDK 源码阅读笔记：HashMap.resize()</span>
+                    <span class="sum">源码逐行注释，附带高低位拆分与链表树化的图解。</span>
+                    <span class="meta"><span class="tag src">web</span></span>
+                    <span class="reason">源码级深度，适合精读</span>
+                  </span>
+                  <a class="url" href="#" onclick="return false">查看来源</a>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="radar-wrap chart-panel">
+            <div class="chart-grid"></div>
+            <span class="chart-cap">任务相位雷达 · <b id="phaseLabel">待机</b></span>
+            <div class="radar">
+              <svg viewBox="0 0 420 300" role="img" aria-label="任务相位雷达">
+                <circle class="radar-hub-ring" cx="210" cy="150" r="84"></circle>
+                <circle class="radar-hub-ring" cx="210" cy="150" r="122"></circle>
+                <circle class="radar-hub" cx="210" cy="150" r="14"></circle>
+                <polyline class="radar-link" id="radarPath" points="210,62 330,118 330,218 90,218 90,118"></polyline>
+                <g class="radar-node" data-phase="0" transform="translate(210,62)">
+                  <circle r="20"></circle><text y="36" text-anchor="middle">目标</text>
+                </g>
+                <g class="radar-node" data-phase="1" transform="translate(330,118)">
+                  <circle r="20"></circle><text y="36" text-anchor="middle">搜索</text>
+                </g>
+                <g class="radar-node" data-phase="2" transform="translate(330,218)">
+                  <circle r="20"></circle><text y="36" text-anchor="middle">候选</text>
+                </g>
+                <g class="radar-node" data-phase="3" transform="translate(90,218)">
+                  <circle r="20"></circle><text y="36" text-anchor="middle">合蒸</text>
+                </g>
+                <g class="radar-node" data-phase="4" transform="translate(90,118)">
+                  <circle r="20"></circle><text y="36" text-anchor="middle">完成</text>
+                </g>
+              </svg>
+              <div class="phase-sim">
+                <span class="radar-state mono" id="radarState">IDLE</span>
+                <button class="chip-btn" type="button" data-phase="1">开始搜索</button>
+                <button class="chip-btn" type="button" data-phase="2">模拟候选</button>
+                <button class="chip-btn" type="button" data-phase="3">模拟合蒸</button>
+                <button class="chip-btn" type="button" data-phase="4">完成</button>
+                <button class="chip-btn danger" type="button" data-phase="-1">失败</button>
+                <button class="chip-btn" type="button" data-phase="0">重置</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <aside class="deck" aria-label="采集右栏">
+        <div class="deck-panel glass">
+          <h3>概览</h3>
+          <div class="stat-row">
+            <div class="stat-pill"><div class="n" id="deckCand">3</div><div class="l">候选</div></div>
+            <div class="stat-pill"><div class="n" id="deckSel">1</div><div class="l">已选</div></div>
+          </div>
+          <div class="stat-row" style="margin-top:10px">
+            <div class="stat-pill"><div class="n mono" id="deckPhase">IDLE</div><div class="l">相位</div></div>
+            <div class="stat-pill"><div class="n">0</div><div class="l">失败源</div></div>
+          </div>
+        </div>
+        <div class="deck-panel glass">
+          <h3>快捷</h3>
+          <div class="col-stack">
+            <button class="chip-btn sm" type="button" data-goto="2">我的文章</button>
+            <button class="chip-btn sm" type="button">精读设置</button>
+            <button class="chip-btn sm" type="button" id="btnClearCache2">强制刷新材料缓存</button>
+          </div>
+        </div>
+        <div class="deck-panel glass">
+          <h3>最近源</h3>
+          <div class="recent-line"><div class="k mono">GOAL</div><div>HashMap 扩容原理与并发陷阱</div></div>
+          <div class="recent-line" id="recentJob" hidden><div class="k mono">JOB</div><div class="mono">#1024 · <span id="recentJobPhase">待机</span></div></div>
+        </div>
+        <div class="chart-panel tel-panel">
+          <div class="chart-grid"></div>
+          <span class="chart-cap">回响柱 · <b>来源读取状态</b></span>
+          <div class="tel-bars" id="telBars">
+            <div class="tb" data-state="idle"><b style="height:8%"></b><span class="lb">S1</span></div>
+            <div class="tb" data-state="idle"><b style="height:8%"></b><span class="lb">S2</span></div>
+            <div class="tb" data-state="idle"><b style="height:8%"></b><span class="lb">S3</span></div>
+            <div class="tb" data-state="idle"><b style="height:8%"></b><span class="lb">S4</span></div>
+            <div class="tb" data-state="idle"><b style="height:8%"></b><span class="lb">S5</span></div>
+          </div>
+          <div class="tel-legend">
+            <span><i class="ok"></i>成功</span><span><i class="warn"></i>风险</span><span><i class="err"></i>失败</span><span><i class="read"></i>读取中</span>
+          </div>
+          <span class="tel-foot">每柱 = 一个勾选来源</span>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 弹性页共用顶栏 ============ -->
+<header class="topbar topbar-elastic" id="elasticTopbar" hidden>
+  <button class="brand" type="button" title="精读观测站">
+    <span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle class="accent" cx="12" cy="12" r="3.2"/></svg></span>
+    <span><span class="brand-name">精读观测站</span><div class="brand-sub">READING OBSERVATORY</div></span>
+  </button>
+  <nav id="mainnavElastic" aria-label="主导航">
+    <button type="button" data-nav="1">采集</button>
+    <button type="button" data-nav="2" class="active">笔记</button>
+    <button type="button" data-nav="3">详情</button>
+    <button type="button" data-nav="4">学习</button>
+    <span id="navPillElastic"></span>
+  </nav>
+  <div class="top-right">
+    <div class="clock-chip"><div class="clock-time">--<span class="colon">:</span>-- <span class="sec">--</span></div><div class="clock-date">----年--月--日</div></div>
+    <div class="avatar">管</div>
+  </div>
+</header>
+
+<!-- ============ 屏幕 2 · 笔记列表（弹性） ============ -->
+<div class="screen elastic" data-screen="2" data-screen-label="02 笔记" hidden>
+  <div class="note-chip">我的文章 · 列表即真相<span class="sample-tag">示例数据</span></div>
+  <div class="page">
+    <div class="page-title"><h1>我的文章</h1><span class="sub">关键词 / 来源 / 博客状态 / 入库状态筛选</span></div>
+    <div class="layout-3">
+      <aside class="side" aria-label="笔记侧栏">
+        <div class="side-card glass">
+          <h3>精读概况</h3>
+          <div class="focus-kpi">
+            <div class="stat-pill"><div class="n">36</div><div class="l">笔记</div></div>
+            <div class="stat-pill"><div class="n">12</div><div class="l">枝</div></div>
+          </div>
+          <div class="focus-kpi">
+            <div class="stat-pill"><div class="n">5</div><div class="l">复习中</div></div>
+            <div class="stat-pill"><div class="n">3</div><div class="l">已掌握</div></div>
+          </div>
+        </div>
+        <div class="side-card glass">
+          <h3>房间页</h3>
+          <div class="col-stack">
+            <button class="chip-btn sm" type="button" data-goto="1">采集</button>
+            <button class="chip-btn sm on" type="button" data-goto="2">我的文章</button>
+            <button class="chip-btn sm" type="button" data-goto="3">审阅文章</button>
+            <button class="chip-btn sm" type="button" data-goto="4">领域学习</button>
+          </div>
+        </div>
+      </aside>
+      <main class="mid-bay">
+        <div class="notes-toolbar">
+          <div class="search-wrap"><input id="noteSearch" placeholder="搜索标题 / 摘要…" type="text"></div>
+          <div class="filter-row" id="noteFilters">
+            <button class="f-btn on" data-filter="all">全部</button>
+            <button class="f-btn" data-filter="pub">已发博客</button>
+            <button class="f-btn" data-filter="idx">已入库</button>
+            <button class="f-btn" data-filter="rev">复习中</button>
+          </div>
+        </div>
+        <div class="note-list" id="noteList">
+          <div class="list-row" data-pub="1" data-idx="1" data-rev="mastered">
+            <div class="lr-title">HashMap 扩容原理与并发陷阱</div>
+            <div class="lr-right"><span class="lr-align">0.86</span><span class="lr-time">08-01 14:22</span></div>
+            <div class="lr-meta">
+              <span class="chip src">#N1024</span><span class="chip src">合集</span><span class="chip pub">已发博客</span><span class="chip idx">已入库</span><span class="chip rev done">已掌握</span>
+            </div>
+          </div>
+          <div class="list-row" data-pub="0" data-idx="0" data-rev="reviewing">
+            <div class="lr-title">Spring Security 6 过滤器链详解</div>
+            <div class="lr-right"><span class="lr-align">0.91</span><span class="lr-time">08-01 11:05</span></div>
+            <div class="lr-meta"><span class="chip src">#N1023</span><span class="chip src">URL</span><span class="chip none">未发布</span><span class="chip none">未入库</span><span class="chip rev">复习中</span></div>
+          </div>
+          <div class="list-row" data-pub="0" data-idx="1" data-rev="new">
+            <div class="lr-title">Java 并发编程：AQS 源码精读</div>
+            <div class="lr-right"><span class="lr-align low">0.62</span><span class="lr-time">07-31 20:18</span></div>
+            <div class="lr-meta"><span class="chip src">#N1022</span><span class="chip src">合集</span><span class="chip none">未发布</span><span class="chip idx">已入库</span><span class="chip rev">待复习</span></div>
+          </div>
+          <div class="list-row" data-pub="1" data-idx="0" data-rev="reviewing">
+            <div class="lr-title">Redis 持久化 RDB / AOF 对比</div>
+            <div class="lr-right"><span class="lr-align">0.88</span><span class="lr-time">07-31 16:44</span></div>
+            <div class="lr-meta"><span class="chip src">#N1021</span><span class="chip src">文件</span><span class="chip pub">已发博客</span><span class="chip none">未入库</span><span class="chip rev">复习中</span></div>
+          </div>
+          <div class="list-row" data-pub="0" data-idx="1" data-rev="mastered">
+            <div class="lr-title">JVM 垃圾回收器选型实战</div>
+            <div class="lr-right"><span class="lr-align">0.84</span><span class="lr-time">07-30 09:12</span></div>
+            <div class="lr-meta"><span class="chip src">#N1020</span><span class="chip src">URL</span><span class="chip none">未发布</span><span class="chip idx">已入库</span><span class="chip rev done">已掌握</span></div>
+          </div>
+          <div class="list-row" data-pub="1" data-idx="1" data-rev="new">
+            <div class="lr-title">MySQL 索引失效场景汇总</div>
+            <div class="lr-right"><span class="lr-align">0.79</span><span class="lr-time">07-29 18:02</span></div>
+            <div class="lr-meta"><span class="chip src">#N1019</span><span class="chip src">合集</span><span class="chip pub">已发博客</span><span class="chip idx">已入库</span><span class="chip rev">待复习</span></div>
+          </div>
+          <div class="list-row" data-pub="0" data-idx="0" data-rev="new">
+            <div class="lr-title">Docker 多阶段构建实践</div>
+            <div class="lr-right"><span class="lr-align low">0.55</span><span class="lr-time">07-28 22:37</span></div>
+            <div class="lr-meta"><span class="chip src">#N1018</span><span class="chip src">文件</span><span class="chip none">未发布</span><span class="chip none">未入库</span><span class="chip rev">待复习</span></div>
+          </div>
+          <div class="list-row" data-pub="1" data-idx="1" data-rev="reviewing">
+            <div class="lr-title">Kafka 分区与消费组模型</div>
+            <div class="lr-right"><span class="lr-align">0.9</span><span class="lr-time">07-28 10:21</span></div>
+            <div class="lr-meta"><span class="chip src">#N1017</span><span class="chip src">URL</span><span class="chip pub">已发博客</span><span class="chip idx">已入库</span><span class="chip rev">复习中</span></div>
+          </div>
+          <div class="list-row" data-pub="0" data-idx="0" data-rev="new">
+            <div class="lr-title">Vue3 响应式原理（Proxy 与依赖收集）</div>
+            <div class="lr-right"><span class="lr-align">0.83</span><span class="lr-time">07-27 15:49</span></div>
+            <div class="lr-meta"><span class="chip src">#N1016</span><span class="chip src">合集</span><span class="chip none">未发布</span><span class="chip none">未入库</span><span class="chip rev">待复习</span></div>
+          </div>
+          <div class="list-row" data-pub="0" data-idx="1" data-rev="new">
+            <div class="lr-title">Nginx 反向代理与限流配置</div>
+            <div class="lr-right"><span class="lr-align">0.77</span><span class="lr-time">07-26 20:33</span></div>
+            <div class="lr-meta"><span class="chip src">#N1015</span><span class="chip src">URL</span><span class="chip none">未发布</span><span class="chip idx">已入库</span><span class="chip rev">待复习</span></div>
+          </div>
+          <div class="list-row" data-pub="1" data-idx="0" data-rev="mastered">
+            <div class="lr-title">设计模式：策略与模板方法</div>
+            <div class="lr-right"><span class="lr-align">0.87</span><span class="lr-time">07-25 09:56</span></div>
+            <div class="lr-meta"><span class="chip src">#N1014</span><span class="chip src">文件</span><span class="chip pub">已发博客</span><span class="chip none">未入库</span><span class="chip rev done">已掌握</span></div>
+          </div>
+          <div class="list-row" data-pub="0" data-idx="0" data-rev="new">
+            <div class="lr-title">Python 异步编程入门：asyncio 与事件循环</div>
+            <div class="lr-right"><span class="lr-align low">0.58</span><span class="lr-time">07-24 17:40</span></div>
+            <div class="lr-meta"><span class="chip src">#N1013</span><span class="chip src">URL</span><span class="chip none">未发布</span><span class="chip none">未入库</span><span class="chip rev">待复习</span></div>
+          </div>
+        </div>
+        <div class="pager">
+          <span>共 <b id="totalCount">36</b> 篇</span>
+          <button class="page-btn" type="button">‹</button>
+          <button class="page-btn on" type="button">1</button>
+          <button class="page-btn" type="button">2</button>
+          <button class="page-btn" type="button">3</button>
+          <button class="page-btn" type="button">›</button>
+        </div>
+      </main>
+      <aside class="deck" aria-label="笔记筛选栏">
+        <div class="deck-panel glass">
+          <h3>状态筛选</h3>
+          <div class="col-stack">
+            <button class="chip-btn sm" type="button">发布：全部</button>
+            <button class="chip-btn sm" type="button">入库：全部</button>
+            <button class="chip-btn sm" type="button">复习：全部</button>
+            <button class="chip-btn sm" type="button">归档：隐藏</button>
+          </div>
+        </div>
+        <div class="deck-panel glass">
+          <h3>标签统计</h3>
+          <div class="tag-cloud">
+            <span class="t">Java<b>12</b></span><span class="t">Spring<b>6</b></span><span class="t">并发<b>5</b></span><span class="t">JVM<b>4</b></span><span class="t">Redis<b>3</b></span><span class="t">数据库<b>4</b></span><span class="t">前端<b>2</b></span>
+          </div>
+        </div>
+        <div class="deck-panel glass">
+          <h3>导出</h3>
+          <p class="about">整库 Markdown 打包为 zip（含归档）。</p>
+          <button class="chip-btn sm primary" type="button">导出全部笔记</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 屏幕 3 · 详情（弹性） ============ -->
+<div class="screen elastic" data-screen="3" data-screen-label="03 详情" hidden>
+  <div class="note-chip">审阅文章 · 左编辑 / 右预览<span class="sample-tag">示例数据</span></div>
+  <div class="page" style="min-height:0">
+    <div class="band glass detail-head">
+      <div class="field"><label for="d-title">精读标题</label><input id="d-title" class="inp" value="HashMap 扩容原理与并发陷阱"></div>
+      <div class="field"><label for="d-tags">标签</label><input id="d-tags" class="inp small" value="Java, 集合, 并发"></div>
+      <div class="folio-meta">
+        <span class="chip src">合集</span><span class="chip none">未发布</span><span class="chip idx">已入库</span><span class="chip rev">复习中</span>
+        <span class="lr-align">对齐度 0.86</span>
+        <span class="mono">#N1024 · 4,860 字</span>
+        <a class="link" href="#" id="srcLink">查看原始来源 ↗</a>
+      </div>
+    </div>
+    <div class="band status-mini">
+      <span class="s done">✓ 采集</span><span class="arrow">→</span>
+      <span class="s done">✓ 蒸馏</span><span class="arrow">→</span>
+      <span class="s">3 发布</span><span class="arrow">→</span>
+      <span class="s on">4 入库</span>
+    </div>
+    <div class="split-panel">
+      <div class="pane">
+        <div class="pane-head"><span>MARKDOWN · 编辑</span><span class="tools"><button type="button">H1</button><button type="button">H2</button><button type="button">B</button><button type="button">链接</button><button type="button">代码</button></span></div>
+        <textarea class="editor-area" spellcheck="false"># HashMap 扩容原理与并发陷阱
+
+## 1. 触发条件 [src1]
+
+HashMap 在 **容量超过 threshold（capacity × loadFactor，默认 0.75）** 时触发扩容，
+`resize()` 会把容量翻倍并重排所有桶。
+
+## 2. 树化与退化 [src2]
+
+单桶链表长度 ≥ 8 且总容量 ≥ 64 时转为红黑树；扩容后树节点可退化为链表。
+
+```java
+if (++size > threshold) resize();
+```
+
+## 3. 并发风险 [src3]
+
+JDK 7 头插法在多线程扩容时可能成环；JDK 8 改尾插后仍会丢更新，建议使用
+ConcurrentHashMap。
+
+> 参考来源：Java 集合面试 20 问 / JDK 源码阅读笔记</textarea>
+      </div>
+      <div class="pane">
+        <div class="pane-head"><span>PREVIEW · 预览</span><span class="tools"><span class="mono" style="font-size:10px">TOC 3</span></span></div>
+        <div class="preview-area">
+          <h1>HashMap 扩容原理与并发陷阱</h1>
+          <p>HashMap 在 <b>容量超过 threshold（capacity × loadFactor，默认 0.75）</b> 时触发扩容，<code>resize()</code> 会把容量翻倍并重排所有桶。<span class="src-note">[src1]</span></p>
+          <h2>树化与退化</h2>
+          <p>单桶链表长度 ≥ 8 且总容量 ≥ 64 时转为红黑树；扩容后树节点可退化为链表。<span class="src-note">[src2]</span></p>
+          <pre>if (++size &gt; threshold) resize();</pre>
+          <h2>并发风险</h2>
+          <p>JDK 7 头插法在多线程扩容时可能成环；JDK 8 改尾插后仍会丢更新，建议使用 <code>ConcurrentHashMap</code>。<span class="src-note">[src3]</span></p>
+          <blockquote>参考来源：Java 集合面试 20 问 / JDK 源码阅读笔记</blockquote>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 屏幕 4 · 领域学习（弹性） ============ -->
+<div class="screen elastic" data-screen="4" data-screen-label="04 学习" hidden>
+  <div class="note-chip">领域学习 · 选领域 → 枝 → 叶<span class="sample-tag">示例数据</span></div>
+  <div class="page">
+    <div class="page-title"><h1>领域知识树</h1><span class="sub">门闩 → 搜文 → 挂叶 · 空枝可补学</span></div>
+    <div class="learn-toolbar">
+      <button class="chip-btn sm" type="button">回挂笔记</button>
+      <button class="chip-btn sm" type="button">编辑树</button>
+      <button class="chip-btn sm" type="button">新建 L1</button>
+      <button class="chip-btn sm" type="button">树图</button>
+      <button class="chip-btn sm primary" type="button" id="btnReview">复习</button>
+      <span class="hint">键盘流：/ 聚焦提问 · R 复习当前枝</span>
+    </div>
+    <div class="layout-3">
+      <aside class="side" aria-label="学习侧栏">
+        <div class="side-card glass">
+          <h3>领域</h3>
+          <div class="domain-chips" style="display:flex;flex-wrap:wrap;gap:6px">
+            <button class="chip-btn sm on" type="button">Java</button>
+            <button class="chip-btn sm" type="button">前端</button>
+            <button class="chip-btn sm" type="button">数据库</button>
+            <button class="chip-btn sm" type="button">+ 新建</button>
+          </div>
+        </div>
+        <div class="side-card glass">
+          <h3>树脉日志</h3>
+          <div class="col-stack" style="gap:6px">
+            <div class="log-line" style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-2);border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:7px 10px"><span class="mono" style="color:var(--text-3)">域</span><span>Java</span><span class="dot" style="width:6px;height:6px;border-radius:50%;background:var(--violet);box-shadow:0 0 8px var(--violet)"></span></div>
+            <div class="log-line" style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-2);border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:7px 10px"><span class="mono" style="color:var(--text-3)">枝</span><span id="logBranch">集合</span><span class="dot" style="width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan)"></span></div>
+            <div class="log-line" style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-2);border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:7px 10px"><span class="mono" style="color:var(--text-3)">叶</span><span id="logLeaves">挂载 6 篇</span><span class="dot" style="width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px var(--mint)"></span></div>
+          </div>
+        </div>
+      </aside>
+      <main class="mid-bay">
+        <div class="learn-row">
+          <aside class="tree-box glass" aria-label="知识目录">
+            <div class="dom mono">DOMAIN · JAVA</div>
+            <button class="tree-node l1 on" type="button" data-branch="jihe"><span>集合</span><span class="n">6</span></button>
+            <button class="tree-node l2" type="button" data-branch="hashmap"><span>HashMap</span><span class="n">3</span></button>
+            <button class="tree-node l2" type="button" data-branch="list"><span>List 家族</span><span class="n">2</span></button>
+            <button class="tree-node l1" type="button" data-branch="bingfa"><span>并发</span><span class="n">5</span></button>
+            <button class="tree-node l1" type="button" data-branch="jvm"><span>JVM</span><span class="n">3</span></button>
+            <button class="tree-node l1" type="button" data-branch="spring"><span>Spring</span><span class="n">2</span></button>
+            <button class="tree-node l1 stub" type="button" data-branch="shujuku"><span>数据库</span><span class="go">去补学 →</span></button>
+          </aside>
+          <section class="leaf-box glass" aria-label="枝叶内容">
+            <div class="leaf-head"><h2 id="leafTitle">集合</h2><span class="meta" id="leafMeta">6 篇 · 已挂载</span></div>
+            <div class="leaf-grid" id="leafGrid">
+              <div class="leaf-card"><div class="lc-title">HashMap 扩容原理与并发陷阱</div><div class="lc-meta"><span class="chip src">#N1024</span><span class="chip rev done">已掌握</span></div></div>
+              <div class="leaf-card"><div class="lc-title">LinkedHashMap 与 LRU 缓存</div><div class="lc-meta"><span class="chip src">#N1012</span><span class="chip rev">复习中</span></div></div>
+              <div class="leaf-card"><div class="lc-title">TreeMap 红黑树精读</div><div class="lc-meta"><span class="chip src">#N1008</span><span class="chip rev">待复习</span></div></div>
+              <div class="leaf-card"><div class="lc-title">ArrayList 扩容与快速失败</div><div class="lc-meta"><span class="chip src">#N0991</span><span class="chip rev done">已掌握</span></div></div>
+              <div class="leaf-card"><div class="lc-title">Vector 与 Stack 的演进</div><div class="lc-meta"><span class="chip src">#N0987</span><span class="chip rev">复习中</span></div></div>
+              <div class="leaf-card"><div class="lc-title">集合框架总体设计</div><div class="lc-meta"><span class="chip src">#N0973</span><span class="chip rev">待复习</span></div></div>
+            </div>
+          </section>
+        </div>
+      </main>
+      <aside class="deck" aria-label="学习右栏">
+        <div class="deck-panel glass">
+          <h3>当前枝</h3>
+          <div class="stat-row">
+            <div class="stat-pill"><div class="n" id="branchCount">6</div><div class="l">叶</div></div>
+            <div class="stat-pill"><div class="n font-display">L1</div><div class="l">层级</div></div>
+          </div>
+          <div class="stat-row" style="margin-top:10px">
+            <div class="stat-pill"><div class="n">4</div><div class="l">复习中</div></div>
+            <div class="stat-pill"><div class="n">2</div><div class="l">已掌握</div></div>
+          </div>
+        </div>
+        <div class="chart-panel sky-panel">
+          <div class="chart-grid"></div>
+          <span class="chart-cap">领域星图 · <b id="skyCap">集合</b></span>
+          <div class="map-body">
+            <svg viewBox="0 0 260 220" preserveAspectRatio="xMidYMid meet">
+              <circle cx="130" cy="60" r="22" class="rm-node root"></circle>
+              <text x="130" y="64" text-anchor="middle" class="rm-lab">Java</text>
+              <g class="rm-node is-on" data-branch="jihe" transform="translate(52,150)"><circle r="14"></circle><text y="4" text-anchor="middle" class="rm-lab">集合</text></g>
+              <g class="rm-node" data-branch="bingfa" transform="translate(130,172)"><circle r="14"></circle><text y="4" text-anchor="middle" class="rm-lab">并发</text></g>
+              <g class="rm-node" data-branch="jvm" transform="translate(208,150)"><circle r="14"></circle><text y="4" text-anchor="middle" class="rm-lab">JVM</text></g>
+              <g class="rm-node empty" data-branch="shujuku" transform="translate(62,95)"><circle r="12"></circle><text y="4" text-anchor="middle" class="rm-lab">数据库</text></g>
+              <g class="rm-node" data-branch="spring" transform="translate(198,95)"><circle r="12"></circle><text y="4" text-anchor="middle" class="rm-lab">Spring</text></g>
+              <path class="rm-edge" d="M130 82 L52 136"></path>
+              <path class="rm-edge" d="M130 82 L130 158"></path>
+              <path class="rm-edge" d="M130 82 L208 136"></path>
+              <path class="rm-edge lit" d="M130 82 L62 83"></path>
+              <path class="rm-edge" d="M130 82 L198 83"></path>
+              <circle class="rm-badge" cx="66" cy="136" r="8"></circle>
+              <text class="rm-badge-t" x="66" y="139" text-anchor="middle">6</text>
+            </svg>
+          </div>
+          <span class="map-leg" style="position:absolute;right:12px;bottom:8px;z-index:6;font-size:9px;letter-spacing:1.5px;color:var(--text-3);font-family:var(--mono)">点节点 · 同步左树</span>
+        </div>
+        <div class="chart-panel room-bars">
+          <div class="chart-grid"></div>
+          <span class="chart-cap">叶密度 · <b>各枝挂载量</b></span>
+          <div class="rb-row" id="rbRow">
+            <b style="height:100%" title="集合 6 叶" data-branch="jihe"></b>
+            <b class="mint" style="height:82%" title="并发 5 叶" data-branch="bingfa"></b>
+            <b class="blue" style="height:55%" title="JVM 3 叶" data-branch="jvm"></b>
+            <b class="sun" style="height:8%" title="数据库 0 叶" data-branch="shujuku"></b>
+            <b style="height:34%" title="Spring 2 叶" data-branch="spring"></b>
+          </div>
+          <span class="rb-foot">各枝挂载量（真实 leafCount）</span>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<!-- 复习弹窗 -->
+<div class="modal-mask" id="reviewMask" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="复习">
+    <button class="modal-close" type="button" id="btnCloseReview" aria-label="关闭">×</button>
+    <h3>复习 · 集合</h3>
+    <div class="modal-sub">按枝抽取自测题 · 答案折叠 · 示例数据</div>
+    <div class="review-card">
+      <div class="review-q"><b>Q1</b>HashMap 在什么条件下从链表树化为红黑树？</div>
+      <button class="chip-btn sm" type="button" data-reveal="0">显示答案</button>
+      <div class="review-a" hidden>单桶链表长度 ≥ 8 且总容量 ≥ 64；扩容后可能退化回链表。</div>
+    </div>
+    <div class="review-card">
+      <div class="review-q"><b>Q2</b>JDK 7 与 JDK 8 在并发扩容上分别有什么风险？</div>
+      <button class="chip-btn sm" type="button" data-reveal="1">显示答案</button>
+      <div class="review-a" hidden>JDK 7 头插法可能成环导致死循环；JDK 8 改尾插后仍可能丢更新，应改用 ConcurrentHashMap。</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div id="tweaks">
+  <div class="panel">
+    <h4>Tweaks</h4>
+    <div class="row"><label>屏幕</label><div class="seg" id="segScreen">
+      <button class="on" data-screen="1">采集</button><button data-screen="2">笔记</button><button data-screen="3">详情</button><button data-screen="4">学习</button>
+    </div></div>
+    <div class="row"><label>氛围</label><div class="seg" id="segTheme">
+      <button data-theme="aurora" class="on">极光</button><button data-theme="starfield">星尘</button><button data-theme="void">无光</button>
+    </div></div>
+    <div class="row"><label>动效</label><div class="seg" id="segMotion">
+      <button data-motion="on" class="on">开</button><button data-motion="off">关</button>
+    </div></div>
+    <div class="row"><label>数据</label><div class="seg"><button class="on">示例数据</button></div></div>
+    <div class="hint-keys">键盘：1 采集 · 2 笔记 · 3 详情 · 4 学习 · 5/Esc 回采集 · ? 快捷键</div>
+  </div>
+  <button class="fab" type="button" id="fabTweaks">Tweaks · 调整</button>
+</div>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s)
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s))
+  const KEY = 'wbC-state-v0'
+  const state = Object.assign({ screen: 1, theme: 'aurora', motion: 'on' }, JSON.parse(localStorage.getItem(KEY) || '{}'))
+
+  const showToast = (msg) => {
+    const t = $('#toast')
+    t.textContent = msg
+    t.classList.add('show')
+    clearTimeout(showToast._timer)
+    showToast._timer = setTimeout(() => t.classList.remove('show'), 1800)
+  }
+
+  /* ---- clock ---- */
+  const weekCN = ['日', '一', '二', '三', '四', '五', '六']
+  const pad = (n) => String(n).padStart(2, '0')
+  const tick = () => {
+    const d = new Date()
+    const hh = pad(d.getHours())
+    $$('.clock-time').forEach((el) => {
+      el.innerHTML = `${hh}<span class="colon">:</span>${pad(d.getMinutes())} <span class="sec">${pad(d.getSeconds())}</span>`
+    })
+    $$('.clock-date').forEach((el) => { el.textContent = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 · 周${weekCN[d.getDay()]}` })
+  }
+  tick()
+  setInterval(tick, 1000)
+
+  /* ---- stardust particles ---- */
+  const canvas = $('#stardust')
+  const ctx = canvas.getContext('2d')
+  let particles = []
+  let rafId = 0
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const motionEnabled = () => document.documentElement.dataset.motion === 'on' && !reduced
+  const makeParticles = () => {
+    const w = (canvas.width = window.innerWidth)
+    const h = (canvas.height = window.innerHeight)
+    const count = Math.min(80, Math.max(36, Math.floor((w * h) / 26000)))
+    particles = Array.from({ length: count }, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      r: Math.random() * 1.3 + 0.35,
+      vx: (Math.random() - 0.5) * 0.12,
+      vy: -(Math.random() * 0.18 + 0.04),
+      tw: Math.random() * Math.PI * 2,
+      hue: Math.random() > 0.72 ? '12,224,229' : Math.random() > 0.45 ? '155,140,232' : '255,255,255',
+    }))
+  }
+  const drawStars = (t) => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    for (const p of particles) {
+      const alpha = 0.25 + 0.55 * (0.5 + 0.5 * Math.sin(p.tw + t / 900))
+      ctx.beginPath()
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
+      ctx.fillStyle = `rgba(${p.hue},${alpha})`
+      ctx.fill()
+    }
+  }
+  const loop = (t) => {
+    drawStars(t)
+    for (const p of particles) {
+      p.x += p.vx
+      p.y += p.vy
+      if (p.y < -4) { p.y = canvas.height + 4; p.x = Math.random() * canvas.width }
+      if (p.x < -4) p.x = canvas.width + 4
+      if (p.x > canvas.width + 4) p.x = -4
+    }
+    rafId = requestAnimationFrame(loop)
+  }
+  const startStars = () => {
+    cancelAnimationFrame(rafId)
+    makeParticles()
+    if (motionEnabled()) { rafId = requestAnimationFrame(loop) } else { drawStars(0) }
+  }
+  window.addEventListener('resize', startStars)
+  startStars()
+
+  /* ---- stage scale ---- */
+  const stageWrap = $('#stageWrap')
+  const stage = $('#stage')
+  const fitStage = () => {
+    if (stageWrap.hidden) return
+    const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080, 1)
+    stage.style.transform = `scale(${s})`
+    stageWrap.style.width = `${1920 * s}px`
+    stageWrap.style.height = `${1080 * s}px`
+  }
+  window.addEventListener('resize', fitStage)
+
+  /* ---- screen switch ---- */
+  const setScreen = (n, silent) => {
+    n = Number(n)
+    state.screen = n
+    if (!silent) persist()
+    const isStage = n === 1
+    document.body.classList.toggle('screen-stage', isStage)
+    stageWrap.hidden = !isStage
+    $('#elasticTopbar').hidden = isStage
+    $$('.screen[data-screen]').forEach((el) => { el.hidden = Number(el.dataset.screen) !== n })
+    $$('#mainnav button, #mainnavElastic button').forEach((b) => { b.classList.toggle('active', Number(b.dataset.nav) === n) })
+    $$('#segScreen button').forEach((b) => { b.classList.toggle('on', Number(b.dataset.screen) === n) })
+    positionPills()
+    if (isStage) { requestAnimationFrame(fitStage) } else { window.scrollTo(0, 0) }
+  }
+  const positionPills = () => {
+    $$('#mainnav, #mainnavElastic').forEach((nav) => {
+      const pill = nav.querySelector('#navPill, #navPillElastic')
+      const active = nav.querySelector('button.active')
+      if (!pill || !active) return
+      pill.style.left = `${active.offsetLeft}px`
+      pill.style.width = `${active.offsetWidth}px`
+    })
+  }
+  $$('[data-goto]').forEach((b) => b.addEventListener('click', () => setScreen(Number(b.dataset.goto))))
+  $$('#segScreen button').forEach((b) => b.addEventListener('click', () => setScreen(Number(b.dataset.screen))))
+  $$('#mainnav button, #mainnavElastic button').forEach((b) => b.addEventListener('click', () => setScreen(Number(b.dataset.nav))))
+
+  /* ---- theme / motion ---- */
+  const setTheme = (t) => {
+    state.theme = t
+    document.documentElement.dataset.theme = t
+    $$('#segTheme button').forEach((b) => b.classList.toggle('on', b.dataset.theme === t))
+    persist()
+  }
+  const setMotion = (m) => {
+    state.motion = m
+    document.documentElement.dataset.motion = m
+    $$('#segMotion button').forEach((b) => b.classList.toggle('on', b.dataset.motion === m))
+    startStars()
+    persist()
+  }
+  $$('#segTheme button').forEach((b) => b.addEventListener('click', () => setTheme(b.dataset.theme)))
+  $$('#segMotion button').forEach((b) => b.addEventListener('click', () => setMotion(b.dataset.motion)))
+
+  /* ---- tweaks ---- */
+  const tweaks = $('#tweaks')
+  $('#fabTweaks').addEventListener('click', () => tweaks.classList.toggle('open'))
+
+  /* ---- keyboard ---- */
+  window.addEventListener('keydown', (e) => {
+    const tag = e.target.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+    if (e.key === '1') setScreen(1)
+    else if (e.key === '2') setScreen(2)
+    else if (e.key === '3') setScreen(3)
+    else if (e.key === '4') setScreen(4)
+    else if (e.key === '5' || e.key === 'Escape') setScreen(1)
+    else if (e.key === '?') showToast('键盘：1 采集 · 2 笔记 · 3 详情 · 4 学习 · 5/Esc 回采集')
+  })
+
+  /* ---- ingest phase simulation ---- */
+  const PHASE_META = {
+    0: { label: '待机', radar: 'IDLE', steps: [] },
+    1: { label: '搜索中', radar: 'SEARCHING', steps: [1] },
+    2: { label: '候选已就绪', radar: 'CANDIDATES', steps: [1, 2] },
+    3: { label: '合蒸中', radar: 'DISTILLING', steps: [1, 2, 3] },
+    4: { label: '完成', radar: 'SUCCESS', steps: [1, 2, 3, 4] },
+    '-1': { label: '失败', radar: 'FAILED', steps: [1, 2, 3] },
+  }
+  const BAR_STATES = {
+    0: ['idle', 'idle', 'idle', 'idle', 'idle'],
+    1: ['read', 'idle', 'idle', 'idle', 'idle'],
+    2: ['read', 'ok', 'warn', 'idle', 'idle'],
+    3: ['ok', 'ok', 'warn', 'err', 'read'],
+    4: ['ok', 'ok', 'warn', 'err', 'ok'],
+    '-1': ['ok', 'err', 'err', 'err', 'ok'],
+  }
+  const BAR_HEIGHT = { idle: 8, read: 30, ok: 88, warn: 58, err: 24 }
+  const applyPhase = (p) => {
+    const phase = Number(p)
+    const meta = PHASE_META[phase] || PHASE_META[0]
+    $('#phaseLabel').textContent = meta.label
+    $('#radarState').textContent = meta.radar
+    $('#deckPhase').textContent = meta.radar
+    $('#recentJobPhase').textContent = meta.label
+    $('#jobChipText').textContent = meta.label
+    $('#jobChip').hidden = phase === 0 || phase === 4
+    $('#recentJob').hidden = phase === 0
+    $$('#progressSteps .s').forEach((s) => {
+      const i = Number(s.dataset.step)
+      s.classList.toggle('done', meta.steps.includes(i))
+      s.classList.toggle('on', meta.steps[meta.steps.length - 1] === i && phase > 0 && phase !== 4 && phase !== -1)
+      s.classList.toggle('fail', phase === -1 && i === 3)
+    })
+    $$('.radar-node').forEach((node) => {
+      const i = Number(node.dataset.phase)
+      node.classList.toggle('done', phase === 4 && i < 4)
+      node.classList.toggle('active', i === phase && phase > 0 && phase < 4)
+      node.classList.toggle('fail', phase === -1 && i === 3)
+    })
+    const path = $('#radarPath')
+    const litCount = phase === 4 ? 4 : phase === -1 ? 3 : Math.max(0, phase - 1)
+    path.classList.toggle('lit', litCount > 0)
+    path.style.strokeDasharray = litCount > 0 ? 'none' : '4 8'
+    const states = BAR_STATES[phase] || BAR_STATES[0]
+    $$('#telBars .tb').forEach((tb, i) => {
+      const st = states[i] || 'idle'
+      tb.dataset.state = st
+      tb.className = 'tb ' + (st === 'ok' ? 'ok' : st === 'warn' ? 'warn' : st === 'err' ? 'err' : st === 'read' ? 'read' : '')
+      tb.querySelector('b').style.height = BAR_HEIGHT[st] + '%'
+    })
+    if (phase === 4) showToast('模拟完成：合蒸成功，已生成精读 #N1024')
+    if (phase === -1) showToast('模拟失败：3 个来源未通过质量门')
+  }
+  $$('.phase-sim button[data-phase]').forEach((b) => b.addEventListener('click', () => applyPhase(Number(b.dataset.phase))))
+  $('#btnSearch').addEventListener('click', () => applyPhase(1))
+  $('#btnBatch').addEventListener('click', () => applyPhase(3))
+
+  /* ---- ingest candidate counting ---- */
+  const syncCand = () => {
+    const cands = $$('#candList .cand')
+    const sel = cands.filter((c) => c.querySelector('.ck').checked).length
+    $('#kpiCand').textContent = cands.length
+    $('#kpiSel').textContent = sel
+    $('#deckCand').textContent = cands.length
+    $('#deckSel').textContent = sel
+    $('#selCount').textContent = sel
+    $('#btnBatch').textContent = `生成文章（${sel}）`
+  }
+  $$('#candList .ck').forEach((ck) => ck.addEventListener('change', syncCand))
+
+  /* ---- cache clear toast ---- */
+  ;['#btnClearCache', '#btnClearCache2'].forEach((sel) => {
+    $(sel).addEventListener('click', () => showToast('已清空材料缓存（learning:material:*）'))
+  })
+
+  /* ---- notes filter ---- */
+  const noteRows = $$('#noteList .list-row')
+  let noteFilter = 'all'
+  const applyNoteFilter = () => {
+    let visible = 0
+    noteRows.forEach((row) => {
+      const pub = row.dataset.pub === '1'
+      const idx = row.dataset.idx === '1'
+      const rev = row.dataset.rev
+      const q = $('#noteSearch').value.trim().toLowerCase()
+      const matchQ = !q || row.querySelector('.lr-title').textContent.toLowerCase().includes(q)
+      const matchF = noteFilter === 'all'
+        || (noteFilter === 'pub' && pub)
+        || (noteFilter === 'idx' && idx)
+        || (noteFilter === 'rev' && (rev === 'reviewing' || rev === 'mastered'))
+      const show = matchQ && matchF
+      row.hidden = !show
+      if (show) visible++
+    })
+    $('#totalCount').textContent = visible
+  }
+  $$('#noteFilters .f-btn').forEach((b) => b.addEventListener('click', () => {
+    noteFilter = b.dataset.filter
+    $$('#noteFilters .f-btn').forEach((x) => x.classList.toggle('on', x === b))
+    applyNoteFilter()
+  }))
+  $('#noteSearch').addEventListener('input', applyNoteFilter)
+
+  /* ---- learning branch select ---- */
+  const BRANCH_DATA = {
+    jihe: { title: '集合', count: 6, leaves: [
+      ['HashMap 扩容原理与并发陷阱', '#N1024', 'mastered'],
+      ['LinkedHashMap 与 LRU 缓存', '#N1012', 'reviewing'],
+      ['TreeMap 红黑树精读', '#N1008', 'new'],
+      ['ArrayList 扩容与快速失败', '#N0991', 'mastered'],
+      ['Vector 与 Stack 的演进', '#N0987', 'reviewing'],
+      ['集合框架总体设计', '#N0973', 'new'],
+    ] },
+    hashmap: { title: 'HashMap', count: 3, leaves: [
+      ['HashMap 扩容原理与并发陷阱', '#N1024', 'mastered'],
+      ['HashMap 的 hash() 与扰动函数', '#N1005', 'reviewing'],
+      ['ConcurrentHashMap 演进', '#N0993', 'new'],
+    ] },
+    list: { title: 'List 家族', count: 2, leaves: [
+      ['ArrayList 扩容与快速失败', '#N0991', 'mastered'],
+      ['LinkedList 适用场景辨析', '#N0976', 'new'],
+    ] },
+    bingfa: { title: '并发', count: 5, leaves: [
+      ['Java 并发编程：AQS 源码精读', '#N1022', 'new'],
+      ['synchronized 与锁升级', '#N1011', 'reviewing'],
+      ['ThreadLocal 原理与内存泄漏', '#N1004', 'mastered'],
+      ['线程池参数调优', '#N0996', 'reviewing'],
+      ['CAS 与原子类', '#N0988', 'new'],
+    ] },
+    jvm: { title: 'JVM', count: 3, leaves: [
+      ['JVM 垃圾回收器选型实战', '#N1020', 'mastered'],
+      ['类加载机制精读', '#N1009', 'new'],
+      ['JMM 与可见性', '#N0999', 'reviewing'],
+    ] },
+    spring: { title: 'Spring', count: 2, leaves: [
+      ['Spring Security 6 过滤器链详解', '#N1023', 'reviewing'],
+      ['Spring IOC 容器原理', '#N1001', 'new'],
+    ] },
+    shujuku: { title: '数据库', count: 0, leaves: [] },
+  }
+  const REVIEW_LABEL = { mastered: '已掌握', reviewing: '复习中', new: '待复习' }
+  const REVIEW_CLASS = { mastered: 'rev done', reviewing: 'rev', new: 'rev' }
+  const renderLeaves = (key) => {
+    const data = BRANCH_DATA[key]
+    const grid = $('#leafGrid')
+    $('#leafTitle').textContent = data.title
+    $('#leafMeta').textContent = data.count ? `${data.count} 篇 · 已挂载` : '0 篇 · 空枝'
+    $('#logBranch').textContent = data.title
+    $('#logLeaves').textContent = `挂载 ${data.count} 篇`
+    $('#branchCount').textContent = data.count
+    $('#skyCap').textContent = data.title
+    if (!data.count) {
+      grid.innerHTML = `<div class="empty-branch">此主题下还没有笔记<br><button class="chip-btn sm primary" type="button">AI 搜索文章 · 空枝补学</button></div>`
+      return
+    }
+    grid.innerHTML = data.leaves.map(([title, id, rev]) => `
+      <div class="leaf-card"><div class="lc-title">${title}</div>
+      <div class="lc-meta"><span class="chip src">${id}</span><span class="chip ${REVIEW_CLASS[rev]}">${REVIEW_LABEL[rev]}</span></div></div>
+    `).join('')
+  }
+  $$('.tree-node[data-branch]').forEach((b) => b.addEventListener('click', () => {
+    $$('.tree-node').forEach((x) => x.classList.remove('on'))
+    b.classList.add('on')
+    renderLeaves(b.dataset.branch)
+    $$('.rm-node[data-branch]').forEach((n) => n.classList.toggle('is-on', n.dataset.branch === b.dataset.branch))
+    $$('.rm-edge').forEach((e, i) => {
+      const map = { jihe: 0, bingfa: 1, jvm: 2, shujuku: 3, spring: 4 }
+      e.classList.toggle('lit', map[b.dataset.branch] === i)
+    })
+  }))
+  $$('.rm-node[data-branch]').forEach((n) => n.addEventListener('click', () => {
+    const node = $(`.tree-node[data-branch="${n.dataset.branch}"]`)
+    if (node) node.click()
+  }))
+
+  /* ---- review modal ---- */
+  const reviewMask = $('#reviewMask')
+  $('#btnReview').addEventListener('click', () => { reviewMask.hidden = false })
+  $('#btnCloseReview').addEventListener('click', () => { reviewMask.hidden = true })
+  reviewMask.addEventListener('click', (e) => { if (e.target === reviewMask) reviewMask.hidden = true })
+  $$('#reviewMask [data-reveal]').forEach((b) => b.addEventListener('click', () => {
+    const a = b.nextElementSibling
+    a.hidden = !a.hidden
+    b.textContent = a.hidden ? '显示答案' : '收起答案'
+  }))
+
+  /* ---- persist ---- */
+  const persist = () => {
+    try { localStorage.setItem(KEY, JSON.stringify(state)) } catch (e) { /* ignore */ }
+  }
+
+  /* ---- init ---- */
+  setScreen(state.screen, true)
+  setTheme(state.theme)
+  setMotion(state.motion)
+  syncCand()
+  applyNoteFilter()
+  positionPills()
+  window.addEventListener('load', positionPills)
+})()
+</script>
+</body>
+</html>

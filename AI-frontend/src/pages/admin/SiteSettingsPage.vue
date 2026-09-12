@@ -16,6 +16,7 @@ import {
   updateSiteSettingValues,
 } from '@/api/siteSettings'
 import SiteSettingsNav from '@/components/admin/SiteSettingsNav.vue'
+import StationRoomShell from '@/components/shared/StationRoomShell.vue'
 import { clearAppSettingsCache } from '@/utils/appSettings'
 import { clearBlogSettingsCache } from '@/utils/blogSettings'
 import { clearDiarySettingsCache } from '@/utils/diarySettings'
@@ -518,6 +519,7 @@ watch(
 </script>
 
 <template>
+  <StationRoomShell brand-path="/" note-label="Station · 站点设置" room="settings">
   <div class="site-settings-page admin-theme-page">
     <a-breadcrumb class="admin-breadcrumb">
       <a-breadcrumb-item>
@@ -806,6 +808,7 @@ watch(
       </div>
     </a-spin>
   </div>
+  </StationRoomShell>
 </template>
 
 <style scoped>

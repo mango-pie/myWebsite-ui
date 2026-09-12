@@ -11,8 +11,10 @@ import FloatingPlayer from '@/design/FloatingPlayer.vue'
 import FloatingLyric from '@/design/FloatingLyric.vue'
 import FloatingBubbleMenu from '@/components/FloatingBubbleMenu.vue'
 import { PetDango } from '@/pet'
-import { useAudioPlayer } from '@/design'
 import { siteConfig } from '@/config/site'
+import { usePulsePlayer } from '@/composables/usePulsePlayer'
+
+usePulsePlayer()
 
 const showLyric = ref(false)
 const route = useRoute()
@@ -42,31 +44,6 @@ const antdTheme = computed(() => ({
   },
 }))
 
-const { addToPlaylist, state: playerState } = useAudioPlayer()
-
-if (playerState.value.playlist.length === 0) {
-  addToPlaylist([
-    {
-      id: '1',
-      title: siteConfig.music.demoTracks[0].title,
-      artist: siteConfig.music.demoTracks[0].artist,
-      album: '氛围',
-      coverUrl: 'https://picsum.photos/200/200?random=10',
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-      duration: 180,
-    },
-    {
-      id: '2',
-      title: siteConfig.music.demoTracks[1].title,
-      artist: siteConfig.music.demoTracks[1].artist,
-      album: '氛围',
-      coverUrl: 'https://picsum.photos/200/200?random=20',
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-      duration: 240,
-    },
-  ])
-}
-
 const loginUserStore = useLoginUserStore()
 loginUserStore.fetchLoginUser().catch(() => {})
 </script>
@@ -77,8 +54,9 @@ loginUserStore.fetchLoginUser().catch(() => {})
     <WorkspaceLayout v-if="isWorkspace" />
     <PublicLayout v-else />
   </ConfigProvider>
-  <FloatingPlayer @open-lyric="showLyric = true" />
+  <!-- Pulse 单例在 App 挂载时 bootstrap，出 /music 不停播。首页用 HomeSkyWindow，房间自有底栏，这两处不叠悬浮条。 -->
+  <FloatingPlayer v-if="route.path !== '/' && route.path !== '/music'" @open-lyric="showLyric = true" />
   <FloatingLyric :visible="showLyric" @close="showLyric = false" />
-  <FloatingBubbleMenu v-if="siteConfig.effects.bubbleMenu.enabled" />
+  <FloatingBubbleMenu v-if="siteConfig.effects.bubbleMenu.enabled && route.path !== '/' && route.path !== '/music'" />
   <PetDango v-if="siteConfig.effects.petDango.enabled" />
 </template>

@@ -6,7 +6,6 @@
 export * from './types';
 
 // Hooks
-export { useAudioPlayer } from './useAudioPlayer';
 export { useNeteaseLogin } from './useNeteaseLogin';
 
 // 组件

@@ -1,6 +1,6 @@
 /**
- * AI 精读异步任务本地跟踪：把提交过的合蒸任务（jobId + 标题 + 时间）存入 localStorage，
- * 供「精读任务」页列出并轮询各自最新状态。仅记录本浏览器提交过的任务。
+ * AI 精读异步任务本地缓存（可选）：提交合蒸后写入，加速本机展示。
+ * 任务页真相源为服务端 GET /admin/knowledge/reading-jobs，本缓存不再单独驱动列表。
  */
 
 const STORAGE_KEY = 'kb-reading-jobs'

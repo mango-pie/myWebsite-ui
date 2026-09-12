@@ -7,6 +7,8 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   FolderTree,
+  Folder,
+  FolderOpen,
   GitBranch,
   Leaf,
   Pencil,
@@ -15,7 +17,6 @@ import {
   Plus,
   Search,
   ChevronRight,
-  GripVertical,
 } from 'lucide-vue-next'
 import type { LearningBranchTreeNode } from '@/api/learning.types'
 import InlineEdit from './InlineEdit.vue'
@@ -76,14 +77,20 @@ function isExpanded(branchId: number | string) {
   return expandedIds.has(String(branchId))
 }
 
-// 首次加载时展开第一个有子枝的 L1
+// 首次加载时展开所有有子枝的 L1，方便一眼看出树层级
 watch(
   () => props.branches,
   (list) => {
-    if (list.length > 0) {
-      const firstL1 = list.find((b) => b.depth === 1 && childrenOf(b.id).length > 0) ||
-        list.find((b) => b.depth === 1)
-      if (firstL1 && !expandedIds.size) expandedIds.add(String(firstL1.id))
+    if (!list.length || expandedIds.size) return
+    for (const b of list) {
+      if (b.depth === 1 && childrenOf(b.id).length > 0) {
+        expandedIds.add(String(b.id))
+      }
+    }
+    // 若没有任何子枝，至少展开第一个 L1（空枝 CTA）
+    if (!expandedIds.size) {
+      const firstL1 = list.find((b) => b.depth === 1)
+      if (firstL1) expandedIds.add(String(firstL1.id))
     }
   },
   { immediate: true },
@@ -195,13 +202,23 @@ function startCreateL2(parentId: number | string) {
 }
 
 function confirmCreateL2(title: string) {
-  if (creatingL2Parent.value == null) return
-  if (isSiblingDuplicate(title, creatingL2Parent.value)) {
+  const parentId = creatingL2Parent.value
+  if (parentId == null || parentId === '' || parentId === '0') {
+    message.error('缺少父枝，无法创建子枝')
+    return
+  }
+  const trimmed = title.trim()
+  if (!trimmed) {
+    message.warning('请填写子枝标题')
+    return
+  }
+  if (isSiblingDuplicate(trimmed, parentId)) {
     message.warning('同级已存在同名枝')
     return
   }
-  emit('create-l2-branch', creatingL2Parent.value, title)
+  // 先清状态再 emit，避免 blur 二次确认
   creatingL2Parent.value = null
+  emit('create-l2-branch', parentId, trimmed)
 }
 
 function cancelCreateL2() {
@@ -249,19 +266,26 @@ function ctxAction(action: 'rename' | 'add-child' | 'merge' | 'delete') {
       startRename(b)
       break
     case 'add-child':
-      if (b.depth === 1) startCreateL2(b.id)
+      if (b.depth === 1) {
+        // 右键添加子枝不依赖编辑模式；展开后显示行内输入
+        startCreateL2(b.id)
+      }
       break
     case 'merge':
       emit('merge-branch', b.id)
       break
     case 'delete':
       if (b.leafCount === 0) emit('delete-branch', b.id)
+      else message.warning('有叶枝不可删，请先移叶或取消挂载')
       break
   }
 }
 
-function onGlobalClick() {
-  if (ctxMenu.visible) closeContextMenu()
+function onGlobalClick(e: MouseEvent) {
+  if (!ctxMenu.visible) return
+  const t = e.target as HTMLElement | null
+  if (t?.closest?.('.tree-ctx-menu')) return
+  closeContextMenu()
 }
 
 function onGlobalKeydown(e: KeyboardEvent) {
@@ -269,12 +293,13 @@ function onGlobalKeydown(e: KeyboardEvent) {
 }
 
 onMounted(() => {
-  document.addEventListener('click', onGlobalClick, true)
+  // 用 bubble 阶段，避免 capture 抢在菜单按钮 click 之前关掉菜单
+  document.addEventListener('click', onGlobalClick)
   document.addEventListener('keydown', onGlobalKeydown)
 })
 
 onBeforeUnmount(() => {
-  document.removeEventListener('click', onGlobalClick, true)
+  document.removeEventListener('click', onGlobalClick)
   document.removeEventListener('keydown', onGlobalKeydown)
 })
 </script>
@@ -283,10 +308,9 @@ onBeforeUnmount(() => {
   <div class="domain-tree" :class="{ 'domain-tree--editing': editMode }">
     <!-- header -->
     <div class="domain-tree__header">
-      <h2 class="domain-tree__domain-name">
-        <FolderTree :size="18" class="domain-tree__root-icon" :stroke-width="1.5" />
-        {{ domainName || '领域' }}
-      </h2>
+      <div class="domain-tree__domain-name">
+        <span class="domain-tree__dom mono">DOMAIN · {{ (domainName || '领域').toUpperCase() }}</span>
+      </div>
       <span
         v-if="branches.length"
         class="domain-tree__summary"
@@ -347,14 +371,21 @@ onBeforeUnmount(() => {
             :aria-label="isExpanded(l1.id) ? '折叠子枝' : '展开子枝'"
             @click.stop="toggleExpand(l1.id)"
           >
-            <ChevronRight :size="15" :stroke-width="2" />
+            <ChevronRight :size="15" :stroke-width="2.5" />
           </button>
           <span v-else class="tree-chevron tree-chevron--spacer" aria-hidden="true" />
 
-          <!-- icon -->
-          <span class="tree-node-icon" :class="{ 'tree-node-icon--dim': l1.leafCount === 0 }">
-            <Leaf v-if="l1.leafCount > 0" :size="16" />
-            <GitBranch v-else :size="16" />
+          <!-- icon：L1 = 文件夹 / 空枝 = 分叉 -->
+          <span
+            class="tree-node-icon tree-node-icon--l1"
+            :class="{
+              'tree-node-icon--dim': l1.leafCount === 0,
+              'tree-node-icon--open': isExpanded(l1.id) && childrenOf(l1.id).length > 0,
+            }"
+          >
+            <GitBranch v-if="l1.leafCount === 0 && childrenOf(l1.id).length === 0" :size="15" :stroke-width="2" />
+            <FolderOpen v-else-if="isExpanded(l1.id) && childrenOf(l1.id).length > 0" :size="15" :stroke-width="2" />
+            <Folder v-else :size="15" :stroke-width="2" />
           </span>
 
           <!-- title + meta -->
@@ -409,9 +440,12 @@ onBeforeUnmount(() => {
           还没学 · 去搜一篇
         </div>
 
-        <!-- ====== L2 children ====== -->
+        <!-- ====== L2 children / 新建子枝 ====== -->
         <Transition name="tree-slide">
-          <div v-if="isExpanded(l1.id) && childrenOf(l1.id).length > 0" class="tree-l2-group">
+          <div
+            v-if="isExpanded(l1.id) && (childrenOf(l1.id).length > 0 || creatingL2Parent === String(l1.id))"
+            class="tree-l2-group"
+          >
             <template v-for="l2 in childrenOf(l1.id)" :key="l2.id">
               <div
                 v-if="String(l2.id) !== renamingId"
@@ -427,9 +461,9 @@ onBeforeUnmount(() => {
                 @dblclick="editMode && startRename(l2)"
                 @contextmenu="onContextMenu($event, l2)"
               >
-                <span class="tree-chevron tree-chevron--spacer" aria-hidden="true" />
+                <span class="tree-guide" aria-hidden="true" />
                 <span class="tree-node-icon tree-node-icon--l2">
-                  <Leaf :size="14" />
+                  <Leaf :size="13" :stroke-width="2" />
                 </span>
                 <div class="tree-row__body">
                   <span class="tree-row__title">{{ l2.title }}</span>
@@ -462,11 +496,12 @@ onBeforeUnmount(() => {
               </div>
             </template>
 
-            <!-- inline create L2 -->
+            <!-- inline create L2：右键「添加子枝」或编辑模式均可 -->
             <div
-              v-if="editMode && creatingL2Parent === String(l1.id)"
+              v-if="creatingL2Parent === String(l1.id)"
               class="domain-tree__inline-create domain-tree__inline-create--l2"
             >
+              <span class="tree-guide" aria-hidden="true" />
               <InlineEdit
                 model-value=""
                 placeholder="新建子枝标题"
@@ -536,32 +571,36 @@ onBeforeUnmount(() => {
 /* ========== header ========== */
 .domain-tree__header {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--ld-color-border, rgba(255, 255, 255, 0.08));
+  padding: 0 2px 10px;
+  margin-bottom: 2px;
+  border-bottom: 1.5px dashed color-mix(in srgb, var(--room, #9b8ce8) 22%, transparent);
 }
 
 .domain-tree__domain-name {
   margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1.4;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  min-width: 0;
+}
+
+.domain-tree__dom {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--ink-faint, #a5acc4);
 }
 
 .domain-tree__root-icon {
-  color: var(--ld-color-primary, #e879a9);
+  color: var(--room, #9b8ce8);
   flex-shrink: 0;
 }
 
 .domain-tree__summary {
-  font-size: 0.75rem;
-  color: var(--ld-color-text-tertiary, #8a7d9a);
+  flex: none;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--ink-faint, #a5acc4);
   font-variant-numeric: tabular-nums;
 }
 
@@ -612,90 +651,115 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 10px 9px 6px;
-  border-radius: 8px;
-  border: 1px solid transparent;
+  padding: 7px 9px 7px 4px;
+  border-radius: 10px;
+  border: 1.5px solid transparent;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
   user-select: none;
 }
 
 .tree-row:hover {
-  background: var(--ld-color-surface-hover, rgba(255, 255, 255, 0.06));
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .tree-row:focus-visible {
-  outline: 2px solid var(--ld-color-primary-35, rgba(232, 121, 169, 0.35));
-  outline-offset: -2px;
+  outline: 2px solid color-mix(in srgb, var(--room, #9b8ce8) 55%, transparent);
+  outline-offset: 1px;
 }
 
 .tree-row--active {
-  background: var(--ld-color-primary-08, rgba(184, 164, 201, 0.1));
-  border-color: var(--ld-color-primary-12, rgba(184, 164, 201, 0.15));
+  background: #fff;
+  border-color: color-mix(in srgb, var(--room, #9b8ce8) 28%, transparent);
+  box-shadow: 0 1px 0 rgba(96, 116, 168, 0.14), 0 4px 14px rgba(96, 116, 168, 0.1);
 }
 
 .tree-row--active::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 3px;
-  bottom: 3px;
+  top: 4px;
+  bottom: 4px;
   width: 3px;
   border-radius: 0 3px 3px 0;
-  background: var(--ld-color-primary, #b8a4c9);
+  background: var(--room, #9b8ce8);
 }
 
 /* L1 specific */
 .tree-row--l1 {
-  font-weight: 650;
-  min-height: 40px;
+  font-weight: 600;
+  min-height: 36px;
+  color: var(--ink, #4c5570);
 }
 
 .tree-row--l1 .tree-row__title {
-  font-size: 0.9rem;
-  color: var(--ld-color-text-primary, #f5f0f8);
+  font-size: 13px;
+  color: var(--ink, #4c5570);
 }
 
-/* L2 specific */
+/* L2 group + connecting spine */
+.tree-l2-group {
+  position: relative;
+  margin: 2px 0 6px 17px;
+  padding-left: 14px;
+}
+
+.tree-l2-group::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 10px;
+  width: 1.5px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--room, #9b8ce8) 38%, transparent);
+}
+
 .tree-row--l2 {
+  position: relative;
   font-weight: 400;
-  margin-left: 8px;
+  margin-left: 0;
+  min-height: 32px;
+  padding-left: 2px;
 }
 
 .tree-row--l2 .tree-row__title {
-  font-size: 0.8125rem;
-  color: var(--ld-color-text-tertiary, #8a7d9a);
+  font-size: 12px;
+  color: var(--ink-soft, #7a83a0);
 }
 
-/* L2 connecting line */
-.tree-row--l2::after {
-  content: '';
-  position: absolute;
-  left: -6px;
-  top: 0;
-  bottom: 50%;
-  width: 1px;
-  background: rgba(255, 255, 255, 0.06);
+.tree-row--l2.tree-row--active .tree-row__title {
+  color: var(--ink, #4c5570);
 }
 
-.tree-row--l2::before {
-  content: '';
+/* L2 elbow connector */
+.tree-guide {
   position: absolute;
-  left: -6px;
+  left: -14px;
   top: 50%;
-  width: 10px;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.06);
+  width: 12px;
+  height: 1.5px;
+  background: color-mix(in srgb, var(--room, #9b8ce8) 38%, transparent);
+  pointer-events: none;
+}
+
+.tree-row--l2::after,
+.tree-row--l2::before {
+  display: none;
 }
 
 .tree-l2-group > .tree-row--l2:last-child::after {
-  bottom: 50%;
-  height: 50%;
+  display: none;
 }
 
 /* Empty branch */
 .tree-row--empty .tree-row__title {
-  color: var(--ld-color-text-tertiary, #8a7d9a);
+  color: var(--ink-faint, #a5acc4);
+}
+
+.tree-row--empty {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--room, #9b8ce8) 28%, transparent);
 }
 
 /* ========== chevron ========== */
@@ -703,21 +767,25 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border: none;
   background: transparent;
-  color: var(--ld-color-text-tertiary, #8a7d9a);
+  color: var(--ink-faint, #a5acc4);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 6px;
   flex-shrink: 0;
   padding: 0;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease, transform 0.2s ease;
 }
 
 .tree-chevron:hover {
-  color: var(--ld-color-text-primary, #f5f0f8);
-  background: var(--ld-color-surface-hover, rgba(255, 255, 255, 0.05));
+  color: var(--room, #9b8ce8);
+  background: color-mix(in srgb, var(--room-soft, #e4dffd) 80%, #fff);
+}
+
+.tree-chevron--open {
+  color: var(--room, #9b8ce8);
 }
 
 .tree-chevron--open :deep(svg) {
@@ -731,16 +799,37 @@ onBeforeUnmount(() => {
 /* ========== node icon ========== */
 .tree-node-icon {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  color: var(--ld-color-primary, #e879a9);
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  color: var(--room, #9b8ce8);
+  background: color-mix(in srgb, var(--room-soft, #e4dffd) 70%, transparent);
+}
+
+.tree-node-icon--l1 {
+  color: var(--room, #9b8ce8);
+}
+
+.tree-node-icon--open {
+  background: var(--room, #9b8ce8);
+  color: #fff;
 }
 
 .tree-node-icon--dim {
-  color: var(--ld-color-text-tertiary, #8a7d9a);
+  color: var(--ink-faint, #a5acc4);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px dashed color-mix(in srgb, var(--room, #9b8ce8) 30%, transparent);
 }
 
 .tree-node-icon--l2 {
-  color: var(--ld-color-ai, #7c9ce0);
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  color: var(--c-blue, #6aaee8);
+  background: #eef2fc;
 }
 
 /* ========== body: title + badge ========== */
@@ -760,35 +849,41 @@ onBeforeUnmount(() => {
 }
 
 .tree-row__badge {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--ld-color-primary, #e879a9);
-  background: var(--ld-color-primary-08, rgba(232, 121, 169, 0.08));
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: ui-monospace, Consolas, monospace;
+  color: var(--ink-faint, #a5acc4);
+  background: rgba(255, 255, 255, 0.75);
   border-radius: 999px;
   padding: 1px 7px;
   line-height: 1.5;
+  letter-spacing: 0.5px;
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
 
 .tree-row__badge--l2 {
-  color: var(--ld-color-ai, #7c9ce0);
-  background: var(--ld-color-ai-20, rgba(124, 156, 224, 0.2));
+  font-size: 9px;
+  color: var(--c-blue, #6aaee8);
+  background: #eef2fc;
 }
 
 .tree-row__tag {
-  font-size: 0.62rem;
+  margin-left: auto;
+  font-size: 9px;
   font-weight: 600;
   border-radius: 999px;
-  padding: 1px 6px;
+  padding: 1px 7px;
   line-height: 1.5;
   flex-shrink: 0;
-  letter-spacing: 0.04em;
+  letter-spacing: 1px;
 }
 
 .tree-row__tag--empty {
-  color: var(--ld-color-text-tertiary, #8a7d9a);
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--room, #9b8ce8);
+  background: transparent;
+  border: 1px dashed color-mix(in srgb, var(--room, #9b8ce8) 40%, transparent);
 }
 
 /* ========== edit actions (hover) ========== */
@@ -851,14 +946,6 @@ onBeforeUnmount(() => {
   background: var(--ld-color-ai-20, rgba(124, 156, 224, 0.2));
 }
 
-/* ========== L2 children group ========== */
-.tree-l2-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding-left: 16px;
-}
-
 /* ========== inline edit/create ========== */
 .domain-tree__inline-rename,
 .domain-tree__inline-create {
@@ -867,7 +954,8 @@ onBeforeUnmount(() => {
 
 .domain-tree__inline-rename--l2,
 .domain-tree__inline-create--l2 {
-  padding-left: 40px;
+  position: relative;
+  padding-left: 2px;
 }
 
 .domain-tree__inline-create--l1 {
@@ -899,15 +987,15 @@ onBeforeUnmount(() => {
 .tree-ctx-menu {
   position: fixed;
   z-index: 9999;
-  min-width: 150px;
-  background: var(--ld-color-bg-elevated, rgba(30, 24, 40, 0.98));
-  border: 1px solid var(--ld-color-border, rgba(255, 255, 255, 0.1));
-  border-radius: var(--ld-radius-md, 10px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  padding: 4px;
+  min-width: 158px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  border-radius: 14px;
+  box-shadow: 0 12px 36px rgba(70, 80, 130, 0.22);
+  padding: 6px;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   backdrop-filter: blur(12px);
 }
 
@@ -918,24 +1006,24 @@ onBeforeUnmount(() => {
   width: 100%;
   border: none;
   background: transparent;
-  color: var(--ld-color-text-secondary, #c4b8d0);
+  color: var(--ink-soft, #7a83a0);
   font-family: inherit;
-  font-size: 0.8125rem;
-  padding: 7px 12px;
-  border-radius: 6px;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 10px;
   cursor: pointer;
   text-align: left;
   transition: background 0.1s ease, color 0.1s ease;
 }
 
 .tree-ctx-menu__item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--ld-color-text-primary, #f5f0f8);
+  background: var(--room-soft, #e4dffd);
+  color: var(--room, #9b8ce8);
 }
 
 .tree-ctx-menu__item--danger:hover {
-  background: rgba(239, 68, 68, 0.15);
-  color: #fca5a5;
+  background: #fff0f4;
+  color: var(--c-sakura, #f490ad);
 }
 
 .ctx-fade-enter-active,

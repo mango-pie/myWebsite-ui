@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { useAudioPlayer } from './useAudioPlayer';
-import { getLyric } from '@/integrations/neteaseMusic';
+import { usePulsePlayer } from '@/composables/usePulsePlayer';
 
 const props = defineProps<{
   visible: boolean;
@@ -11,53 +10,21 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
-const { state, seekTo } = useAudioPlayer();
+const p = usePulsePlayer();
 
 const position = ref({ x: 100, y: 100 });
 const isDragging = ref(false);
 const dragOffset = ref({ x: 0, y: 0 });
 
-const lyrics = ref<{ time: number; text: string }[]>([]);
 const lyricsContainer = ref<HTMLElement | null>(null);
 const isUserScrolling = ref(false);
 const seekFeedbackIndex = ref(-1);
 let scrollTimeout: number | null = null;
 let seekTimeout: number | null = null;
 
-const currentLyricIndex = computed(() => {
-  const currentTime = state.value.currentTime;
-  for (let i = lyrics.value.length - 1; i >= 0; i--) {
-    const line = lyrics.value[i];
-    if (line && line.time <= currentTime) {
-      return i;
-    }
-  }
-  return -1;
-});
-
-const loadLyrics = async () => {
-  if (!state.value.currentSong) {
-    lyrics.value = [];
-    return;
-  }
-  
-  const cacheKey = `lyric_${state.value.currentSong.id}`;
-  const cached = localStorage.getItem(cacheKey);
-  
-  if (cached) {
-    lyrics.value = JSON.parse(cached);
-    return;
-  }
-  
-  try {
-    const result = await getLyric(state.value.currentSong.id);
-    lyrics.value = result;
-    localStorage.setItem(cacheKey, JSON.stringify(result));
-  } catch (error) {
-    console.error('获取歌词失败:', error);
-    lyrics.value = [];
-  }
-};
+const lyrics = computed(() => p.lyricDisplayLines.value);
+const currentLyricIndex = computed(() => p.lyricIndex.value);
+const songTitle = computed(() => p.currentTrack.value?.title || '歌词');
 
 const scrollToCurrentLyric = () => {
   if (isUserScrolling.value || !lyricsContainer.value) return;
@@ -78,8 +45,8 @@ const handleScroll = () => {
   }, 1600);
 };
 
-const handleLyricClick = (time: number, index: number) => {
-  seekTo(time);
+const handleLyricClick = (_time: number, index: number) => {
+  p.seekLyric(index);
   seekFeedbackIndex.value = index;
   if (seekTimeout) clearTimeout(seekTimeout);
   seekTimeout = window.setTimeout(() => {
@@ -118,21 +85,18 @@ const handleDragEnd = () => {
   isDragging.value = false;
 };
 
-watch(() => state.value.currentSong, () => {
-  loadLyrics();
-}, { immediate: true });
-
 watch(currentLyricIndex, () => {
   if (!isUserScrolling.value && lyrics.value.length > 0) {
     scrollToCurrentLyric();
   }
 });
 
-watch(() => props.visible, (newVal) => {
-  if (newVal) {
-    loadLyrics();
-  }
-});
+watch(
+  () => props.visible,
+  (newVal) => {
+    if (newVal) scrollToCurrentLyric();
+  },
+);
 
 onMounted(() => {
   document.addEventListener('mousemove', handleDragMove);
@@ -160,7 +124,7 @@ onUnmounted(() => {
       :class="{ 'is-dragging': isDragging }"
     >
       <div class="lyric-header" @mousedown="handleDragStart" @touchstart="handleDragStart">
-        <span class="lyric-title">{{ state.currentSong?.title || '歌词' }}</span>
+        <span class="lyric-title">{{ songTitle }}</span>
         <button class="close-btn" @click.stop="emit('close')" title="关闭歌词窗">✕</button>
       </div>
       

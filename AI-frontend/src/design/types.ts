@@ -18,6 +18,19 @@ export interface Song {
   lyrics?: Lyric[];
   trackNumber?: number;
   year?: string;
+  /** 网易云官方 MV id，空字符串表示确认无 MV */
+  mvId?: string;
+  /** 网易云歌手 id（取 ar[0]） */
+  artistId?: string;
+}
+
+/** 相关 / 歌手 MV 列表项 */
+export interface MvSummary {
+  id: string;
+  name: string;
+  coverUrl: string;
+  artist?: string;
+  duration?: number;
 }
 
 /** 歌词项 */

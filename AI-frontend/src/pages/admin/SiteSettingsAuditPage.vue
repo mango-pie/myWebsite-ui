@@ -7,6 +7,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { bootstrapSiteSettings, pageSiteSettingAudit } from '@/api/siteSettings'
 import SiteSettingsNav from '@/components/admin/SiteSettingsNav.vue'
+import StationRoomShell from '@/components/shared/StationRoomShell.vue'
 import '@/assets/admin-theme.css'
 
 type AuditRow = API.SiteSettingAuditVO
@@ -127,6 +128,7 @@ onMounted(async () => {
 </script>
 
 <template>
+  <StationRoomShell brand-path="/" note-label="Station · 变更审计" room="settings">
   <div class="site-settings-page admin-theme-page">
     <a-breadcrumb class="admin-breadcrumb">
       <a-breadcrumb-item>
@@ -197,6 +199,7 @@ onMounted(async () => {
       </div>
     </a-spin>
   </div>
+  </StationRoomShell>
 </template>
 
 <style scoped>

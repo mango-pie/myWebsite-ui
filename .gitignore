@@ -4,6 +4,14 @@
 .vscode/
 *.iml
 
+# Agent / local scratch
+.mimosa/
+.omo/
+AI-frontend/.mimosa/
+AI-frontend/src/.mimosa/
+AI-frontend/src/api/.mimosa/
+AI-frontend/qa-reports/
+
 # Dependencies
 node_modules/
 AI-frontend/node_modules/

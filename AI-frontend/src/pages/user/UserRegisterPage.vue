@@ -1,7 +1,6 @@
 <script setup lang="ts">
 /**
  * 用户注册页 - 路径：/user/register
- * 表单：账号、密码、确认密码；校验通过后调用注册接口，成功则跳转登录页
  */
 import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
@@ -9,24 +8,22 @@ import { message } from 'ant-design-vue'
 import { Lock, ShieldCheck, User, UserPlus } from 'lucide-vue-next'
 import { userRegister } from '@/api/userController.ts'
 import { siteConfig } from '@/config/site'
+import StationRoomShell from '@/components/shared/StationRoomShell.vue'
 
 const router = useRouter()
 
-// 表单数据，与后端 UserRegisterRequest 对齐
 const formState = reactive<API.UserRegisterRequest>({
   userAccount: '',
   userPassword: '',
   checkPassword: '',
 })
 
-/** 自定义校验：确认密码必须与密码一致 */
 const validateCheckPassword = async (_rule: unknown, value: string) => {
   if (!value) return Promise.resolve()
   if (value !== formState.userPassword) return Promise.reject(new Error('两次输入的密码不一致'))
   return Promise.resolve()
 }
 
-/** 提交注册：调用接口，成功则提示并跳转登录页，失败则提示后端返回的 message */
 const handleSubmit = async (values: API.UserRegisterRequest) => {
   const res = await userRegister(values)
   if (res.data.code === 0 && res.data.data) {
@@ -42,117 +39,65 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
 </script>
 
 <template>
-  <div id="userRegisterPage" class="theme-glass-card">
-    <h2 class="title">{{ siteConfig.siteName }} · 用户注册</h2>
-    <div class="desc">创建账号后即可开始你的个人实验与记录</div>
-
-    <a-form :model="formState" name="register" autocomplete="off" @finish="handleSubmit">
-      <a-form-item
-        name="userAccount"
-        :rules="[
-          { required: true, message: '请输入账号' },
-          { min: 4, message: '账号不能小于 4 位' },
-        ]"
-      >
-        <a-input v-model:value="formState.userAccount" placeholder="请输入账号">
-          <template #prefix><User :size="16" class="field-prefix-icon" /></template>
-        </a-input>
-      </a-form-item>
-
-      <a-form-item
-        name="userPassword"
-        :rules="[
-          { required: true, message: '请输入密码' },
-          { min: 8, message: '密码不能小于 8 位' },
-        ]"
-      >
-        <a-input-password v-model:value="formState.userPassword" placeholder="请输入密码">
-          <template #prefix><Lock :size="16" class="field-prefix-icon" /></template>
-        </a-input-password>
-      </a-form-item>
-
-      <a-form-item
-        name="checkPassword"
-        :rules="[
-          { required: true, message: '请再次输入密码' },
-          {
-            validator: validateCheckPassword,
-          },
-        ]"
-      >
-        <a-input-password v-model:value="formState.checkPassword" placeholder="确认密码">
-          <template #prefix><ShieldCheck :size="16" class="field-prefix-icon" /></template>
-        </a-input-password>
-      </a-form-item>
-
-      <div class="tips">
-        已有账号？
-        <RouterLink to="/user/login">去登录</RouterLink>
+  <StationRoomShell brand-path="/" note-label="Station · 登记" room="auth" escape-to="/">
+    <div class="auth-stage">
+      <div class="auth-welcome">
+        <p class="auth-kana">{{ siteConfig.brandKana }}</p>
+        <h1 class="font-display">加入小站</h1>
+        <p>创建账号后即可写日记、做实验、继续未完的对话。</p>
       </div>
-
-      <a-form-item>
-        <a-button type="primary" html-type="submit" style="width: 100%">
-          <template #icon><UserPlus :size="16" /></template>
-          注册
-        </a-button>
-      </a-form-item>
-    </a-form>
-  </div>
+      <div id="userRegisterPage" class="auth-card station-glass">
+        <h2 class="title font-display">{{ siteConfig.siteName }} · 注册</h2>
+        <p class="desc">账号至少 4 位，密码至少 8 位</p>
+        <a-form :model="formState" name="register" autocomplete="off" @finish="handleSubmit">
+          <a-form-item
+            name="userAccount"
+            :rules="[
+              { required: true, message: '请输入账号' },
+              { min: 4, message: '账号不能小于 4 位' },
+            ]"
+          >
+            <a-input v-model:value="formState.userAccount" placeholder="请输入账号" size="large">
+              <template #prefix><User :size="16" class="field-prefix-icon" /></template>
+            </a-input>
+          </a-form-item>
+          <a-form-item
+            name="userPassword"
+            :rules="[
+              { required: true, message: '请输入密码' },
+              { min: 8, message: '密码不能小于 8 位' },
+            ]"
+          >
+            <a-input-password v-model:value="formState.userPassword" placeholder="请输入密码" size="large">
+              <template #prefix><Lock :size="16" class="field-prefix-icon" /></template>
+            </a-input-password>
+          </a-form-item>
+          <a-form-item
+            name="checkPassword"
+            :rules="[{ required: true, message: '请再次输入密码' }, { validator: validateCheckPassword }]"
+          >
+            <a-input-password v-model:value="formState.checkPassword" placeholder="确认密码" size="large">
+              <template #prefix><ShieldCheck :size="16" class="field-prefix-icon" /></template>
+            </a-input-password>
+          </a-form-item>
+          <div class="tips">
+            已有账号？
+            <RouterLink to="/user/login">去登录</RouterLink>
+          </div>
+          <a-form-item>
+            <a-button type="primary" html-type="submit">
+              <template #icon><UserPlus :size="16" /></template>
+              注册
+            </a-button>
+          </a-form-item>
+        </a-form>
+      </div>
+    </div>
+  </StationRoomShell>
 </template>
 
 <style scoped>
-#userRegisterPage {
-  max-width: 420px;
-  margin: 24px auto;
-  padding: 24px;
-}
-
-.title {
-  text-align: center;
-  margin-bottom: 16px;
-  color: var(--color-text-primary);
-}
-
-.desc {
-  text-align: center;
-  color: var(--color-text-muted);
-  margin-bottom: 16px;
-}
-
-.tips {
-  margin-bottom: 16px;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  text-align: right;
-}
-
 .field-prefix-icon {
-  color: var(--color-text-muted);
-}
-
-#userRegisterPage :deep(.ant-btn-primary) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-#userRegisterPage :deep(.ant-btn-primary .anticon) {
-  display: inline-flex;
-  align-items: center;
-}
-
-#userRegisterPage :deep(.ant-input),
-#userRegisterPage :deep(.ant-input-affix-wrapper),
-#userRegisterPage :deep(.ant-btn),
-#userRegisterPage :deep(.ant-input-password) {
-  border-radius: var(--radius-md);
-}
-
-#userRegisterPage :deep(.ant-input),
-#userRegisterPage :deep(.ant-input-affix-wrapper) {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: var(--color-border);
-  color: var(--color-text-primary);
+  color: var(--ink-faint);
 }
 </style>

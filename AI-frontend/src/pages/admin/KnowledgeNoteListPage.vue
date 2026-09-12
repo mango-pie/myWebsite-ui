@@ -5,79 +5,106 @@ import { message, Modal } from 'ant-design-vue'
 import {
   deleteKnowledgeNote,
   listKnowledgeNotes,
+  listKnowledgeReadingJobs,
+  getKnowledgeReadingJob,
   redistillKnowledgeNote,
 } from '@/api/knowledge'
-import {
-  canIndexKb,
-  canPublishBlog,
-  canReindexKb,
-  canSyncBlog,
-  indexStatusColor,
-  indexStatusLabel,
-  publishStatusColor,
-  publishStatusLabel,
-  sourceTypeLabel,
-} from '@/utils/knowledgeNoteStatus'
+import { sourceTypeLabel } from '@/utils/knowledgeNoteStatus'
 import { loadReadingUxSettings } from '@/utils/readingSettings'
-import '@/assets/admin-theme.css'
-import { LayoutGrid, List as ListIcon, Plus, Settings, StickyNote } from 'lucide-vue-next'
-import IconAction from '@/components/ui/IconAction.vue'
-import KnowledgeStatBar from '@/components/knowledge/KnowledgeStatBar.vue'
-import KnowledgeNoteCard from '@/components/knowledge/KnowledgeNoteCard.vue'
+import ReadingRoomShell from '@/components/reading/ReadingRoomShell.vue'
 import {
   extractPageTotal,
   useKnowledgeNoteStats,
 } from '@/composables/useKnowledgeNoteStats'
+import {
+  isReadingJobInProgress,
+  readingJobProgressLabel,
+} from '@/composables/useKnowledgeSearchDraft'
 
 const router = useRouter()
 const route = useRoute()
 const loading = ref(false)
 const dataSource = ref<API.KnowledgeNoteVO[]>([])
 const total = ref(0)
+const selectedId = ref<string | number | null>(null)
+const filterKey = ref<'all' | 'published' | 'saved'>('all')
+/** 点搜索后即可在此看到的进行中 / 失败任务 */
+const pipelineJobs = ref<API.KnowledgeReadingJobVO[]>([])
+let jobPollTimer: ReturnType<typeof setInterval> | null = null
+const JOB_POLL_MS = 2000
 
 const {
   total: statsTotal,
   published: statsPublished,
   indexed: statsIndexed,
-  running: statsRunning,
-  loading: statsLoading,
   refresh: refreshStats,
   refreshRunning,
   syncTotalFromPage,
 } = useKnowledgeNoteStats()
 
+const query = reactive<API.KnowledgeNoteQueryRequest>({
+  pageNum: 1,
+  pageSize: 12,
+  keyword: undefined,
+  sourceType: undefined,
+  publishStatus: undefined,
+  indexStatus: undefined,
+})
+
 const hasActiveFilters = computed(
-  () =>
-    !!(
-      query.keyword ||
-      query.sourceType ||
-      query.publishStatus ||
-      query.indexStatus
-    ),
+  () => !!(query.keyword || query.sourceType || query.publishStatus || query.indexStatus),
 )
 
-const VIEW_KEY = 'kb-note-view'
-const viewMode = ref<'card' | 'list'>(
-  (typeof localStorage !== 'undefined' && localStorage.getItem(VIEW_KEY)) === 'list'
-    ? 'list'
-    : 'card',
-)
-const setViewMode = (mode: 'card' | 'list') => {
-  viewMode.value = mode
-  try {
-    localStorage.setItem(VIEW_KEY, mode)
-  } catch {
-    /* ignore */
+const selected = computed(() => {
+  if (selectedId.value == null) return dataSource.value[0] ?? null
+  return dataSource.value.find((x) => String(x.id) === String(selectedId.value)) ?? dataSource.value[0] ?? null
+})
+
+const totalPages = computed(() => Math.max(1, Math.ceil((total.value || 0) / (query.pageSize || 12))))
+
+const pageButtons = computed(() => {
+  const cur = query.pageNum || 1
+  const max = totalPages.value
+  const start = Math.max(1, Math.min(cur - 1, max - 2))
+  const pages: number[] = []
+  for (let i = start; i <= Math.min(max, start + 2); i++) pages.push(i)
+  return pages
+})
+
+const tagStats = computed(() => {
+  const map = new Map<string, number>()
+  for (const row of dataSource.value) {
+    const raw = (row.tags || '').split(/[,，;；\s]+/).map((t) => t.trim()).filter(Boolean)
+    for (const t of raw.slice(0, 6)) {
+      map.set(t, (map.get(t) || 0) + 1)
+    }
   }
+  return [...map.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([name, count]) => ({ name, count }))
+})
+
+const sourceStats = computed(() => {
+  const map = new Map<string, number>()
+  for (const row of dataSource.value) {
+    const key = sourceTypeLabel(row.sourceType)
+    map.set(key, (map.get(key) || 0) + 1)
+  }
+  return [...map.entries()].map(([name, count]) => ({ name, count }))
+})
+
+function applyRouteSourceFilter() {
+  const st = route.query.sourceType
+  if (typeof st === 'string' && st.trim()) query.sourceType = st.trim().toUpperCase()
 }
 
-const onStatFilter = (kind: 'published' | 'indexed' | 'total') => {
-  if (kind === 'total') {
-    query.keyword = undefined
-    query.sourceType = undefined
+const applyFilter = (key: 'all' | 'published' | 'saved') => {
+  filterKey.value = key
+  if (key === 'all') {
     query.publishStatus = undefined
     query.indexStatus = undefined
-  } else if (kind === 'published') {
+  } else if (key === 'published') {
     query.publishStatus = 'PUBLISHED'
     query.indexStatus = undefined
   } else {
@@ -88,31 +115,82 @@ const onStatFilter = (kind: 'published' | 'indexed' | 'total') => {
   fetchData()
 }
 
-const query = reactive<API.KnowledgeNoteQueryRequest>({
-  pageNum: 1,
-  pageSize: 10,
-  keyword: undefined,
-  sourceType: undefined,
-  publishStatus: undefined,
-  indexStatus: undefined,
-})
-
-function applyRouteSourceFilter() {
-  const st = route.query.sourceType
-  if (typeof st === 'string' && st.trim()) {
-    query.sourceType = st.trim().toUpperCase()
+const syncFilterKeyFromQuery = () => {
+  if (query.publishStatus === 'PUBLISHED' && !query.indexStatus) {
+    filterKey.value = 'published'
+  } else if (query.indexStatus === 'INDEXED' && !query.publishStatus) {
+    filterKey.value = 'saved'
+  } else if (!query.publishStatus && !query.indexStatus) {
+    filterKey.value = 'all'
+  } else {
+    filterKey.value = 'all'
   }
 }
 
-const columns = [
-  { title: '标题', dataIndex: 'title', ellipsis: true },
-  { title: '来源', dataIndex: 'sourceType', width: 90 },
-  { title: '标签', dataIndex: 'tags', width: 140, ellipsis: true },
-  { title: '博客状态', dataIndex: 'publishStatus', width: 110 },
-  { title: '知识库状态', dataIndex: 'indexStatus', width: 110 },
-  { title: '更新时间', dataIndex: 'updateTime', width: 180 },
-  { title: '操作', key: 'action', width: 200, fixed: 'right' as const },
-]
+const onSourceTypeChange = (value: string) => {
+  query.sourceType = value || undefined
+  query.pageNum = 1
+  fetchData()
+}
+
+const onPublishStatusChange = (value: string) => {
+  query.publishStatus = value || undefined
+  syncFilterKeyFromQuery()
+  query.pageNum = 1
+  fetchData()
+}
+
+const onIndexStatusChange = (value: string) => {
+  query.indexStatus = value || undefined
+  syncFilterKeyFromQuery()
+  query.pageNum = 1
+  fetchData()
+}
+
+const onSelectChange = (e: Event, handler: (value: string) => void) => {
+  const el = e.target as HTMLSelectElement | null
+  handler(el?.value ?? '')
+}
+
+const clearFilters = () => {
+  query.keyword = undefined
+  query.sourceType = undefined
+  query.publishStatus = undefined
+  query.indexStatus = undefined
+  filterKey.value = 'all'
+  query.pageNum = 1
+  fetchData()
+}
+
+const goPage = (n: number) => {
+  if (n < 1 || n > totalPages.value || n === query.pageNum) return
+  query.pageNum = n
+  fetchData()
+}
+
+const formatTime = (raw?: string) => {
+  if (!raw) return '—'
+  const s = raw.replace('T', ' ')
+  return s.length >= 16 ? s.slice(5, 16) : s.slice(0, 10)
+}
+
+const noteIdChip = (row: API.KnowledgeNoteVO) =>
+  row.id != null ? `#N${String(row.id).slice(-4).padStart(4, '0')}` : '#N----'
+
+const pubChip = (row: API.KnowledgeNoteVO) => {
+  const p = String(row.publishStatus || '').toUpperCase()
+  if (p === 'PUBLISHED') return { text: '已发博客', cls: 'pub' }
+  if (p === 'DRAFT_CREATED') return { text: '草稿', cls: 'src' }
+  return { text: '未发布', cls: 'none' }
+}
+
+const idxChip = (row: API.KnowledgeNoteVO) => {
+  const i = String(row.indexStatus || '').toUpperCase()
+  if (i === 'INDEXED') return { text: '已入库', cls: 'idx' }
+  if (i === 'REINDEX_REQUIRED') return { text: '需重建', cls: 'rev' }
+  if (i === 'INDEX_FAILED') return { text: '入库失败', cls: 'fail' }
+  return { text: '未入库', cls: 'none' }
+}
 
 const fetchData = async () => {
   loading.value = true
@@ -122,48 +200,85 @@ const fetchData = async () => {
       dataSource.value = res.data.data.records ?? []
       const pageTotal = extractPageTotal(res.data.data)
       total.value = pageTotal
-      // 无筛选时 KPI「总精读」与列表分页总数同源，避免两套数字
-      if (!hasActiveFilters.value) {
-        syncTotalFromPage(pageTotal)
+      if (!hasActiveFilters.value) syncTotalFromPage(pageTotal)
+      if (selectedId.value == null && dataSource.value[0]?.id != null) {
+        selectedId.value = dataSource.value[0].id
       }
-    } else {
-      message.error(res.data.message || '加载失败')
-    }
+    } else message.error(res.data.message || '加载失败')
   } finally {
     loading.value = false
   }
 }
 
-const onSearch = () => {
-  query.pageNum = 1
-  fetchData()
+const isJobVisibleInArticles = (job: API.KnowledgeReadingJobVO) => {
+  const status = String(job.status || '').toUpperCase()
+  if (status === 'SUCCESS' && job.noteId != null) return false
+  return true
 }
 
-const onReset = () => {
-  query.keyword = undefined
-  query.sourceType = undefined
-  query.publishStatus = undefined
-  query.indexStatus = undefined
-  query.pageNum = 1
-  fetchData()
+const jobTitle = (job: API.KnowledgeReadingJobVO) =>
+  job.title || job.goal || (job.jobId != null ? `任务 #${job.jobId}` : '未命名任务')
+
+const jobStatusText = (job: API.KnowledgeReadingJobVO) => {
+  const status = String(job.status || '').toUpperCase()
+  if (status === 'FAILED') return job.errorMsg || '失败'
+  if (status === 'SUCCESS') return '已完成'
+  return readingJobProgressLabel(job.progress) || '进行中'
 }
 
-const onTableChange = (pagination: { current?: number; pageSize?: number }) => {
-  query.pageNum = pagination.current ?? 1
-  query.pageSize = pagination.pageSize ?? 10
-  fetchData()
+const fetchPipelineJobs = async () => {
+  try {
+    const res = await listKnowledgeReadingJobs({ pageNum: 1, pageSize: 30 })
+    if (res.data.code === 0 && res.data.data) {
+      pipelineJobs.value = (res.data.data.records || []).filter(isJobVisibleInArticles)
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
-const onCardPageChange = (page: number, pageSize: number) => {
-  query.pageNum = page
-  query.pageSize = pageSize
-  fetchData()
+const pollPipelineJobs = async () => {
+  const active = pipelineJobs.value.filter((j) => isReadingJobInProgress(j))
+  if (!active.length) {
+    await fetchPipelineJobs()
+    return
+  }
+  await Promise.all(
+    active.map(async (job) => {
+      if (job.jobId == null) return
+      try {
+        const res = await getKnowledgeReadingJob(job.jobId)
+        if (res.data.code === 0 && res.data.data) {
+          const d = res.data.data
+          const idx = pipelineJobs.value.findIndex((j) => String(j.jobId) === String(job.jobId))
+          if (idx >= 0) pipelineJobs.value[idx] = d
+        }
+      } catch {
+        /* ignore */
+      }
+    }),
+  )
+  const before = pipelineJobs.value.length
+  pipelineJobs.value = pipelineJobs.value.filter(isJobVisibleInArticles)
+  if (pipelineJobs.value.length !== before) {
+    void fetchData()
+    void refreshStats()
+  }
 }
 
-const openDetail = (id?: number | string, action?: string) => {
+const openJob = (job: API.KnowledgeReadingJobVO) => {
+  const status = String(job.status || '').toUpperCase()
+  if (status === 'SUCCESS' && job.noteId != null) {
+    openDetail(job.noteId)
+    return
+  }
+  if (job.jobId == null) return
+  router.push({ path: '/admin/knowledge/ingest', query: { jobId: String(job.jobId) } })
+}
+
+const openDetail = (id?: number | string) => {
   if (id == null) return
-  const q = action ? `?action=${action}` : ''
-  router.push(`/admin/knowledge/notes/${id}${q}`)
+  router.push(`/admin/knowledge/notes/${id}`)
 }
 
 const runRedistill = async (row: API.KnowledgeNoteVO) => {
@@ -173,9 +288,7 @@ const runRedistill = async (row: API.KnowledgeNoteVO) => {
     message.success('重新蒸馏完成')
     void refreshStats()
     openDetail(res.data.data.note.id)
-  } else {
-    message.error(res.data.message || '重新蒸馏失败')
-  }
+  } else message.error(res.data.message || '重新蒸馏失败')
 }
 
 const handleRedistill = async (row: API.KnowledgeNoteVO) => {
@@ -186,7 +299,7 @@ const handleRedistill = async (row: API.KnowledgeNoteVO) => {
   }
   Modal.confirm({
     title: '重新蒸馏',
-    content: '重新蒸馏会覆盖当前 Markdown 内容。如果你已手动修改，修改内容会丢失。是否继续？',
+    content: '重新蒸馏会覆盖当前 Markdown 内容。是否继续？',
     onOk: () => runRedistill(row),
   })
 }
@@ -194,19 +307,17 @@ const handleRedistill = async (row: API.KnowledgeNoteVO) => {
 const handleDelete = (row: API.KnowledgeNoteVO) => {
   Modal.confirm({
     title: '删除精读',
-    content:
-      `确认删除「${row.title || row.id}」？将同时从领域树摘叶；若已发布为博客，关联博客也会一并删除。精读笔记本身不可恢复。`,
+    content: `确认删除「${row.title || row.id}」？`,
     okType: 'danger',
     onOk: async () => {
       if (row.id == null) return
       const res = await deleteKnowledgeNote(row.id)
       if (res.data.code === 0) {
         message.success('已删除')
+        if (String(selectedId.value) === String(row.id)) selectedId.value = null
         fetchData()
         void refreshStats()
-      } else {
-        message.error(res.data.message || '删除失败')
-      }
+      } else message.error(res.data.message || '删除失败')
     },
   })
 }
@@ -216,17 +327,15 @@ let runningTimer: ReturnType<typeof setInterval> | null = null
 onMounted(() => {
   applyRouteSourceFilter()
   void fetchData()
+  void fetchPipelineJobs()
   void refreshStats()
-  runningTimer = setInterval(() => {
-    void refreshRunning(true)
-  }, 5000)
+  runningTimer = setInterval(() => void refreshRunning(true), 5000)
+  jobPollTimer = setInterval(() => void pollPipelineJobs(), JOB_POLL_MS)
 })
 
 onBeforeUnmount(() => {
-  if (runningTimer) {
-    clearInterval(runningTimer)
-    runningTimer = null
-  }
+  if (runningTimer) clearInterval(runningTimer)
+  if (jobPollTimer) clearInterval(jobPollTimer)
 })
 
 watch(
@@ -240,322 +349,210 @@ watch(
 </script>
 
 <template>
-  <div class="kb-note-list-page admin-theme-page">
-    <!-- 面包屑 -->
-    <a-breadcrumb class="admin-breadcrumb">
-      <a-breadcrumb-item>管理</a-breadcrumb-item>
-      <a-breadcrumb-item>AI 精读工作台</a-breadcrumb-item>
-      <a-breadcrumb-item>精读列表</a-breadcrumb-item>
-    </a-breadcrumb>
-
-    <!-- 页面头部 -->
-    <div class="admin-page-hero">
-      <div class="hero-left">
-        <div class="hero-title"><StickyNote :size="22" /> 精读列表</div>
-        <div class="hero-subtitle">
-          <template v-if="hasActiveFilters">当前筛选 {{ total }} 条</template>
-          <template v-else>共 {{ total }} 条精读笔记</template>
-          · 管理你的 AI 精读成果
-        </div>
+  <ReadingRoomShell>
+    <div id="page-notes" class="notes-page" :aria-busy="loading">
+      <div class="page-title">
+        <h1 class="font-display">我的文章</h1>
+        <span class="sub">关键词 / 来源 / 博客状态 / 入库状态筛选</span>
       </div>
-      <div class="hero-extra">
-        <a-space>
-          <IconAction
-            :icon="Settings"
-            label="精读设置"
-            variant="soft"
-            motion="spin"
-            @click="router.push('/admin/settings/reading')"
-          />
-          <IconAction
-            :icon="Plus"
-            label="内容采集"
-            variant="primary"
-            size="lg"
-            motion="pop"
-            @click="router.push('/admin/knowledge/ingest')"
-          />
-        </a-space>
+
+      <div class="layout-3">
+        <aside class="side" aria-label="笔记侧栏">
+          <div class="side-card glass">
+            <span class="tape" />
+            <h3 class="font-display">精读概况</h3>
+            <div class="focus-kpi">
+              <div class="stat-pill"><div class="n">{{ statsTotal || total }}</div><div class="l">笔记</div></div>
+              <div class="stat-pill"><div class="n">{{ pipelineJobs.length }}</div><div class="l">进行中</div></div>
+            </div>
+            <div class="focus-kpi" style="margin-top: 8px">
+              <div class="stat-pill"><div class="n">{{ statsPublished }}</div><div class="l">已发博客</div></div>
+              <div class="stat-pill"><div class="n">{{ statsIndexed }}</div><div class="l">已入库</div></div>
+            </div>
+          </div>
+
+          <div class="cta-foot">
+            <div>
+              <div class="lbl font-display">去采集</div>
+              <div class="sub">搜索合蒸一篇</div>
+            </div>
+            <button type="button" class="chip-btn primary sm" @click="router.push('/admin/knowledge/ingest')">→</button>
+          </div>
+        </aside>
+
+        <main class="mid-bay" aria-label="文章列表">
+          <div class="notes-toolbar">
+            <div class="search-wrap">
+              <input
+                v-model="query.keyword"
+                placeholder="搜索标题 / 摘要…"
+                type="text"
+                @keydown.enter="query.pageNum = 1; fetchData()"
+              />
+            </div>
+            <div class="filter-row">
+              <button type="button" class="f-btn" :class="{ on: filterKey === 'all' }" @click="applyFilter('all')">全部</button>
+              <button type="button" class="f-btn" :class="{ on: filterKey === 'published' }" @click="applyFilter('published')">已发博客</button>
+              <button type="button" class="f-btn" :class="{ on: filterKey === 'saved' }" @click="applyFilter('saved')">已入库</button>
+            </div>
+          </div>
+
+          <div class="note-list-rows">
+            <div
+              v-for="job in pipelineJobs"
+              :key="`job-${job.jobId}`"
+              class="list-row is-job"
+              @click="openJob(job)"
+            >
+              <div class="lr-title">{{ jobTitle(job) }}</div>
+              <div class="lr-right">
+                <span class="lr-align" :class="{ warn: String(job.status || '').toUpperCase() === 'FAILED' }">
+                  {{ isReadingJobInProgress(job) ? '进行中' : '失败' }}
+                </span>
+              </div>
+              <div class="lr-meta">
+                <span class="chip src mono">JOB-{{ job.jobId }}</span>
+                <span class="chip" :class="String(job.status || '').toUpperCase() === 'FAILED' ? 'fail' : 'job'">
+                  {{ jobStatusText(job) }}
+                </span>
+              </div>
+            </div>
+
+            <div
+              v-for="row in dataSource"
+              :key="String(row.id)"
+              class="list-row"
+              :class="{ selected: String(row.id) === String(selected?.id) }"
+              @click="selectedId = row.id ?? null"
+              @dblclick="openDetail(row.id)"
+            >
+              <div class="lr-title">{{ row.title || `文章 #${row.id}` }}</div>
+              <div class="lr-right">
+                <span class="lr-time">{{ formatTime(row.updateTime || row.createTime) }}</span>
+              </div>
+              <div class="lr-meta">
+                <span class="chip src mono">{{ noteIdChip(row) }}</span>
+                <span class="chip src">{{ sourceTypeLabel(row.sourceType) }}</span>
+                <span class="chip" :class="pubChip(row).cls">{{ pubChip(row).text }}</span>
+                <span class="chip" :class="idxChip(row).cls">{{ idxChip(row).text }}</span>
+              </div>
+            </div>
+
+            <div v-if="!pipelineJobs.length && !dataSource.length && !loading" class="notes-empty">
+              还没有文章 · 去采集台点「开始搜索」合蒸一篇
+              <div style="margin-top: 10px">
+                <button type="button" class="chip-btn sm primary" @click="router.push('/admin/knowledge/ingest')">
+                  去采集
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="pager">
+            <span>共 <b>{{ total }}</b> 篇</span>
+            <button type="button" class="page-btn" :disabled="(query.pageNum || 1) <= 1" @click="goPage((query.pageNum || 1) - 1)">‹</button>
+            <button
+              v-for="p in pageButtons"
+              :key="p"
+              type="button"
+              class="page-btn"
+              :class="{ on: p === query.pageNum }"
+              @click="goPage(p)"
+            >
+              {{ p }}
+            </button>
+            <button type="button" class="page-btn" :disabled="(query.pageNum || 1) >= totalPages" @click="goPage((query.pageNum || 1) + 1)">›</button>
+          </div>
+        </main>
+
+        <aside class="deck" aria-label="笔记筛选栏">
+          <div class="deck-panel glass">
+            <span class="tape alt" />
+            <h3 class="font-display">状态筛选</h3>
+            <div class="col-stack">
+              <select
+                class="chip-btn sm"
+                style="appearance: auto; width: 100%; text-align: left; padding: 0 12px"
+                :value="query.publishStatus || ''"
+                @change="onSelectChange($event, onPublishStatusChange)"
+              >
+                <option value="">发布：全部</option>
+                <option value="NOT_PUBLISHED">未发布</option>
+                <option value="DRAFT_CREATED">草稿已建</option>
+                <option value="PUBLISHED">已发博客</option>
+                <option value="SYNC_REQUIRED">需同步</option>
+                <option value="SYNC_FAILED">同步失败</option>
+              </select>
+              <select
+                class="chip-btn sm"
+                style="appearance: auto; width: 100%; text-align: left; padding: 0 12px"
+                :value="query.indexStatus || ''"
+                @change="onSelectChange($event, onIndexStatusChange)"
+              >
+                <option value="">入库：全部</option>
+                <option value="NOT_INDEXED">未入库</option>
+                <option value="INDEXED">已入库</option>
+                <option value="REINDEX_REQUIRED">需重建</option>
+                <option value="INDEX_FAILED">入库失败</option>
+              </select>
+              <select
+                class="chip-btn sm"
+                style="appearance: auto; width: 100%; text-align: left; padding: 0 12px"
+                :value="query.sourceType || ''"
+                @change="onSelectChange($event, onSourceTypeChange)"
+              >
+                <option value="">来源：全部</option>
+                <option value="URL">URL</option>
+                <option value="FILE">文件</option>
+                <option value="AGENT">合蒸</option>
+              </select>
+              <button v-if="hasActiveFilters" type="button" class="chip-btn sm" @click="clearFilters">清除筛选</button>
+            </div>
+          </div>
+
+          <div class="deck-panel glass">
+            <h3 class="font-display">标签统计</h3>
+            <div v-if="tagStats.length" class="tag-cloud">
+              <span v-for="t in tagStats" :key="t.name" class="t">{{ t.name }}<b>{{ t.count }}</b></span>
+            </div>
+            <div v-else-if="sourceStats.length" class="tag-cloud">
+              <span v-for="t in sourceStats" :key="t.name" class="t">{{ t.name }}<b>{{ t.count }}</b></span>
+            </div>
+            <p v-else class="about">本页暂无标签</p>
+          </div>
+
+          <div class="deck-panel glass">
+            <h3 class="font-display">操作</h3>
+            <p class="about">选中后可打开审阅、再蒸馏或删除。</p>
+            <div class="col-stack" style="margin-top: 8px">
+              <button
+                type="button"
+                class="chip-btn sm primary"
+                :disabled="!selected?.id"
+                @click="openDetail(selected?.id)"
+              >
+                打开详情
+              </button>
+              <button
+                type="button"
+                class="chip-btn sm"
+                :disabled="!selected"
+                @click="selected && handleRedistill(selected)"
+              >
+                再蒸馏
+              </button>
+              <button
+                type="button"
+                class="chip-btn sm danger"
+                :disabled="!selected"
+                @click="selected && handleDelete(selected)"
+              >
+                删除
+              </button>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
-
-    <!-- KPI 概览 -->
-    <KnowledgeStatBar
-      :total="statsTotal"
-      :published="statsPublished"
-      :indexed="statsIndexed"
-      :running="statsRunning"
-      :loading="statsLoading"
-      @filter="onStatFilter"
-      @jobs="router.push('/admin/knowledge/jobs')"
-    />
-
-    <!-- 筛选栏 -->
-    <div class="admin-filter-bar">
-      <a-input
-        v-model:value="query.keyword"
-        allow-clear
-        placeholder="搜索标题 / URL / 标签…"
-        style="width: 220px"
-        @pressEnter="onSearch"
-      />
-      <a-select
-        v-model:value="query.sourceType"
-        allow-clear
-        placeholder="来源类型"
-        style="width: 130px"
-      >
-        <a-select-option value="URL">URL</a-select-option>
-        <a-select-option value="FILE">文件</a-select-option>
-        <a-select-option value="AGENT">AI 搜索</a-select-option>
-      </a-select>
-      <a-select
-        v-model:value="query.publishStatus"
-        allow-clear
-        placeholder="博客状态"
-        style="width: 140px"
-      >
-        <a-select-option value="NOT_PUBLISHED">未发布</a-select-option>
-        <a-select-option value="DRAFT_CREATED">草稿</a-select-option>
-        <a-select-option value="PUBLISHED">已发布</a-select-option>
-        <a-select-option value="SYNC_REQUIRED">需同步</a-select-option>
-        <a-select-option value="SYNC_FAILED">同步失败</a-select-option>
-      </a-select>
-      <a-select
-        v-model:value="query.indexStatus"
-        allow-clear
-        placeholder="知识库状态"
-        style="width: 140px"
-      >
-        <a-select-option value="NOT_INDEXED">未入库</a-select-option>
-        <a-select-option value="INDEXED">已入库</a-select-option>
-        <a-select-option value="REINDEX_REQUIRED">需重建</a-select-option>
-        <a-select-option value="INDEX_FAILED">入库失败</a-select-option>
-      </a-select>
-      <a-button type="primary" @click="onSearch">搜索</a-button>
-      <a-button @click="onReset">重置</a-button>
-
-      <div class="kb-view-toggle">
-        <button
-          type="button"
-          class="kb-view-toggle__btn"
-          :class="{ 'is-active': viewMode === 'card' }"
-          title="卡片视图"
-          @click="setViewMode('card')"
-        >
-          <LayoutGrid :size="18" :stroke-width="2" />
-        </button>
-        <button
-          type="button"
-          class="kb-view-toggle__btn"
-          :class="{ 'is-active': viewMode === 'list' }"
-          title="列表视图"
-          @click="setViewMode('list')"
-        >
-          <ListIcon :size="18" :stroke-width="2" />
-        </button>
-      </div>
-    </div>
-
-    <!-- 加载骨架屏 -->
-    <div v-if="loading" class="kb-card-grid">
-      <div v-for="n in 6" :key="n" class="kb-skeleton kb-skeleton-card" />
-    </div>
-
-    <!-- 卡片视图 -->
-    <template v-else-if="viewMode === 'card'">
-      <div v-if="dataSource.length" class="kb-card-grid kb-stagger">
-        <KnowledgeNoteCard
-          v-for="note in dataSource"
-          :key="note.id"
-          :note="note"
-          @open="openDetail"
-          @redistill="handleRedistill"
-          @delete="handleDelete"
-        />
-      </div>
-      <div v-else class="kb-empty-state">
-        <a-empty description="还没有精读笔记">
-          <template #children>
-            <IconAction
-              :icon="Plus"
-              label="去采集第一篇"
-              variant="primary"
-              motion="pop"
-              @click="router.push('/admin/knowledge/ingest')"
-            />
-          </template>
-        </a-empty>
-      </div>
-      <div v-if="dataSource.length" class="kb-card-pager">
-        <a-pagination
-          :current="query.pageNum"
-          :page-size="query.pageSize"
-          :total="total"
-          show-size-changer
-          :show-total="(t: number) => `共 ${t} 条`"
-          @change="onCardPageChange"
-        />
-      </div>
-    </template>
-
-    <!-- 列表视图 -->
-    <a-card v-else :bordered="false" style="margin-bottom: 0">
-      <a-table
-        row-key="id"
-        :columns="columns"
-        :data-source="dataSource"
-        :loading="loading"
-        :scroll="{ x: 1050 }"
-        :pagination="{
-          current: query.pageNum,
-          pageSize: query.pageSize,
-          total,
-          showSizeChanger: true,
-          showTotal: (t: number) => `共 ${t} 条`,
-        }"
-        @change="onTableChange"
-      >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.dataIndex === 'title'">
-            <a style="cursor: pointer" @click="openDetail(record.id)">{{ record.title || '（无标题）' }}</a>
-          </template>
-          <template v-else-if="column.dataIndex === 'sourceType'">
-            <a-tag>{{ sourceTypeLabel(record.sourceType) }}</a-tag>
-          </template>
-          <template v-else-if="column.dataIndex === 'publishStatus'">
-            <a-tag :color="publishStatusColor(record.publishStatus)">
-              {{ publishStatusLabel(record.publishStatus) }}
-            </a-tag>
-          </template>
-          <template v-else-if="column.dataIndex === 'indexStatus'">
-            <a-tag :color="indexStatusColor(record.indexStatus)">
-              {{ indexStatusLabel(record.indexStatus) }}
-            </a-tag>
-          </template>
-          <template v-else-if="column.dataIndex === 'tags'">
-            {{ record.tags || '-' }}
-          </template>
-          <template v-else-if="column.key === 'action'">
-            <a-space :size="4">
-              <a-button type="link" size="small" @click="openDetail(record.id)">预览</a-button>
-              <a-dropdown :trigger="['click']" placement="bottomRight">
-                <button class="admin-action-trigger" title="更多操作">···</button>
-                <template #overlay>
-                  <a-menu @click="({ key }: { key: string }) => {
-                    const actions: Record<string, () => void> = {
-                      publish: () => openDetail(record.id, 'publish'),
-                      sync: () => openDetail(record.id, 'sync'),
-                      index: () => openDetail(record.id, 'index'),
-                      reindex: () => openDetail(record.id, 'reindex'),
-                      redistill: () => handleRedistill(record),
-                      delete: () => handleDelete(record),
-                    }
-                    actions[key]?.()
-                  }">
-                    <a-menu-item v-if="canPublishBlog(record.publishStatus)" key="publish">
-                      发布博客
-                    </a-menu-item>
-                    <a-menu-item v-if="canSyncBlog(record.publishStatus)" key="sync">
-                      同步博客
-                    </a-menu-item>
-                    <a-menu-item v-if="canIndexKb(record.indexStatus)" key="index">
-                      加入知识库
-                    </a-menu-item>
-                    <a-menu-item v-if="canReindexKb(record.indexStatus)" key="reindex">
-                      重建索引
-                    </a-menu-item>
-                    <a-menu-item v-if="record.status === 'FAILED'" key="redistill">
-                      重新蒸馏
-                    </a-menu-item>
-                    <a-menu-divider />
-                    <a-menu-item key="delete" danger>
-                      <span style="color: var(--color-error)">删除</span>
-                    </a-menu-item>
-                  </a-menu>
-                </template>
-              </a-dropdown>
-            </a-space>
-          </template>
-        </template>
-
-        <!-- 空状态 -->
-        <template #emptyText>
-          <a-empty description="还没有精读笔记">
-            <template #children>
-              <a-button type="primary" @click="router.push('/admin/knowledge/ingest')">
-                去采集第一篇
-              </a-button>
-            </template>
-          </a-empty>
-        </template>
-      </a-table>
-    </a-card>
-  </div>
+  </ReadingRoomShell>
 </template>
-
-<style scoped>
-/* 标题链接 hover 效果 */
-.kb-note-list-page a:hover {
-  color: var(--color-primary-light) !important;
-}
-
-/* 表格行入场动画 */
-.kb-note-list-page :deep(.ant-table-tbody > tr) {
-  transition: background var(--transition-fast);
-}
-
-/* 空状态样式 */
-.kb-note-list-page :deep(.ant-empty) {
-  padding: 40px 0;
-}
-
-/* 视图切换 */
-.kb-view-toggle {
-  display: inline-flex;
-  margin-left: auto;
-  padding: 3px;
-  gap: 2px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-surface);
-}
-.kb-view-toggle__btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 30px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition:
-    background var(--transition-fast),
-    color var(--transition-fast);
-}
-.kb-view-toggle__btn:hover {
-  color: var(--color-text-primary);
-}
-.kb-view-toggle__btn.is-active {
-  background: var(--color-primary-12);
-  color: var(--color-primary-light);
-}
-
-/* 卡片分页与空态 */
-.kb-card-pager {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-.kb-empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 0;
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-surface);
-}
-</style>

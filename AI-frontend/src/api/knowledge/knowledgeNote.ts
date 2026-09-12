@@ -82,6 +82,23 @@ export async function deleteKnowledgeNote(
   })
 }
 
+/** PUT /admin/knowledge/notes/{noteId}/review-status — 复习状态流转 NEW/REVIEWING/MASTERED */
+export async function updateKnowledgeNoteReviewStatus(
+  noteId: number | string,
+  reviewStatus: string,
+  options?: { [key: string]: unknown },
+) {
+  return request<API.BaseResponseKnowledgeNoteVO>(
+    `/admin/knowledge/notes/${noteId}/review-status`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      data: { reviewStatus },
+      ...(options || {}),
+    },
+  )
+}
+
 /** POST /admin/knowledge/notes/{noteId}/redistill */
 export async function redistillKnowledgeNote(
   noteId: number | string,
@@ -149,7 +166,7 @@ export async function reindexKnowledgeNote(
   })
 }
 
-/** POST /admin/knowledge/search/preview */
+/** POST /admin/knowledge/search/preview — 同步调试用；产品主路径用 submitKnowledgeReadingSearch */
 export async function searchKnowledgePreview(
   body: API.KnowledgeSearchPreviewRequest,
   options?: { [key: string]: unknown },
@@ -163,7 +180,20 @@ export async function searchKnowledgePreview(
   })
 }
 
-/** POST /admin/knowledge/ingest/batch-url — 多源合并为 1 篇 note（默认 async 立即返回 job） */
+/** POST /admin/knowledge/reading-jobs/search — 异步搜索，立即返回 jobId */
+export async function submitKnowledgeReadingSearch(
+  body: API.KnowledgeSearchPreviewRequest,
+  options?: { [key: string]: unknown },
+) {
+  return request<API.BaseResponseKnowledgeReadingJobVO>('/admin/knowledge/reading-jobs/search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** POST /admin/knowledge/ingest/batch-url — 多源合并为 1 篇 note（可传 jobId 复用搜索任务） */
 export async function ingestKnowledgeBatchUrl(
   body: API.KnowledgeIngestBatchUrlRequest,
   options?: { [key: string]: unknown },
@@ -175,6 +205,21 @@ export async function ingestKnowledgeBatchUrl(
       headers: { 'Content-Type': 'application/json' },
       data: body,
       timeout: LONG_TIMEOUT,
+      ...(options || {}),
+    },
+  )
+}
+
+/** GET /admin/knowledge/reading-jobs — 当前用户任务分页列表 */
+export async function listKnowledgeReadingJobs(
+  params?: API.KnowledgeReadingJobQueryRequest,
+  options?: { [key: string]: unknown },
+) {
+  return request<API.BaseResponsePageKnowledgeReadingJobVO>(
+    '/admin/knowledge/reading-jobs',
+    {
+      method: 'GET',
+      params: { ...params },
       ...(options || {}),
     },
   )

@@ -20,13 +20,22 @@ export const MUSIC_COVER_FALLBACK = `data:image/svg+xml;charset=utf-8,${encodeUR
 
 const NETEASE_HOST_RE = /^https?:\/\/p\d\.music\.126\.net\//i;
 
+function isLocalMediaUrl(url: string) {
+  return /^(blob:|data:|file:|asset:)/i.test(url) || /asset\.localhost/i.test(url)
+}
+
 /**
- * 将网易云 CDN 封面转为开发环境代理路径（附带尺寸参数）
+ * 将网易云 CDN 封面转为开发环境代理路径（附带尺寸参数）。
+ * 本地 blob / 文件地址原样返回，不能加 param，否则封面无法加载。
  */
 export function toCoverDisplayUrl(url?: string | null): string {
   if (!url?.trim()) return '';
-  let normalized = url.trim();
-  if (!normalized.includes('param=')) {
+  const raw = url.trim();
+  if (isLocalMediaUrl(raw)) return raw;
+
+  let normalized = raw;
+  const isNetease = NETEASE_HOST_RE.test(normalized) || normalized.startsWith('/netease-img');
+  if (isNetease && !normalized.includes('param=')) {
     normalized += `${normalized.includes('?') ? '&' : '?'}param=300y300`;
   }
   if (NETEASE_HOST_RE.test(normalized)) {
@@ -41,10 +50,16 @@ export function toCoverDisplayUrl(url?: string | null): string {
 }
 
 /**
- * 从搜索/歌单结果解析封面：优先 album.picUrl，避免错误的 blur 接口
+ * 从搜索/歌单结果解析封面：优先 album.picUrl。
+ * 搜索接口经常没有 picUrl（仅有 picId），此时返回空，由 song/detail 补齐。
  */
-export function resolveNeteaseCover(album?: { picUrl?: string; picId?: number }, songPicUrl?: string): string {
-  const raw = album?.picUrl || songPicUrl || '';
+export function resolveNeteaseCover(
+  album?: { picUrl?: string; picId?: number },
+  songPicUrl?: string,
+): string {
+  const raw = (album?.picUrl || songPicUrl || '').trim();
+  if (!raw) return '';
+  if (/default|缺省|暂无/i.test(raw)) return '';
   return toCoverDisplayUrl(raw);
 }
 

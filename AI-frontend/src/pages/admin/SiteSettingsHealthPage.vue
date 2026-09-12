@@ -12,6 +12,7 @@ import {
   testSiteSettingHealth,
 } from '@/api/siteSettings'
 import SiteSettingsNav from '@/components/admin/SiteSettingsNav.vue'
+import StationRoomShell from '@/components/shared/StationRoomShell.vue'
 import '@/assets/admin-theme.css'
 
 const TARGET_LABELS: Record<string, string> = {
@@ -102,6 +103,7 @@ onMounted(async () => {
 </script>
 
 <template>
+  <StationRoomShell brand-path="/" note-label="Station · 依赖健康" room="settings">
   <div class="site-settings-page admin-theme-page">
     <a-breadcrumb class="admin-breadcrumb">
       <a-breadcrumb-item>
@@ -163,6 +165,7 @@ onMounted(async () => {
       </div>
     </a-spin>
   </div>
+  </StationRoomShell>
 </template>
 
 <style scoped>

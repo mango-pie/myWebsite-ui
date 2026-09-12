@@ -12,6 +12,18 @@ export async function getOpsUsageSummary(
   })
 }
 
+/** GET /admin/ops/usage/monthly — 月度视图（按天序列 + 场景/模型聚合） */
+export async function getOpsUsageMonthly(
+  params?: API.OpsUsageMonthlyQueryRequest,
+  options?: { [key: string]: unknown },
+) {
+  return request<API.BaseResponseOpsUsageMonthlyVO>('/admin/ops/usage/monthly', {
+    method: 'GET',
+    params: { ...params },
+    ...(options || {}),
+  })
+}
+
 /** GET /admin/ops/usage/logs */
 export async function pageOpsUsageLogs(
   params?: API.OpsUsageLogQueryRequest,

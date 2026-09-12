@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="morning">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>某某の小站 · 主页设计预览</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/zcool-kuaile@5/index.css">
+<style>
+/* ============================================================
+   设计系统 Design Tokens
+   ============================================================ */
+:root{
+  /* 中性 / 墨色 */
+  --ink:#4c5570;
+  --ink-soft:#7a83a0;
+  --ink-faint:#a5acc4;
+  --paper:#fffdf8;
+  --card:#ffffff;
+
+  /* 品牌点缀（五个房间各一色） */
+  --c-sakura:#f490ad;
+  --c-sakura-soft:#ffd9e4;
+  --c-violet:#9b8ce8;
+  --c-violet-soft:#e4dffd;
+  --c-lilac:#c79ae0;
+  --c-lilac-soft:#f2e2fa;
+  --c-blue:#6aaee8;
+  --c-blue-soft:#d8ebfb;
+  --c-mint:#5fc4a5;
+  --c-mint-soft:#d6f2e8;
+  --c-sun:#ffcf6e;
+
+  /* 阴影 */
+  --shadow-1:0 2px 6px rgba(96,116,168,.10), 0 10px 28px rgba(96,116,168,.12);
+  --shadow-2:0 4px 10px rgba(96,116,168,.14), 0 20px 48px rgba(96,116,168,.18);
+  --shadow-pop:0 6px 0 rgba(76,85,112,.10), 0 18px 40px rgba(96,116,168,.20);
+
+  /* 圆角 */
+  --r-lg:28px;
+  --r-md:20px;
+  --r-sm:14px;
+
+  /* 动效 */
+  --ease-spring:cubic-bezier(.34,1.56,.5,1);
+  --ease-out:cubic-bezier(.22,.8,.32,1);
+}
+
+/* 三时段主题 —— 只改“天空之窗”与页面氛围色 */
+:root[data-theme="morning"]{
+  --sky-1:#bfe6f7; --sky-2:#dcf2fb; --sky-3:#fff3df;
+  --glow:#ffe9a8; --glow-opacity:.85;
+  --star-opacity:0; --moon-opacity:0;
+  --page-1:#eaf6fc; --page-2:#fdeef2; --page-3:#f3effc;
+  --hill-1:#a8d8b9; --hill-2:#7ec8a0;
+}
+:root[data-theme="dusk"]{
+  --sky-1:#c9a8e0; --sky-2:#ffb7a8; --sky-3:#ffe3ae;
+  --glow:#ffb45e; --glow-opacity:.95;
+  --star-opacity:.25; --moon-opacity:0;
+  --page-1:#fbe9d9; --page-2:#fbdfe6; --page-3:#eee3f8;
+  --hill-1:#c98ba7; --hill-2:#a86f96;
+}
+:root[data-theme="night"]{
+  --sky-1:#2c3366; --sky-2:#5b5fa8; --sky-3:#a07cc0;
+  --glow:#f4ead2; --glow-opacity:.5;
+  --star-opacity:1; --moon-opacity:1;
+  --page-1:#dfe4f6; --page-2:#e9ddf2; --page-3:#d9e8f4;
+  --hill-1:#5a5f9e; --hill-2:#464b85;
+}
+
+/* ============================================================
+   基础
+   ============================================================ */
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Source Han Sans SC",sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(1200px 700px at 12% -10%, var(--page-2), transparent 60%),
+    radial-gradient(1000px 800px at 105% 110%, var(--page-3), transparent 55%),
+    linear-gradient(160deg, var(--page-1), var(--page-2) 55%, var(--page-3));
+  transition:background 1.2s var(--ease-out);
+  display:flex;align-items:center;justify-content:center;
+  -webkit-font-smoothing:antialiased;
+}
+.font-display{font-family:"ZCOOL KuaiLe","PingFang SC",sans-serif}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+/* ============================================================
+   1920×1080 画布（JS 自动缩放 + letterbox）
+   ============================================================ */
+#stage{
+  position:relative;width:1920px;height:1080px;flex:none;
+  transform-origin:center center;
+  border-radius:36px;overflow:hidden;
+  background:
+    radial-gradient(900px 520px at 8% -6%, rgba(255,255,255,.85), transparent 60%),
+    radial-gradient(760px 600px at 96% 4%, rgba(255,255,255,.5), transparent 55%),
+    radial-gradient(1000px 700px at 50% 118%, rgba(255,255,255,.55), transparent 60%),
+    linear-gradient(168deg, var(--page-1) 0%, var(--page-2) 52%, var(--page-3) 100%);
+  box-shadow:0 40px 120px rgba(70,80,130,.28);
+  transition:background 1.2s var(--ease-out);
+}
+/* 点阵纹理 —— 消灭“大面积单一色块”的第一层 */
+#stage::before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:radial-gradient(rgba(120,135,180,.14) 1.2px, transparent 1.3px);
+  background-size:26px 26px;
+  mask-image:linear-gradient(180deg, rgba(0,0,0,.9), rgba(0,0,0,.25) 55%, rgba(0,0,0,.7));
+}
+/* 斜向柔光带 */
+#stage::after{
+  content:"";position:absolute;inset:-20%;pointer-events:none;z-index:0;
+  background:linear-gradient(115deg, transparent 42%, rgba(255,255,255,.35) 50%, transparent 58%);
+}
+
+/* 漂浮装饰符号 */
+.deco{position:absolute;pointer-events:none;user-select:none;z-index:1;opacity:.8}
+.deco svg{display:block}
+
+/* ============================================================
+   顶栏
+   ============================================================ */
+#topbar{
+  position:relative;z-index:5;height:92px;padding:0 56px;
+  display:flex;align-items:center;gap:40px;
+}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-mark{
+  width:52px;height:52px;border-radius:18px;position:relative;
+  background:linear-gradient(140deg,var(--c-sakura),var(--c-violet));
+  box-shadow:var(--shadow-1), inset 0 2px 4px rgba(255,255,255,.5);
+  display:grid;place-items:center;transform:rotate(-6deg);
+}
+.brand-mark svg{width:28px;height:28px}
+.brand-name{font-size:26px;letter-spacing:1px}
+.brand-sub{font-size:12px;color:var(--ink-faint);letter-spacing:3px;margin-top:2px}
+
+#mainnav{
+  display:flex;gap:6px;margin:0 auto;
+  background:rgba(255,255,255,.72);backdrop-filter:blur(10px);
+  padding:7px;border-radius:999px;box-shadow:var(--shadow-1);
+  border:1.5px solid rgba(255,255,255,.9);
+}
+#mainnav button{
+  padding:10px 22px;border-radius:999px;font-size:16px;color:var(--ink-soft);
+  letter-spacing:2px;position:relative;transition:all .3s var(--ease-spring);
+}
+#mainnav button:hover{color:var(--ink);transform:translateY(-2px)}
+#mainnav button.active{
+  color:#fff;background:linear-gradient(135deg,var(--c-sakura),#f7b0c4);
+  box-shadow:0 6px 16px rgba(244,144,173,.45);
+}
+#mainnav button.active::after{
+  content:"";position:absolute;left:50%;bottom:4px;transform:translateX(-50%);
+  width:14px;height:3px;border-radius:2px;background:rgba(255,255,255,.85);
+}
+
+.top-right{display:flex;align-items:center;gap:16px}
+.clock-chip{
+  background:rgba(255,255,255,.72);backdrop-filter:blur(10px);
+  border:1.5px solid rgba(255,255,255,.9);border-radius:18px;
+  padding:8px 18px;box-shadow:var(--shadow-1);text-align:right;line-height:1.25;
+}
+.clock-time{font-size:20px;font-weight:700;letter-spacing:2px;font-variant-numeric:tabular-nums}
+.clock-date{font-size:11px;color:var(--ink-faint);letter-spacing:1px}
+.avatar{
+  width:52px;height:52px;border-radius:50%;position:relative;flex:none;
+  background:linear-gradient(140deg,var(--c-blue-soft),var(--c-violet-soft));
+  border:3px solid #fff;box-shadow:var(--shadow-1);
+  display:grid;place-items:center;font-size:20px;color:var(--c-violet);
+  font-family:"ZCOOL KuaiLe",sans-serif;
+}
+.avatar::after{
+  content:"";position:absolute;right:0;bottom:1px;width:13px;height:13px;border-radius:50%;
+  background:var(--c-mint);border:2.5px solid #fff;
+}
+
+/* ============================================================
+   主区域
+   ============================================================ */
+#main{
+  position:relative;z-index:4;height:648px;padding:18px 56px 0;
+  display:grid;grid-template-columns:1108px 1fr;gap:44px;
+}
+
+/* ——— 左侧 ——— */
+.hero{position:relative;padding-top:14px}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:10px;
+  background:#fff;border-radius:999px;padding:9px 20px 9px 12px;
+  box-shadow:var(--shadow-1);font-size:14px;color:var(--ink-soft);letter-spacing:2px;
+  border:1.5px dashed rgba(244,144,173,.55);
+}
+.hero-badge .dot{
+  width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+  background:linear-gradient(140deg,var(--c-sun),#ffdf9e);
+}
+.hero-badge .dot svg{width:14px;height:14px}
+
+.hero-title{
+  margin-top:26px;font-size:118px;line-height:1.04;letter-spacing:4px;
+  color:var(--ink);position:relative;width:max-content;
+}
+.hero-title .grad{
+  background:linear-gradient(120deg,#5f8fd6 0%, var(--c-violet) 42%, var(--c-sakura) 78%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 5px 0 rgba(255,255,255,.95)) drop-shadow(0 14px 22px rgba(155,140,232,.30));
+}
+.hero-title .jp{
+  position:absolute;left:6px;top:-26px;font-size:19px;letter-spacing:10px;color:var(--ink-faint);
+  font-family:inherit;white-space:nowrap;
+}
+.hero-title .sticker{
+  position:absolute;right:-88px;top:16px;transform:rotate(10deg);
+  background:#fff;border-radius:16px;padding:8px 14px;font-size:16px;letter-spacing:2px;
+  box-shadow:var(--shadow-1);color:var(--c-sakura);border:2px solid var(--c-sakura-soft);
+  white-space:nowrap;
+}
+.hero-sub{
+  margin-top:22px;font-size:21px;color:var(--ink-soft);letter-spacing:3px;
+  display:flex;align-items:center;gap:14px;
+}
+.hero-sub .line{width:56px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--c-sakura),transparent)}
+
+/* 一言卡 */
+.hitokoto{
+  margin-top:38px;width:760px;position:relative;
+  background:rgba(255,255,255,.82);backdrop-filter:blur(8px);
+  border-radius:var(--r-lg);padding:26px 34px 24px 84px;
+  box-shadow:var(--shadow-1);border:1.5px solid #fff;
+}
+.hitokoto::before{
+  content:"「";position:absolute;left:22px;top:2px;
+  font-family:"ZCOOL KuaiLe",serif;font-size:64px;color:var(--c-sakura);opacity:.85;
+}
+.hitokoto-text{font-size:20px;line-height:1.75;letter-spacing:1.5px;text-wrap:pretty}
+.hitokoto-from{margin-top:10px;font-size:13px;color:var(--ink-faint);letter-spacing:2px;text-align:right}
+.hitokoto .tape{
+  position:absolute;top:-13px;right:44px;width:104px;height:28px;transform:rotate(3deg);
+  background:repeating-linear-gradient(45deg, rgba(244,144,173,.5) 0 8px, rgba(244,144,173,.35) 8px 16px);
+  border-radius:4px;box-shadow:0 2px 5px rgba(0,0,0,.06);opacity:.9;
+}
+
+/* AI 实验输入 */
+.lab-card{
+  margin-top:30px;width:760px;background:rgba(255,255,255,.9);
+  border-radius:var(--r-lg);padding:24px 28px;box-shadow:var(--shadow-2);
+  border:1.5px solid #fff;position:relative;overflow:hidden;
+}
+.lab-card::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(300px 120px at 100% 0%, var(--c-violet-soft), transparent 70%),
+    radial-gradient(240px 120px at 0% 100%, var(--c-sakura-soft), transparent 70%);
+  opacity:.55;
+}
+.lab-head{position:relative;display:flex;align-items:baseline;gap:12px}
+.lab-title{font-size:22px;letter-spacing:2px}
+.lab-desc{font-size:13px;color:var(--ink-faint);letter-spacing:1px}
+.lab-inputrow{position:relative;display:flex;gap:12px;margin-top:16px}
+.lab-input{
+  flex:1;height:56px;border-radius:18px;border:2px solid #e8e4f5;outline:none;
+  padding:0 22px;font-size:16px;font-family:inherit;color:var(--ink);
+  background:#fff;transition:all .3s var(--ease-out);letter-spacing:1px;
+}
+.lab-input:focus{border-color:var(--c-violet);box-shadow:0 0 0 5px rgba(155,140,232,.16)}
+.lab-input::placeholder{color:var(--ink-faint)}
+.lab-go{
+  height:56px;padding:0 30px;border-radius:18px;font-size:17px;letter-spacing:3px;color:#fff;
+  font-family:"ZCOOL KuaiLe",sans-serif;
+  background:linear-gradient(135deg,var(--c-violet),var(--c-sakura));
+  box-shadow:0 8px 20px rgba(155,140,232,.45), inset 0 2px 3px rgba(255,255,255,.4);
+  transition:all .25s var(--ease-spring);position:relative;overflow:hidden;
+}
+.lab-go:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 14px 28px rgba(155,140,232,.55), inset 0 2px 3px rgba(255,255,255,.4)}
+.lab-go:active{transform:translateY(0) scale(.98)}
+.lab-chips{position:relative;display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.lab-chips span{
+  font-size:13px;padding:7px 16px;border-radius:999px;letter-spacing:1px;
+  background:#fff;border:1.5px solid #ece7f8;color:var(--ink-soft);
+  transition:all .25s var(--ease-spring);cursor:pointer;
+}
+.lab-chips span:hover{border-color:var(--c-violet);color:var(--c-violet);transform:translateY(-2px);box-shadow:var(--shadow-1)}
+
+/* ——— 右侧：天空之窗 ——— */
+.sky-window{
+  position:relative;height:100%;border-radius:36px;overflow:hidden;
+  border:10px solid #fff;box-shadow:var(--shadow-pop);
+  background:linear-gradient(180deg,var(--sky-1) 0%,var(--sky-2) 55%,var(--sky-3) 100%);
+  transition:background 1.2s var(--ease-out);
+}
+.sky-glow{
+  position:absolute;top:8%;right:12%;width:190px;height:190px;border-radius:50%;
+  background:radial-gradient(circle, var(--glow), transparent 68%);
+  opacity:var(--glow-opacity);transition:opacity 1.2s;filter:blur(2px);
+}
+.sky-moon{
+  position:absolute;top:9%;right:14%;width:74px;height:74px;border-radius:50%;
+  background:radial-gradient(circle at 34% 34%, #fffdf4, #f2ead6 70%);
+  box-shadow:0 0 40px 12px rgba(255,250,230,.55);
+  opacity:var(--moon-opacity);transition:opacity 1.2s;
+}
+.sky-moon::after{
+  content:"";position:absolute;left:18px;top:16px;width:14px;height:14px;border-radius:50%;
+  background:rgba(210,200,170,.5);box-shadow:26px 18px 0 -3px rgba(210,200,170,.45), 8px 34px 0 -5px rgba(210,200,170,.4);
+}
+.stars{position:absolute;inset:0;opacity:var(--star-opacity);transition:opacity 1.2s}
+.stars i{
+  position:absolute;width:4px;height:4px;border-radius:50%;background:#fff;
+  animation:twinkle 2.6s ease-in-out infinite;
+}
+@keyframes twinkle{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1.15)}}
+
+.cloud{position:absolute;opacity:.95;will-change:transform;transition:opacity .8s}
+.cloud i{
+  display:block;background:#fff;border-radius:999px;position:relative;
+  box-shadow:0 8px 24px rgba(140,160,210,.18);
+}
+.cloud i::before,.cloud i::after{content:"";position:absolute;background:#fff;border-radius:50%}
+.cloud.c1 i{width:150px;height:44px}
+.cloud.c1 i::before{width:60px;height:60px;left:24px;top:-30px}
+.cloud.c1 i::after{width:40px;height:40px;right:26px;top:-18px}
+.cloud.c2 i{width:110px;height:34px}
+.cloud.c2 i::before{width:44px;height:44px;left:18px;top:-22px}
+.cloud.c2 i::after{width:30px;height:30px;right:20px;top:-13px}
+.cloud.c3 i{width:190px;height:52px}
+.cloud.c3 i::before{width:76px;height:76px;left:32px;top:-38px}
+.cloud.c3 i::after{width:50px;height:50px;right:34px;top:-24px}
+.clouds-off .cloud{opacity:0}
+@keyframes drift{from{transform:translateX(-260px)}to{transform:translateX(860px)}}
+.cloud.c1{top:14%;animation:drift 46s linear infinite}
+.cloud.c2{top:30%;animation:drift 38s linear infinite;animation-delay:-18s;opacity:.75}
+.cloud.c3{top:6%;animation:drift 62s linear infinite;animation-delay:-34s;opacity:.85}
+
+/* 远山 */
+.hills{position:absolute;left:0;right:0;bottom:0;height:44%}
+.hills svg{width:100%;height:100%;display:block}
+
+/* 立绘占位 */
+.standee{
+  position:absolute;right:36px;bottom:19%;width:240px;height:360px;
+  border:3px dashed rgba(255,255,255,.95);border-radius:24px;
+  background:rgba(255,255,255,.16);backdrop-filter:blur(2px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  color:#fff;text-shadow:0 2px 8px rgba(90,100,160,.4);
+  transform:rotate(2deg);
+}
+.standee .frame-label{font-size:17px;letter-spacing:3px}
+.standee .frame-size{font-size:12px;letter-spacing:2px;opacity:.85}
+.standee svg{width:44px;height:44px;opacity:.9}
+
+/* 漂浮拍立得 */
+.polaroid{
+  position:absolute;background:#fff;border-radius:10px;padding:9px 9px 30px;
+  box-shadow:0 10px 26px rgba(90,100,160,.28);width:132px;
+  transition:transform .4s var(--ease-spring);
+}
+.polaroid:hover{transform:rotate(0deg) scale(1.08) !important;z-index:9}
+.polaroid .ph{
+  height:96px;border-radius:6px;position:relative;overflow:hidden;
+}
+.polaroid .cap{
+  position:absolute;left:0;right:0;bottom:7px;text-align:center;font-size:11px;color:var(--ink-soft);
+  letter-spacing:1px;
+}
+.polaroid.p1{left:26px;top:14%;transform:rotate(-7deg);animation:floaty 5.2s ease-in-out infinite}
+.polaroid.p2{left:60px;top:44%;transform:rotate(5deg);animation:floaty 6.4s ease-in-out infinite;animation-delay:-2s;width:118px}
+.polaroid.p2 .ph{height:80px}
+@keyframes floaty{0%,100%{margin-top:0}50%{margin-top:-14px}}
+
+/* 迷你播放器 */
+.mini-player{
+  position:absolute;left:24px;right:24px;bottom:20px;height:74px;
+  background:rgba(255,255,255,.82);backdrop-filter:blur(12px);
+  border-radius:20px;border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:0 10px 26px rgba(90,100,160,.22);
+  display:flex;align-items:center;gap:14px;padding:0 18px;
+}
+.mp-cover{
+  width:48px;height:48px;border-radius:14px;flex:none;position:relative;overflow:hidden;
+  background:conic-gradient(from 200deg, var(--c-sakura), var(--c-sun), var(--c-mint), var(--c-blue), var(--c-violet), var(--c-sakura));
+  box-shadow:inset 0 0 0 3px rgba(255,255,255,.7);
+}
+.mp-cover::after{content:"";position:absolute;inset:16px;border-radius:50%;background:#fff}
+.mp-info{flex:1;min-width:0}
+.mp-title{font-size:15px;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mp-artist{font-size:11px;color:var(--ink-faint);letter-spacing:1px;margin-top:3px}
+.mp-eq{display:flex;align-items:flex-end;gap:3px;height:22px;margin-right:4px}
+.mp-eq i{width:4px;border-radius:2px;background:linear-gradient(180deg,var(--c-sakura),var(--c-violet));animation:eq 1s ease-in-out infinite}
+.mp-eq i:nth-child(1){height:40%;animation-delay:0s}
+.mp-eq i:nth-child(2){height:90%;animation-delay:.15s}
+.mp-eq i:nth-child(3){height:60%;animation-delay:.3s}
+.mp-eq i:nth-child(4){height:100%;animation-delay:.45s}
+.mp-eq i:nth-child(5){height:50%;animation-delay:.6s}
+@keyframes eq{0%,100%{transform:scaleY(.5)}50%{transform:scaleY(1)}}
+.mp-btn{
+  width:42px;height:42px;border-radius:50%;flex:none;display:grid;place-items:center;color:#fff;
+  background:linear-gradient(140deg,var(--c-sakura),var(--c-violet));
+  box-shadow:0 6px 14px rgba(244,144,173,.45);transition:transform .25s var(--ease-spring);
+}
+.mp-btn:hover{transform:scale(1.12)}
+.mp-btn svg{width:16px;height:16px}
+
+/* ============================================================
+   底部：五个房间票根
+   ============================================================ */
+#rooms{
+  position:relative;z-index:4;height:308px;padding:26px 56px 46px;
+  display:grid;grid-template-columns:repeat(5,1fr);gap:26px;
+}
+.room{
+  position:relative;background:var(--card);border-radius:24px;padding:22px 24px;
+  box-shadow:var(--shadow-1);border:1.5px solid #fff;
+  display:flex;flex-direction:column;transition:all .35s var(--ease-spring);
+  overflow:hidden;
+}
+.room:nth-child(odd){transform:rotate(-1.4deg)}
+.room:nth-child(even){transform:rotate(1.2deg)}
+.room:hover{transform:rotate(0deg) translateY(-10px) scale(1.03);box-shadow:var(--shadow-2);z-index:5}
+.room::before{ /* 顶部水彩条 */
+  content:"";position:absolute;top:0;left:0;right:0;height:8px;
+  background:linear-gradient(90deg, var(--ac), var(--ac-soft));
+}
+.room::after{ /* 角落光斑 */
+  content:"";position:absolute;right:-40px;bottom:-40px;width:130px;height:130px;border-radius:50%;
+  background:radial-gradient(circle, var(--ac-soft), transparent 70%);opacity:.7;
+}
+.room .tape{
+  position:absolute;top:-10px;left:50%;transform:translateX(-50%) rotate(-2deg);
+  width:84px;height:24px;border-radius:4px;z-index:2;
+  background:repeating-linear-gradient(45deg, var(--ac-tape) 0 7px, transparent 7px 14px), rgba(255,255,255,.55);
+  box-shadow:0 2px 5px rgba(0,0,0,.08);opacity:.95;
+}
+.room-top{display:flex;align-items:center;gap:14px;margin-top:6px}
+.room-icon{
+  width:52px;height:52px;border-radius:17px;flex:none;display:grid;place-items:center;
+  background:linear-gradient(145deg, var(--ac-soft), #fff);
+  border:2px solid var(--ac-soft);color:var(--ac);
+  box-shadow:inset 0 2px 4px #fff;
+}
+.room-icon svg{width:26px;height:26px}
+.room-name{font-size:24px;letter-spacing:3px}
+.room-en{font-size:10px;color:var(--ink-faint);letter-spacing:2.5px;text-transform:uppercase;margin-top:2px}
+.room-hint{margin-top:14px;font-size:14px;color:var(--ink-soft);letter-spacing:1px;line-height:1.6}
+.room-meta{
+  margin-top:auto;padding-top:12px;display:flex;align-items:center;justify-content:space-between;
+  border-top:1.5px dashed #ece7f5;
+}
+.room-meta .m{font-size:12px;color:var(--ink-faint);letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%}
+.room-arrow{
+  width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:var(--ac-soft);color:var(--ac);transition:all .3s var(--ease-spring);
+}
+.room:hover .room-arrow{background:var(--ac);color:#fff;transform:rotate(-40deg)}
+.room-arrow svg{width:14px;height:14px}
+
+/* 房间配色 */
+.room.r-blog{--ac:var(--c-sakura);--ac-soft:var(--c-sakura-soft);--ac-tape:rgba(244,144,173,.4)}
+.room.r-lab{--ac:var(--c-violet);--ac-soft:var(--c-violet-soft);--ac-tape:rgba(155,140,232,.4)}
+.room.r-diary{--ac:var(--c-lilac);--ac-soft:var(--c-lilac-soft);--ac-tape:rgba(199,154,224,.4)}
+.room.r-know{--ac:var(--c-blue);--ac-soft:var(--c-blue-soft);--ac-tape:rgba(106,174,232,.4)}
+.room.r-chat{--ac:var(--c-mint);--ac-soft:var(--c-mint-soft);--ac-tape:rgba(95,196,165,.4)}
+
+/* ============================================================
+   花瓣画布 / 入场动画
+   ============================================================ */
+#petals{position:absolute;inset:0;z-index:8;pointer-events:none}
+.petals-off #petals{display:none}
+
+@keyframes riseIn{from{opacity:0;transform:translateY(34px)}to{opacity:1;transform:translateY(0)}}
+.anim{opacity:0;animation:riseIn .9s var(--ease-out) forwards}
+
+/* ============================================================
+   Tweaks 面板
+   ============================================================ */
+#tweaks{position:fixed;right:28px;bottom:28px;z-index:99;font-size:14px}
+#tweaks .panel{
+  width:264px;background:rgba(255,255,255,.94);backdrop-filter:blur(14px);
+  border-radius:22px;box-shadow:0 20px 60px rgba(70,80,130,.35);border:1.5px solid #fff;
+  padding:18px 20px 20px;display:none;
+}
+#tweaks.open .panel{display:block;animation:riseIn .35s var(--ease-out)}
+#tweaks h4{font-size:13px;letter-spacing:3px;color:var(--ink-faint);margin-bottom:14px;font-weight:600}
+#tweaks .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+#tweaks .row:last-child{margin-bottom:0}
+#tweaks label{color:var(--ink-soft);letter-spacing:1px}
+.seg{display:flex;background:#f0edf9;border-radius:999px;padding:3px;gap:2px}
+.seg button{padding:6px 12px;border-radius:999px;font-size:12px;color:var(--ink-soft);letter-spacing:1px;transition:all .25s}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(90,100,160,.18)}
+.switch{position:relative;width:46px;height:26px;border-radius:999px;background:#e3def2;transition:background .3s;flex:none}
+.switch.on{background:linear-gradient(90deg,var(--c-sakura),var(--c-violet))}
+.switch::after{
+  content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;
+  box-shadow:0 2px 6px rgba(0,0,0,.2);transition:transform .3s var(--ease-spring);
+}
+.switch.on::after{transform:translateX(20px)}
+#tweaks .fab{
+  position:absolute;right:0;bottom:0;height:46px;padding:0 20px;border-radius:999px;
+  background:rgba(255,255,255,.94);backdrop-filter:blur(14px);color:var(--ink);
+  box-shadow:0 12px 34px rgba(70,80,130,.35);border:1.5px solid #fff;
+  font-size:14px;letter-spacing:2px;display:flex;align-items:center;gap:8px;
+  transition:transform .25s var(--ease-spring);
+}
+#tweaks .fab:hover{transform:translateY(-3px)}
+#tweaks.open .fab{display:none}
+#tweaks .fab svg{width:16px;height:16px}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <!-- 装饰符号 -->
+  <div class="deco" style="left:1180px;top:120px;animation:floaty 6s ease-in-out infinite">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4L12 2z" fill="#ffcf6e" opacity=".9"/></svg>
+  </div>
+  <div class="deco" style="left:80px;top:640px;animation:floaty 7s ease-in-out infinite;animation-delay:-3s">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4L12 2z" fill="#f490ad" opacity=".7"/></svg>
+  </div>
+  <div class="deco" style="left:980px;top:760px;animation:floaty 8s ease-in-out infinite;animation-delay:-1.5s">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#9b8ce8" stroke-width="3" opacity=".55"/></svg>
+  </div>
+
+  <!-- 顶栏 -->
+  <header id="topbar" class="anim" style="animation-delay:.05s">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4L12 2z" fill="#fff"/></svg>
+      </div>
+      <div>
+        <div class="brand-name font-display">某某の小站</div>
+        <div class="brand-sub">MOUMOU NO STATION</div>
+      </div>
+    </div>
+    <nav id="mainnav">
+      <button class="active">首页</button>
+      <button>随笔</button>
+      <button>日记</button>
+      <button>知识库</button>
+      <button>实验室</button>
+      <button>对话</button>
+    </nav>
+    <div class="top-right">
+      <div class="clock-chip">
+        <div class="clock-time" id="clockTime">--:--</div>
+        <div class="clock-date" id="clockDate">----年--月--日</div>
+      </div>
+      <div class="avatar">某</div>
+    </div>
+  </header>
+
+  <!-- 主区域 -->
+  <section id="main">
+    <div class="hero">
+      <span class="hero-badge anim" style="animation-delay:.15s">
+        <span class="dot">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" stroke="#b8860b" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </span>
+        今天也要元气满满
+      </span>
+
+      <h1 class="hero-title font-display anim" style="animation-delay:.25s">
+        <span class="jp">モウモウ ノ ステーション</span>
+        <span class="grad">某某の小站</span>
+        <span class="sticker font-display">欢迎来到我的小世界 ♪</span>
+      </h1>
+
+      <p class="hero-sub anim" style="animation-delay:.35s">
+        <span class="line"></span>
+        在代码、笔记与灵感实验间穿梭
+      </p>
+
+      <div class="hitokoto anim" style="animation-delay:.45s">
+        <span class="tape"></span>
+        <p class="hitokoto-text" id="hitokotoText">风把云揉成棉花糖的形状，落在窗台上的光是今天下午茶。</p>
+        <p class="hitokoto-from" id="hitokotoFrom">—— 每日一言</p>
+      </div>
+
+      <div class="lab-card anim" style="animation-delay:.55s">
+        <div class="lab-head">
+          <span class="lab-title font-display">AI 实验室</span>
+          <span class="lab-desc">用一句话描述想法，生成可运行的小应用</span>
+        </div>
+        <div class="lab-inputrow">
+          <input class="lab-input" placeholder="例如：做一个简洁的个人待办清单，支持添加和勾选完成……">
+          <button class="lab-go">生成 ✦</button>
+        </div>
+        <div class="lab-chips">
+          <span>个人主页</span><span>待办清单</span><span>读书笔记卡片</span><span>暗黑风格仪表盘</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 天空之窗 -->
+    <div class="sky-window anim" style="animation-delay:.4s" id="skyWindow">
+      <div class="stars" id="stars"></div>
+      <div class="sky-glow"></div>
+      <div class="sky-moon"></div>
+      <div class="cloud c1"><i></i></div>
+      <div class="cloud c2"><i></i></div>
+      <div class="cloud c3"><i></i></div>
+
+      <div class="hills">
+        <svg viewBox="0 0 700 300" preserveAspectRatio="none">
+          <path d="M0,190 C90,120 190,110 290,160 C380,205 470,130 560,150 C630,165 680,200 700,210 L700,300 L0,300 Z" fill="var(--hill-1)" opacity=".65"/>
+          <path d="M0,240 C110,180 230,175 330,215 C430,255 540,195 640,225 C675,236 695,248 700,252 L700,300 L0,300 Z" fill="var(--hill-2)"/>
+        </svg>
+      </div>
+
+      <div class="polaroid p1">
+        <div class="ph" style="background:linear-gradient(160deg,#ffd9e4,#bfe6f7)"></div>
+        <div class="cap">春日散步 ♪</div>
+      </div>
+      <div class="polaroid p2">
+        <div class="ph" style="background:linear-gradient(160deg,#d8ebfb,#e4dffd)"></div>
+        <div class="cap">云的标本</div>
+      </div>
+
+      <div class="standee">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-4.5-4.5L7 20"/>
+        </svg>
+        <span class="frame-label font-display">角色立绘占位</span>
+        <span class="frame-size">建议比例 3 : 4 · PNG 透明底</span>
+      </div>
+
+      <div class="mini-player">
+        <div class="mp-cover"></div>
+        <div class="mp-info">
+          <div class="mp-title">背景轻音乐 · 一</div>
+          <div class="mp-artist">氛围 / 午后电台</div>
+        </div>
+        <div class="mp-eq"><i></i><i></i><i></i><i></i><i></i></div>
+        <button class="mp-btn" id="mpBtn" aria-label="播放/暂停">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 五个房间 -->
+  <section id="rooms">
+    <div class="room r-blog anim" style="animation-delay:.6s">
+      <span class="tape"></span>
+      <div class="room-top">
+        <div class="room-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h6a4 4 0 0 1 4 4v12a3 3 0 0 0-3-3H2zM22 4h-6a4 4 0 0 0-4 4v12a3 3 0 0 1 3-3h7z"/></svg>
+        </div>
+        <div><div class="room-name font-display">随笔</div><div class="room-en">Journal</div></div>
+      </div>
+      <p class="room-hint">杂志式阅读与记录</p>
+      <div class="room-meta">
+        <span class="m">最近：今夜也在写代码</span>
+        <span class="room-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </div>
+    </div>
+
+    <div class="room r-lab anim" style="animation-delay:.68s">
+      <span class="tape"></span>
+      <div class="room-top">
+        <div class="room-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6.3L4.7 18a2 2 0 0 0 1.8 3h11a2 2 0 0 0 1.8-3L14 9.3V3"/><path d="M7.5 14h9"/></svg>
+        </div>
+        <div><div class="room-name font-display">实验室</div><div class="room-en">Lab</div></div>
+      </div>
+      <p class="room-hint">一句话生成小应用</p>
+      <div class="room-meta">
+        <span class="m">生成可运行的小应用</span>
+        <span class="room-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </div>
+    </div>
+
+    <div class="room r-diary anim" style="animation-delay:.76s">
+      <span class="tape"></span>
+      <div class="room-top">
+        <div class="room-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+        </div>
+        <div><div class="room-name font-display">日记</div><div class="room-en">Diary</div></div>
+      </div>
+      <p class="room-hint">写给自己的手账</p>
+      <div class="room-meta">
+        <span class="m">打开今日手账</span>
+        <span class="room-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </div>
+    </div>
+
+    <div class="room r-know anim" style="animation-delay:.84s">
+      <span class="tape"></span>
+      <div class="room-top">
+        <div class="room-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5zM20 17v5H6.5a2.5 2.5 0 0 1 0-5"/></svg>
+        </div>
+        <div><div class="room-name font-display">知识库</div><div class="room-en">Library</div></div>
+      </div>
+      <p class="room-hint">文档与问答</p>
+      <div class="room-meta">
+        <span class="m">检索与问答</span>
+        <span class="room-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </div>
+    </div>
+
+    <div class="room r-chat anim" style="animation-delay:.92s">
+      <span class="tape"></span>
+      <div class="room-top">
+        <div class="room-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.5L3 21l2-5.6A8.5 8.5 0 1 1 21 11.5z"/><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01"/></svg>
+        </div>
+        <div><div class="room-name font-display">对话</div><div class="room-en">Chat</div></div>
+      </div>
+      <p class="room-hint">继续未完的交谈</p>
+      <div class="room-meta">
+        <span class="m">进入对话工作台</span>
+        <span class="room-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </div>
+    </div>
+  </section>
+
+  <canvas id="petals"></canvas>
+</div>
+
+<!-- Tweaks -->
+<div id="tweaks">
+  <div class="panel">
+    <h4>TWEAKS</h4>
+    <div class="row">
+      <label>时段主题</label>
+      <div class="seg" id="themeSeg">
+        <button data-theme="morning" class="on">清晨</button>
+        <button data-theme="dusk">黄昏</button>
+        <button data-theme="night">星夜</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>樱花瓣</label>
+      <button class="switch on" id="petalSwitch" aria-label="花瓣开关"></button>
+    </div>
+    <div class="row">
+      <label>云朵飘动</label>
+      <button class="switch on" id="cloudSwitch" aria-label="云朵开关"></button>
+    </div>
+  </div>
+  <button class="fab" id="tweaksFab">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2.4"/><circle cx="8" cy="16" r="2.4"/></svg>
+    Tweaks
+  </button>
+</div>
+
+<script>
+/* ================= 画布自适应缩放 ================= */
+const stage = document.getElementById('stage');
+function fit(){
+  const s = Math.min(innerWidth/1920, innerHeight/1080);
+  stage.style.transform = `scale(${s})`;
+}
+addEventListener('resize', fit); fit();
+
+/* ================= 时钟 ================= */
+const timeEl = document.getElementById('clockTime');
+const dateEl = document.getElementById('clockDate');
+const weekCN = ['日','一','二','三','四','五','六'];
+function tick(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,'0');
+  timeEl.textContent = `${p(d.getHours())}:${p(d.getMinutes())}`;
+  dateEl.textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 · 周${weekCN[d.getDay()]}`;
+}
+tick(); setInterval(tick, 1000);
+
+/* ================= 星星 ================= */
+const starsBox = document.getElementById('stars');
+for(let i=0;i<34;i++){
+  const s = document.createElement('i');
+  s.style.left = Math.random()*100+'%';
+  s.style.top = Math.random()*62+'%';
+  s.style.animationDelay = (Math.random()*2.6)+'s';
+  const sz = 2+Math.random()*3;
+  s.style.width = s.style.height = sz+'px';
+  starsBox.appendChild(s);
+}
+
+/* ================= 樱花瓣 ================= */
+const cv = document.getElementById('petals');
+const ctx = cv.getContext('2d');
+cv.width = 1920; cv.height = 1080;
+const PETAL_COLORS = ['#ffc2d4','#ffd9e4','#ffabc5','#ffe3ec'];
+const petals = Array.from({length:26}, () => spawn(true));
+function spawn(anyY){
+  return {
+    x: Math.random()*1920,
+    y: anyY ? Math.random()*1080 : -30,
+    r: 6+Math.random()*8,
+    vy: .5+Math.random()*1.1,
+    vx: -.3+Math.random()*.6,
+    rot: Math.random()*Math.PI*2,
+    vr: -.02+Math.random()*.04,
+    sway: Math.random()*Math.PI*2,
+    color: PETAL_COLORS[Math.floor(Math.random()*PETAL_COLORS.length)]
+  };
+}
+let petalsOn = true;
+function drawPetals(){
+  ctx.clearRect(0,0,1920,1080);
+  if(petalsOn){
+    for(let i=0;i<petals.length;i++){
+      const p = petals[i];
+      p.sway += .02;
+      p.x += p.vx + Math.sin(p.sway)*.6;
+      p.y += p.vy;
+      p.rot += p.vr;
+      if(p.y > 1120 || p.x < -40 || p.x > 1960) petals[i] = spawn(false);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = .9;
+      ctx.beginPath(); // 花瓣形：两片弧
+      ctx.moveTo(0, -p.r);
+      ctx.quadraticCurveTo(p.r*.9, -p.r*.3, 0, p.r);
+      ctx.quadraticCurveTo(-p.r*.9, -p.r*.3, 0, -p.r);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+  requestAnimationFrame(drawPetals);
+}
+drawPetals();
+
+/* ================= Tweaks ================= */
+const tweaks = document.getElementById('tweaks');
+document.getElementById('tweaksFab').addEventListener('click', () => tweaks.classList.add('open'));
+document.addEventListener('click', e => {
+  if(!tweaks.contains(e.target)) tweaks.classList.remove('open');
+});
+document.getElementById('themeSeg').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if(!btn) return;
+  document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b===btn));
+  document.documentElement.dataset.theme = btn.dataset.theme;
+});
+document.getElementById('petalSwitch').addEventListener('click', function(){
+  this.classList.toggle('on');
+  petalsOn = this.classList.contains('on');
+});
+document.getElementById('cloudSwitch').addEventListener('click', function(){
+  this.classList.toggle('on');
+  document.getElementById('skyWindow').classList.toggle('clouds-off', !this.classList.contains('on'));
+});
+
+/* ================= 迷你播放器（视觉演示） ================= */
+const mpBtn = document.getElementById('mpBtn');
+const eq = document.querySelector('.mp-eq');
+let playing = true;
+mpBtn.addEventListener('click', () => {
+  playing = !playing;
+  eq.style.opacity = playing ? 1 : .25;
+  eq.style.animationPlayState = playing ? 'running' : 'paused';
+  mpBtn.innerHTML = playing
+    ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+});
+</script>
+</body>
+</html>

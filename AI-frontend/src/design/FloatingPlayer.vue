@@ -1,32 +1,80 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, defineComponent, h, nextTick, watch } from 'vue';
-import { useAudioPlayer } from './useAudioPlayer';
-import { searchMusic, getSongUrl, type Song } from '@/integrations/neteaseMusic';
+import { usePulsePlayer } from '@/composables/usePulsePlayer';
+import { searchMusic, type Song } from '@/integrations/neteaseMusic';
 import { useNeteaseLogin } from './useNeteaseLogin';
-import { applyCoverFallback, toCoverDisplayUrl } from '@/utils/musicCover';
+import { applyCoverFallback } from '@/utils/musicCover';
 
 const emit = defineEmits<{
   (e: 'openLyric'): void;
 }>();
 
-const { 
-  state, 
-  togglePlay, 
-  playNext, 
-  playPrev, 
-  playAtIndex,
-  setSeekingProgress,
-  commitSeekingProgress,
-  cancelSeekingProgress,
-  setVolume,
-  adjustVolume,
-  toggleMute,
-  cyclePlayMode,
-  addToPlaylist,
-  removeFromPlaylist,
-  initPlayer,
-  cleanupPlayer,
-} = useAudioPlayer();
+const p = usePulsePlayer();
+const seekingProgress = ref<number | null>(null);
+
+const state = computed(() => {
+  const track = p.currentTrack.value;
+  const queue = p.queueTracks.value;
+  return {
+    currentSong: track
+      ? {
+          id: track.id,
+          title: track.title,
+          artist: track.artist,
+          album: track.album,
+          coverUrl: p.coverOf(track),
+          audioUrl: track.url,
+          duration: track.duration,
+        }
+      : null,
+    playlist: queue.map((t) => ({
+      id: t.id,
+      title: t.title,
+      artist: t.artist,
+      album: t.album,
+      coverUrl: p.coverOf(t),
+      audioUrl: t.url,
+      duration: t.duration,
+    })),
+    isPlaying: p.isPlaying.value,
+    isBuffering: false,
+    playError: '',
+    currentTime: p.currentTime.value,
+    duration: p.duration.value || track?.duration || 0,
+    volume: p.volume.value,
+    isMuted: p.muted.value,
+    isSeeking: seekingProgress.value !== null,
+    seekingProgress: seekingProgress.value,
+    playMode: p.playMode.value,
+    currentIndex: queue.findIndex((t) => t.id === p.currentId.value),
+    progress: p.progressPct.value / 100,
+  };
+});
+
+const togglePlay = () => void p.togglePlay();
+const playNext = () => p.nextTrack();
+const playPrev = () => p.prevTrack();
+const playAtIndex = (index: number) => p.playAtQueueIndex(index);
+const setVolume = (v: number) => p.setVolume(v);
+const adjustVolume = (delta: number) => p.setVolume(p.volume.value + delta);
+const toggleMute = () => p.toggleMute();
+const cyclePlayMode = () => p.cyclePlayMode();
+const removeFromPlaylist = (index: number) => {
+  const track = p.queueTracks.value[index];
+  if (track) p.removeFromQueue(track.id);
+};
+
+function setSeekingProgress(percent: number) {
+  seekingProgress.value = Math.max(0, Math.min(1, percent));
+}
+function commitSeekingProgress(percent?: number) {
+  const pct = percent ?? seekingProgress.value;
+  seekingProgress.value = null;
+  if (typeof pct === 'number') p.seekTo(pct);
+}
+function cancelSeekingProgress() {
+  seekingProgress.value = null;
+}
 
 const { isLoggedIn, loginStatus, loginError, loginStatusText, qrCodeUrl, handleLogin, handleLogout } = useNeteaseLogin();
 
@@ -654,26 +702,8 @@ const handleKeydown = (e: KeyboardEvent) => {
 };
 
 const playSong = async (song: Song) => {
-  // 获取播放链接
-  let audioUrl = song.audioUrl;
-  if (!audioUrl) {
-    audioUrl = await getSongUrl(song.id);
-  }
-  
-  // 更新歌曲的播放链接
-  song.audioUrl = audioUrl;
-  song.coverUrl = toCoverDisplayUrl(song.coverUrl) || song.coverUrl;
-  
-  const existingIndex = state.value.playlist.findIndex(s => s.id === song.id);
-  
-  if (existingIndex >= 0) {
-    state.value.playlist[existingIndex] = song;
-    await playAtIndex(existingIndex);
-    return;
-  }
-
-  addToPlaylist(song);
-  await playAtIndex(state.value.playlist.length - 1);
+  const [track] = p.upsertNeteaseTracks([song]);
+  if (track) await p.playTrack(track.id);
 };
 
 const toggleSearchPanel = () => {
@@ -700,7 +730,6 @@ onMounted(() => {
   document.addEventListener('mouseup', handleDockVolumeDragEnd);
   window.addEventListener('resize', handleWindowResize);
   
-  initPlayer();
   normalizePanelInViewport();
 });
 
@@ -729,7 +758,6 @@ onUnmounted(() => {
   if (state.value.isSeeking) {
     cancelSeekingProgress();
   }
-  cleanupPlayer();
 });
 </script>
 

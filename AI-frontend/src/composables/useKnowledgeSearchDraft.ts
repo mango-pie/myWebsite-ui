@@ -21,17 +21,34 @@ export type KnowledgeSearchDraft = {
 export function isReadingJobInProgress(job: API.KnowledgeReadingJobVO | null | undefined): boolean {
   if (!job?.jobId) return false
   const status = String(job.status || '').toUpperCase()
-  return status === 'PENDING' || status === 'RUNNING'
+  if (status === 'SUCCESS' || status === 'FAILED') return false
+  // WAITING = 待勾选，仍算「进行中」作业
+  return status === 'PENDING' || status === 'RUNNING' || status === 'WAITING'
+}
+
+export function isReadingJobAwaitingSelect(job: API.KnowledgeReadingJobVO | null | undefined): boolean {
+  if (!job?.jobId) return false
+  const status = String(job.status || '').toUpperCase()
+  const progress = String(job.progress || '').toUpperCase()
+  return status === 'WAITING' || progress === 'AWAITING_SELECT'
+}
+
+export function isReadingJobSearching(job: API.KnowledgeReadingJobVO | null | undefined): boolean {
+  return String(job?.progress || '').toUpperCase() === 'SEARCHING'
 }
 
 export function readingJobProgressLabel(progress: string | null | undefined): string {
   switch (String(progress || '').toUpperCase()) {
+    case 'SEARCHING':
+      return '正在搜索候选'
+    case 'AWAITING_SELECT':
+      return '请勾选网页'
     case 'QUEUED':
       return '排队中'
     case 'READING':
       return '正在读取网页'
     case 'DISTILLING':
-      return '正在重构精读'
+      return '正在合并生成文章'
     case 'DONE':
       return '完成'
     case 'ERROR':
@@ -39,6 +56,19 @@ export function readingJobProgressLabel(progress: string | null | undefined): st
     default:
       return progress ? String(progress) : '处理中'
   }
+}
+
+/** 工作台步骤 1～4（对应产品五步的前四步） */
+export function readingJobWorkbenchStep(job: API.KnowledgeReadingJobVO | null | undefined): 1 | 2 | 3 | 4 {
+  if (!job?.jobId) return 1
+  const status = String(job.status || '').toUpperCase()
+  const progress = String(job.progress || '').toUpperCase()
+  if (status === 'SUCCESS' || progress === 'DONE') return 4
+  if (status === 'FAILED' || progress === 'ERROR') return 4
+  if (progress === 'SEARCHING') return 1
+  if (status === 'WAITING' || progress === 'AWAITING_SELECT') return 2
+  if (progress === 'QUEUED' || progress === 'READING' || progress === 'DISTILLING') return 4
+  return 1
 }
 
 export function loadKnowledgeSearchDraft(): KnowledgeSearchDraft | null {

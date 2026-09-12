@@ -17,13 +17,18 @@ import AppEditPage from '@/pages/app/AppEditPage.vue'
 import ChatHomePage from '@/pages/chat/ChatHomePage.vue'
 import ChatPage from '@/pages/chat/ChatPage.vue'
 import AboutView from '@/pages/AboutView.vue'
+import BlogFilterPage from '@/pages/blog/filter/BlogFilterPage.vue'
+import BlogCategoryRedirect from '@/pages/blog/BlogCategoryRedirect.vue'
+import BlogTagRedirect from '@/pages/blog/BlogTagRedirect.vue'
+import WorkLogPage from '@/pages/worklog/WorkLogPage.vue'
+import KnowledgeCreatePage from '@/pages/knowledge/KnowledgeCreatePage.vue'
+import MusicPage from '@/pages/music/MusicPage.vue'
+import ModuleUnavailablePage from '@/pages/ModuleUnavailablePage.vue'
 import StudyView from '@/pages/admin/StudyView.vue'
 import TestView from '@/examples/PermissionExample.vue'
-import BlogHomePage from '@/pages/blog/BlogHomePage.vue'
-import BlogPostPage from '@/pages/blog/BlogPostPage.vue'
-import BlogCategoryPage from '@/pages/blog/BlogCategoryPage.vue'
-import BlogTagPage from '@/pages/blog/BlogTagPage.vue'
-import BlogCreatePage from '@/pages/blog/BlogCreatePage.vue'
+import BlogHomePage from '@/pages/blog/home/BlogHomePage.vue'
+import BlogPostPage from '@/pages/blog/post/BlogPostPage.vue'
+import BlogCreatePage from '@/pages/blog/create/BlogCreatePage.vue'
 import LabPage from '@/pages/lab/LabPage.vue'
 import DiaryHomePage from '@/pages/diary/DiaryHomePage.vue'
 import DiaryWritePage from '@/pages/diary/DiaryWritePage.vue'
@@ -32,13 +37,13 @@ import KnowledgeListPage from '@/pages/knowledge/KnowledgeListPage.vue'
 import KnowledgeDetailPage from '@/pages/knowledge/KnowledgeDetailPage.vue'
 import KnowledgeChatPage from '@/pages/knowledge/KnowledgeChatPage.vue'
 import KnowledgeIngestPage from '@/pages/admin/KnowledgeIngestPage.vue'
-import KnowledgeJobsPage from '@/pages/admin/KnowledgeJobsPage.vue'
 import KnowledgeNoteListPage from '@/pages/admin/KnowledgeNoteListPage.vue'
 import KnowledgeNoteDetailPage from '@/pages/admin/KnowledgeNoteDetailPage.vue'
 import LearningView from '@/components/learning/LearningView.vue'
 import SiteSettingsPage from '@/pages/admin/SiteSettingsPage.vue'
 import SiteSettingsAuditPage from '@/pages/admin/SiteSettingsAuditPage.vue'
 import SiteSettingsHealthPage from '@/pages/admin/SiteSettingsHealthPage.vue'
+import SiteModulesPage from '@/pages/admin/SiteModulesPage.vue'
 import OpsUsagePage from '@/pages/admin/OpsUsagePage.vue'
 import OpsAuditPage from '@/pages/admin/OpsAuditPage.vue'
 import OpsStatsPage from '@/pages/admin/OpsStatsPage.vue'
@@ -55,46 +60,52 @@ const router = createRouter({
     { path: '/blog', name: '博客首页', component: BlogHomePage, meta: { ...publicMeta, room: 'blog', requireModule: 'blog' } },
     { path: '/blog/create', name: '发布文章', component: BlogCreatePage, meta: { ...publicMeta, room: 'blog', requireModule: 'blog' } },
     { path: '/blog/edit/:id', name: '编辑文章', component: BlogCreatePage, meta: { ...publicMeta, room: 'blog', requireModule: 'blog' } },
-    { path: '/blog/:id', name: '博客文章', component: BlogPostPage, meta: { ...publicMeta, room: 'blog', requireModule: 'blog' } },
-    { path: '/category/:name', name: '分类文章', component: BlogCategoryPage, meta: { ...publicMeta, room: 'blog', requireModule: 'blog' } },
-    { path: '/tag/:name', name: '标签文章', component: BlogTagPage, meta: { ...publicMeta, room: 'blog', requireModule: 'blog' } },
+    { path: '/blog/filter', name: '博客筛选', component: BlogFilterPage, meta: { ...publicMeta, room: 'blog', requireModule: 'blog' } },
+    { path: '/blog/:id(\\d+)', name: '博客文章', component: BlogPostPage, meta: { ...publicMeta, room: 'blog', requireModule: 'blog' } },
+    { path: '/category/:name', name: '分类文章', component: BlogCategoryRedirect, meta: { ...publicMeta, room: 'blog', requireModule: 'blog' } },
+    { path: '/tag/:name', name: '标签文章', component: BlogTagRedirect, meta: { ...publicMeta, room: 'blog', requireModule: 'blog' } },
     { path: '/about', name: '关于', component: AboutView, meta: { ...publicMeta, room: 'about' } },
+    { path: '/music', name: '音乐播放器', component: MusicPage, meta: { ...publicMeta, room: 'music' } },
+    { path: '/module-unavailable', name: '模块未启用', component: ModuleUnavailablePage },
     { path: '/user/login', name: '用户登录', component: UserLoginPage, meta: { ...publicMeta, room: 'auth' } },
     { path: '/user/register', name: '用户注册', component: UserRegisterPage, meta: { ...publicMeta, room: 'auth' } },
     { path: '/test', name: '测试', component: TestView, meta: { ...publicMeta, room: 'public' } },
 
-    { path: '/diary', name: '日记首页', component: DiaryHomePage, meta: { ...workspaceMeta, room: 'diary', requireModule: 'diary' } },
-    { path: '/diary/write', name: '写日记', component: DiaryWritePage, meta: { ...workspaceMeta, room: 'diary', requireModule: 'diary' } },
-    { path: '/diary/:id', name: '日记详情', component: DiaryDetailPage, meta: { ...workspaceMeta, room: 'diary', requireModule: 'diary' } },
-    { path: '/knowledge', name: '知识库', component: KnowledgeListPage, meta: { ...workspaceMeta, room: 'knowledge', requireModule: 'knowledge' } },
-    { path: '/knowledge/:kbId', name: '知识库详情', component: KnowledgeDetailPage, meta: { ...workspaceMeta, room: 'knowledge', requireModule: 'knowledge' } },
-    { path: '/knowledge/:kbId/chat', name: '知识库问答', component: KnowledgeChatPage, meta: { ...workspaceMeta, room: 'knowledge', requireModule: 'knowledge' } },
+    { path: '/diary', name: '日记首页', component: DiaryHomePage, meta: { ...publicMeta, room: 'diary', requireModule: 'diary' } },
+    { path: '/diary/write', name: '写日记', component: DiaryWritePage, meta: { ...publicMeta, room: 'diary', requireModule: 'diary' } },
+    { path: '/diary/:id(\\d+)', name: '日记详情', component: DiaryDetailPage, meta: { ...publicMeta, room: 'diary', requireModule: 'diary' } },
+    { path: '/worklog', name: '工作日志', component: WorkLogPage, meta: { ...publicMeta, room: 'worklog', requireModule: 'worklog' } },
+    { path: '/knowledge', name: '知识库', component: KnowledgeListPage, meta: { ...publicMeta, room: 'knowledge', requireModule: 'knowledge' } },
+    { path: '/knowledge/create', name: '新建知识库', component: KnowledgeCreatePage, meta: { ...publicMeta, room: 'knowledge', requireModule: 'knowledge' } },
+    { path: '/knowledge/:kbId', name: '知识库详情', component: KnowledgeDetailPage, meta: { ...publicMeta, room: 'knowledge', requireModule: 'knowledge' } },
+    { path: '/knowledge/:kbId/chat', name: '知识库问答', component: KnowledgeChatPage, meta: { ...publicMeta, room: 'knowledge', requireModule: 'knowledge' } },
     { path: '/user/profile', name: '个人信息', component: UserProfilePage, meta: { ...workspaceMeta, room: 'profile' } },
-    { path: '/chat', name: '对话首页', component: ChatHomePage, meta: { ...workspaceMeta, room: 'chat', requireModule: 'chat' } },
+    { path: '/chat', name: '对话首页', component: ChatHomePage, meta: { ...publicMeta, room: 'chat', requireModule: 'chat' } },
     {
       path: '/chat/:conversationId',
       name: '对话页面',
       component: ChatPage,
-      meta: { ...workspaceMeta, room: 'chat', keepAlive: true, requireModule: 'chat' },
+      meta: { ...publicMeta, room: 'chat', keepAlive: true, requireModule: 'chat' },
     },
-    { path: '/app/chat/:appId', name: '应用对话', component: AppChatPage, meta: { ...workspaceMeta, room: 'lab', requireModule: 'app-lab' } },
-    { path: '/app/edit/:appId', name: '编辑应用', component: AppEditPage, meta: { ...workspaceMeta, room: 'lab', requireModule: 'app-lab' } },
+    { path: '/app/chat/:appId', name: '应用对话', component: AppChatPage, meta: { ...publicMeta, room: 'lab', requireModule: 'app-lab' } },
+    { path: '/app/edit/:appId', name: '编辑应用', component: AppEditPage, meta: { ...publicMeta, room: 'lab', requireModule: 'app-lab' } },
     { path: '/administrator/study', name: '学习', component: StudyView, meta: { ...workspaceMeta, room: 'study', requireModule: 'study' } },
 
     { path: '/admin/userManage', name: '用户管理', component: UserManagerPage, meta: { ...workspaceMeta, room: 'admin' } },
     { path: '/admin/appManage', name: '应用管理', component: AppManagerPage, meta: { ...workspaceMeta, room: 'admin', requireModule: 'app-lab' } },
     { path: '/admin/blogManage', name: '博客管理', component: BlogManagePage, meta: { ...workspaceMeta, room: 'admin', requireModule: 'blog' } },
     { path: '/admin/knowledge', redirect: '/admin/knowledge/ingest' },
-    { path: '/admin/knowledge/ingest', name: '内容采集', component: KnowledgeIngestPage, meta: { ...workspaceMeta, room: 'admin', requireModule: 'knowledge' } },
-    { path: '/admin/knowledge/jobs', name: '精读任务', component: KnowledgeJobsPage, meta: { ...workspaceMeta, room: 'admin', requireModule: 'knowledge' } },
-    { path: '/admin/knowledge/notes', name: '精读列表', component: KnowledgeNoteListPage, meta: { ...workspaceMeta, room: 'admin', requireModule: 'knowledge' } },
-    { path: '/admin/knowledge/notes/:noteId', name: '精读详情', component: KnowledgeNoteDetailPage, meta: { ...workspaceMeta, room: 'admin', requireModule: 'knowledge' } },
-    { path: '/admin/knowledge/learning', name: '领域知识树', component: LearningView, meta: { ...workspaceMeta, room: 'admin', requireModule: 'knowledge' } },
+    { path: '/admin/knowledge/ingest', name: '内容采集', component: KnowledgeIngestPage, meta: { ...workspaceMeta, room: 'reading', requireModule: 'knowledge' } },
+    { path: '/admin/knowledge/jobs', name: '精读任务', redirect: '/admin/knowledge/ingest' },
+    { path: '/admin/knowledge/notes', name: '我的文章', component: KnowledgeNoteListPage, meta: { ...publicMeta, room: 'reading', requireModule: 'knowledge' } },
+    { path: '/admin/knowledge/notes/:noteId', name: '审阅文章', component: KnowledgeNoteDetailPage, meta: { ...publicMeta, room: 'reading', requireModule: 'knowledge' } },
+    { path: '/admin/knowledge/learning', name: '领域知识树', component: LearningView, meta: { ...publicMeta, room: 'reading', requireModule: 'knowledge' } },
     { path: '/admin/chatHistoryManage', name: '对话管理', component: ChatHistoryManagerPage, meta: { ...workspaceMeta, room: 'admin', requireModule: 'chat' } },
     { path: '/admin/settings', redirect: '/admin/settings/site' },
-    { path: '/admin/settings/audit', name: '变更审计', component: SiteSettingsAuditPage, meta: { ...workspaceMeta, room: 'admin' } },
-    { path: '/admin/settings/health', name: '依赖健康', component: SiteSettingsHealthPage, meta: { ...workspaceMeta, room: 'admin' } },
-    { path: '/admin/settings/:module', name: '站点设置', component: SiteSettingsPage, meta: { ...workspaceMeta, room: 'admin' } },
+    { path: '/admin/settings/audit', name: '变更审计', component: SiteSettingsAuditPage, meta: { ...publicMeta, room: 'settings' } },
+    { path: '/admin/settings/health', name: '依赖健康', component: SiteSettingsHealthPage, meta: { ...publicMeta, room: 'settings' } },
+    { path: '/admin/settings/modules', name: '业务模块', component: SiteModulesPage, meta: { ...publicMeta, room: 'settings' } },
+    { path: '/admin/settings/:module', name: '站点设置', component: SiteSettingsPage, meta: { ...publicMeta, room: 'settings' } },
     { path: '/admin/ops', redirect: '/admin/ops/usage' },
     { path: '/admin/ops/usage', name: 'AI用量', component: OpsUsagePage, meta: { ...workspaceMeta, room: 'admin', requireModule: 'ops' } },
     { path: '/admin/ops/audit', name: '操作审计', component: OpsAuditPage, meta: { ...workspaceMeta, room: 'admin', requireModule: 'ops' } },

@@ -15,6 +15,12 @@ export const siteAvatarSrc = new URL('../assets/head.jpg', import.meta.url).href
 export const siteConfig = {
   siteName: '某某の小站',
   siteSubtitle: '在代码、笔记与灵感实验间穿梭',
+  /** 顶栏罗马字副标 */
+  brandRoman: 'MOUMOU NO STATION',
+  /** 主标题上方日文假名 */
+  brandKana: 'モウモウ ノ ステーション',
+  /** 标题旁贴纸文案 */
+  heroSticker: '欢迎来到我的小世界 ♪',
   ownerName: '开发者',
   bio: '在代码与日常之间慢慢摸索的普通人。喜欢记录技术笔记，偶尔用 AI 做点有趣的小实验。',
   avatar: siteAvatarSrc,
@@ -22,9 +28,11 @@ export const siteConfig = {
   rooms: {
     blog: { title: '随笔', hint: '杂志式阅读与记录' },
     diary: { title: '日记', hint: '写给自己的手账' },
+    worklog: { title: '工作日志', hint: '每日事务与进度留痕' },
     knowledge: { title: '知识库', hint: '文档与问答' },
     lab: { title: '实验室', hint: '一句话生成小应用' },
     chat: { title: '对话', hint: '继续未完的交谈' },
+    music: { title: '音乐', hint: 'Pulse 舞台播放器' },
   },
 
   blogTitle: '随笔',
@@ -32,6 +40,9 @@ export const siteConfig = {
 
   diaryTitle: '日记',
   diarySubtitle: '写给自己的每日记录',
+
+  worklogTitle: '工作日志',
+  worklogSubtitle: '每日事务与进度留痕（登录可云端同步；与日记完全独立）',
 
   heroLabTitle: 'AI 实验室',
   heroLabDesc: '用一句话描述想法，生成可运行的小应用',

@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { BookOpen, Search, MoveRight, Unlink, Eye, Sparkles, ChevronDown, ChevronUp, ExternalLink, Loader2, Filter } from 'lucide-vue-next'
+import { Search, Sparkles, Loader2 } from 'lucide-vue-next'
 import type { LearningBranchTreeNode, LearningLeafVO } from '@/api/learning.types'
 import { getKnowledgeNoteDetail } from '@/api/knowledge/knowledgeNote'
 import { marked } from 'marked'
-import IconAction from '@/components/ui/IconAction.vue'
 import EmptyState from './EmptyState.vue'
 
 function renderMd(md: string): string {
@@ -41,7 +40,6 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>()
 const router = useRouter()
 
-// ── search & filter ──
 const searchQuery = ref('')
 const statusFilter = ref<'all' | 'published' | 'indexed'>('all')
 
@@ -49,7 +47,9 @@ const filteredLeaves = computed(() => {
   let list = props.leaves
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.trim().toLowerCase()
-    list = list.filter((l) => l.title.toLowerCase().includes(q) || (l.summary || '').toLowerCase().includes(q))
+    list = list.filter(
+      (l) => leafTitle(l).toLowerCase().includes(q) || (l.summary || '').toLowerCase().includes(q),
+    )
   }
   if (statusFilter.value === 'published') {
     list = list.filter((l) => l.publishStatus && l.publishStatus !== 'NOT_PUBLISHED')
@@ -59,7 +59,10 @@ const filteredLeaves = computed(() => {
   return list
 })
 
-// ── inline expand ──
+function leafTitle(leaf: LearningLeafVO): string {
+  return leaf.title || leaf.noteTitle || ''
+}
+
 const expandedId = ref<number | string | null>(null)
 const expandedLoading = ref(false)
 const expandedContent = ref('')
@@ -78,11 +81,12 @@ async function toggleExpand(noteId: number | string) {
   try {
     const res = await getKnowledgeNoteDetail(noteId)
     if (res.data.code === 0 && res.data.data) {
-      expandedContent.value = (res.data.data as any).distilledMd || (res.data.data as any).distilled_md || ''
+      const detail = res.data.data as API.KnowledgeNoteDetailVO
+      expandedContent.value = detail.distilledMd || ''
     } else {
       expandedError.value = res.data.message || '加载失败'
     }
-  } catch (e) {
+  } catch {
     expandedError.value = '加载笔记内容失败'
   } finally {
     expandedLoading.value = false
@@ -93,7 +97,6 @@ function goToDetail(noteId: number | string) {
   router.push(`/admin/knowledge/notes/${noteId}`)
 }
 
-// ── inline move ──
 const movingNoteId = ref<number | string | null>(null)
 const moveTargetId = ref<number | string | null>(null)
 
@@ -117,20 +120,22 @@ function confirmMove() {
 const branchOptions = computed(() =>
   (props.branches || []).map((b) => ({ value: b.id, label: b.path || b.title })),
 )
+
+function reviewChip(leaf: LearningLeafVO) {
+  const s = String(leaf.reviewStatus || 'NEW').toUpperCase()
+  if (s === 'MASTERED') return { text: '已掌握', cls: 'rev done' }
+  if (s === 'REVIEWING') return { text: '复习中', cls: 'rev' }
+  return { text: '待复习', cls: 'rev' }
+}
 </script>
 
 <template>
   <div class="note-list">
-    <!-- 头部 -->
-    <div class="note-list__header">
-      <h3 class="note-list__title">
-        <BookOpen :size="18" class="note-list__title-icon" />
-        {{ branchTitle ? `已学：${branchTitle}` : '请先选择枝' }}
-      </h3>
-      <span v-if="leaves.length" class="note-list__count">{{ filteredLeaves.length }}/{{ leaves.length }}</span>
+    <div class="leaf-head">
+      <h2 class="font-display">{{ branchTitle || '请先选择枝' }}</h2>
+      <span v-if="leaves.length" class="meta">{{ filteredLeaves.length }} 篇 · 已挂载</span>
     </div>
 
-    <!-- 搜索 + 筛选栏 -->
     <div v-if="branchId != null && leaves.length > 0" class="note-list__toolbar">
       <span class="note-list__search-wrap">
         <Search :size="14" class="note-list__search-icon" />
@@ -163,77 +168,42 @@ const branchOptions = computed(() =>
       </span>
     </div>
 
-    <!-- 加载骨架 -->
-    <div v-if="loading" class="note-list__grid" aria-label="加载中">
-      <div v-for="i in (leaves.length || 4)" :key="i" class="note-card u-skeleton-shimmer" />
+    <div v-if="loading" class="leaf-grid" aria-label="加载中">
+      <div v-for="i in (leaves.length || 4)" :key="i" class="leaf-card" style="min-height: 72px; opacity: 0.55" />
     </div>
 
-    <!-- 有笔记 -->
-    <div v-else-if="branchId != null && leaves?.length" class="note-list__grid">
+    <div v-else-if="branchId != null && leaves?.length" class="leaf-grid">
       <div
         v-for="leaf in filteredLeaves"
         :key="leaf.noteId"
-        class="note-card"
-        :class="{ 'note-card--expanded': expandedId === leaf.noteId }"
+        class="leaf-card"
+        :class="{ 'leaf-card--expanded': expandedId === leaf.noteId }"
+        @click="goToDetail(leaf.noteId)"
+        @dblclick="goToDetail(leaf.noteId)"
       >
-        <div class="note-card__main" @click="toggleExpand(leaf.noteId)">
-          <div class="note-card__header-row">
-            <h4 class="note-card__title">{{ leaf.title }}</h4>
-            <component
-              :is="expandedId === leaf.noteId ? ChevronUp : ChevronDown"
-              :size="16"
-              class="note-card__chevron"
-            />
-          </div>
-          <p class="note-card__summary">{{ leaf.summary || '' }}</p>
-          <div class="note-card__status-row">
-            <span
-              v-if="leaf.publishStatus && leaf.publishStatus !== 'NOT_PUBLISHED'"
-              class="note-card__status-tag note-card__status-tag--published"
-              title="已发博客"
-            >
-              <ExternalLink :size="10" />
-              已发博客
-            </span>
-            <span
-              v-if="leaf.indexStatus && leaf.indexStatus !== 'NOT_INDEXED'"
-              class="note-card__status-tag note-card__status-tag--indexed"
-              title="已入库"
-            >
-              已入库
-            </span>
-            <span
-              v-if="(!leaf.publishStatus || leaf.publishStatus === 'NOT_PUBLISHED') && (!leaf.indexStatus || leaf.indexStatus === 'NOT_INDEXED')"
-              class="note-card__status-tag note-card__status-tag--mounted"
-            >
-              已挂载
-            </span>
-          </div>
+        <div class="lc-title">{{ leafTitle(leaf) }}</div>
+        <div class="lc-meta">
+          <span class="chip src mono">#N{{ String(leaf.noteId).slice(-4).padStart(4, '0') }}</span>
+          <span class="chip" :class="reviewChip(leaf).cls">{{ reviewChip(leaf).text }}</span>
+          <span
+            v-if="leaf.publishStatus && leaf.publishStatus !== 'NOT_PUBLISHED'"
+            class="chip pub"
+          >已发博客</span>
+          <span
+            v-if="leaf.indexStatus && leaf.indexStatus !== 'NOT_INDEXED'"
+            class="chip idx"
+          >已入库</span>
         </div>
 
-        <!-- 内联展开内容 -->
-        <div v-if="expandedId === leaf.noteId" class="note-card__expand">
-          <div v-if="expandedLoading" class="note-card__expand-loading">
-            <Loader2 :size="16" class="ld-spin" />
-            加载中…
+        <div v-if="expandedId === leaf.noteId" class="leaf-card__expand" @click.stop>
+          <div v-if="expandedLoading" class="leaf-card__muted">
+            <Loader2 :size="14" class="ld-spin" /> 加载中…
           </div>
-          <div v-else-if="expandedError" class="note-card__expand-error">{{ expandedError }}</div>
-          <div v-else class="note-card__expand-body">
-            <div class="note-card__expand-md" v-html="renderMd(expandedContent.slice(0, 3000))" />
-            <p v-if="expandedContent.length > 3000" class="note-card__expand-truncated">
-              …内容已截断，点击下方查看完整笔记
-            </p>
-          </div>
-          <div class="note-card__expand-actions">
-            <a-button size="small" type="link" @click.stop="goToDetail(leaf.noteId)">
-              <template #icon><ExternalLink :size="13" /></template>
-              查看完整笔记
-            </a-button>
-          </div>
+          <div v-else-if="expandedError" class="leaf-card__error">{{ expandedError }}</div>
+          <div v-else class="leaf-card__md" v-html="renderMd(expandedContent.slice(0, 2000))" />
         </div>
 
-        <!-- 内联移叶选择器 -->
-        <div v-if="movingNoteId === leaf.noteId" class="note-card__move-inline" @click.stop>
+        <div v-if="movingNoteId === leaf.noteId" class="leaf-card__move" @click.stop>
           <a-select
             v-model:value="moveTargetId"
             :options="branchOptions"
@@ -241,45 +211,27 @@ const branchOptions = computed(() =>
             size="small"
             style="flex: 1"
           />
-          <a-button size="small" type="primary" @click="confirmMove">移动</a-button>
-          <a-button size="small" @click="cancelMove">取消</a-button>
+          <button type="button" class="chip-btn sm primary" @click="confirmMove">移动</button>
+          <button type="button" class="chip-btn sm" @click="cancelMove">取消</button>
         </div>
 
-        <!-- 操作栏 -->
-        <div class="note-card__actions">
-          <IconAction
-            :icon="MoveRight"
-            label="移叶"
-            size="sm"
-            variant="ghost"
-            @click.stop="startMove(leaf.noteId)"
-          />
-          <IconAction
-            :icon="Unlink"
-            label="取消挂载"
-            size="sm"
-            variant="danger"
-            @click.stop="emit('detach', leaf.noteId)"
-          />
-          <IconAction
-            :icon="ExternalLink"
-            label="详情页"
-            size="sm"
-            variant="primary"
-            @click.stop="goToDetail(leaf.noteId)"
-          />
+        <div class="lc-actions" @click.stop>
+          <button type="button" class="chip-btn sm" @click="toggleExpand(leaf.noteId)">
+            {{ expandedId === leaf.noteId ? '收起' : '预览' }}
+          </button>
+          <button type="button" class="chip-btn sm" @click="startMove(leaf.noteId)">移叶</button>
+          <button type="button" class="chip-btn sm" @click="emit('detach', leaf.noteId)">取消挂载</button>
+          <button type="button" class="chip-btn sm primary" @click="goToDetail(leaf.noteId)">详情页</button>
         </div>
       </div>
     </div>
 
-    <!-- 搜索无结果 -->
     <EmptyState
       v-else-if="branchId != null && leaves.length > 0 && filteredLeaves.length === 0"
       title="没有匹配的笔记"
       description="换个关键词或清除筛选试试"
     />
 
-    <!-- 空状态 -->
     <EmptyState
       v-else-if="branchId != null && leaves.length === 0"
       title="此主题下还没有笔记"
@@ -289,7 +241,6 @@ const branchOptions = computed(() =>
       @primary="$emit('go-search')"
     />
 
-    <!-- 未选枝 -->
     <EmptyState
       v-else
       title="选择一个主题枝"
@@ -299,282 +250,121 @@ const branchOptions = computed(() =>
 </template>
 
 <style scoped>
-.note-list__header {
+.note-list {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--ld-space-3);
-  margin-bottom: var(--ld-space-4);
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  height: 100%;
 }
 
-.note-list__title {
-  margin: 0;
-  font-size: var(--ld-font-size-base);
-  font-weight: var(--ld-font-weight-semibold);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.note-list__title-icon {
-  color: var(--ld-color-primary);
-}
-
-.note-list__count {
-  font-size: var(--ld-font-size-xs);
-  color: var(--ld-color-text-tertiary);
-  font-variant-numeric: tabular-nums;
-}
-
-/* search bar */
 .note-list__toolbar {
   display: flex;
+  gap: 8px;
   align-items: center;
-  gap: 10px;
-  margin-bottom: var(--ld-space-4);
   flex-wrap: wrap;
+  flex: none;
 }
 
 .note-list__search-wrap {
+  flex: 1;
+  min-width: 140px;
   display: flex;
   align-items: center;
   gap: 6px;
-  flex: 1;
-  min-width: 160px;
-  padding: 5px 10px;
-  border-radius: var(--ld-radius-sm, 8px);
-  border: 1px solid var(--ld-color-border);
-  background: rgba(255, 255, 255, 0.03);
-  transition: border-color 0.15s ease;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1.5px solid rgba(165, 172, 196, 0.35);
 }
 
 .note-list__search-wrap:focus-within {
-  border-color: var(--ld-color-primary-muted);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: color-mix(in srgb, var(--room, #9b8ce8) 45%, #fff);
 }
 
 .note-list__search-icon {
-  flex-shrink: 0;
-  color: var(--ld-color-text-muted);
+  flex: none;
+  color: var(--ink-faint, #a5acc4);
 }
 
 .note-list__search-input {
   flex: 1;
-  border: none;
-  background: transparent;
-  color: var(--ld-color-text-primary);
-  font-family: inherit;
-  font-size: 0.8125rem;
-  outline: none;
   min-width: 0;
-}
-
-.note-list__search-input::placeholder {
-  color: var(--ld-color-text-muted);
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 12px;
 }
 
 .note-list__filters {
   display: flex;
   gap: 4px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .note-list__filter-chip {
-  border: 1px solid var(--ld-color-border);
+  padding: 5px 10px;
   border-radius: 999px;
-  background: transparent;
-  color: var(--ld-color-text-muted);
-  font-family: inherit;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  padding: 3px 10px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--ink-soft, #7a83a0);
+  background: rgba(255, 255, 255, 0.8);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
   cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-.note-list__filter-chip:hover {
-  color: var(--ld-color-text-secondary);
-  border-color: var(--ld-color-border-strong);
 }
 
 .note-list__filter-chip.is-active {
-  background: var(--ld-color-primary-subtle);
-  border-color: var(--ld-color-primary-muted);
-  color: var(--ld-color-primary);
+  background: var(--room-soft, #e4dffd);
+  color: var(--room, #9b8ce8);
 }
 
-.note-list__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--ld-space-4);
-}
-
-.note-card {
-  border: 1px solid var(--ld-color-border);
-  border-radius: var(--ld-radius-md, 10px);
-  background: var(--ld-color-bg-subtle, rgba(255, 255, 255, 0.04));
-  padding: var(--ld-space-5, 20px);
-  display: flex;
-  flex-direction: column;
-  gap: var(--ld-space-3);
-  transition: background var(--ld-duration-fast) var(--ld-ease-out), border-color 0.15s ease, box-shadow 0.15s ease;
-  cursor: pointer;
-}
-
-.note-card:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: var(--ld-color-primary-muted, rgba(184, 164, 201, 0.28));
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-}
-
-.note-card--expanded {
-  border-color: var(--ld-color-primary-muted, rgba(184, 164, 201, 0.45));
-  box-shadow: 0 0 0 3px var(--ld-color-primary-subtle, rgba(184, 164, 201, 0.08));
+.leaf-card--expanded {
   grid-column: 1 / -1;
 }
 
-.note-card__main {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ld-space-2);
+.leaf-card__expand {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(165, 172, 196, 0.35);
+  max-height: 220px;
+  overflow: auto;
 }
 
-.note-card__header-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
+.leaf-card__md {
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--ink-soft, #7a83a0);
 }
 
-.note-card__title {
-  margin: 0;
-  font-size: var(--ld-font-size-base);
-  line-height: var(--ld-line-height-tight);
-  font-weight: var(--ld-font-weight-semibold);
-  flex: 1;
-  min-width: 0;
-}
-
-.note-card__chevron {
-  flex-shrink: 0;
-  color: var(--ld-color-text-muted);
-  transition: transform 0.2s ease;
-}
-
-.note-card__summary {
-  margin: 0;
-  color: var(--ld-color-text-secondary);
-  font-size: var(--ld-font-size-sm);
-  line-height: var(--ld-line-height-normal);
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-}
-
-.note-card__status-row {
+.leaf-card__muted,
+.leaf-card__error {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--ink-faint, #a5acc4);
 }
 
-.note-card__status-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 999px;
-  white-space: nowrap;
+.leaf-card__error {
+  color: var(--c-sakura, #f490ad);
 }
 
-.note-card__status-tag--published {
-  background: rgba(16, 185, 129, 0.12);
-  color: #6ee7b7;
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  cursor: pointer;
-}
-
-.note-card__status-tag--published:hover {
-  background: rgba(16, 185, 129, 0.2);
-}
-
-.note-card__status-tag--indexed {
-  background: var(--ld-color-ai-subtle, rgba(124, 156, 224, 0.15));
-  color: var(--ld-color-ai, #7c9ce0);
-  border: 1px solid rgba(124, 156, 224, 0.2);
-}
-
-.note-card__status-tag--mounted {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--ld-color-text-muted);
-  border: 1px solid var(--ld-color-border);
-}
-
-/* inline expand */
-.note-card__expand {
-  border-top: 1px solid var(--ld-color-border);
-  padding-top: var(--ld-space-4);
-  margin-top: var(--ld-space-1);
-}
-
-.note-card__expand-loading,
-.note-card__expand-error {
+.leaf-card__move {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: var(--ld-space-4) 0;
-  font-size: var(--ld-font-size-sm);
-  color: var(--ld-color-text-secondary);
+  gap: 6px;
+  margin-top: 4px;
 }
 
-.note-card__expand-error {
-  color: var(--ld-color-error, #ef4444);
+.lc-actions {
+  opacity: 0;
+  transition: opacity 0.2s;
 }
 
-.note-card__expand-body {
-  max-height: 360px;
-  overflow-y: auto;
-}
-
-.note-card__expand-md {
-  font-size: var(--ld-font-size-sm);
-  line-height: 1.85;
-  color: var(--ld-color-text-primary);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.note-card__expand-truncated {
-  margin: 8px 0 0;
-  font-size: 0.75rem;
-  color: var(--ld-color-text-muted);
-  font-style: italic;
-}
-
-.note-card__expand-actions {
-  padding-top: var(--ld-space-2);
-}
-
-.note-card__move-inline {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: var(--ld-space-2) 0;
-  border-top: 1px solid var(--ld-color-border);
-}
-
-.note-card__actions {
-  display: flex;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: var(--ld-space-1);
-  padding-top: var(--ld-space-2);
-  border-top: 1px solid var(--ld-color-border);
+.leaf-card:hover .lc-actions,
+.leaf-card:focus-within .lc-actions,
+.leaf-card--expanded .lc-actions {
+  opacity: 1;
 }
 
 @keyframes ld-spin {
@@ -586,7 +376,7 @@ const branchOptions = computed(() =>
 }
 
 @media (max-width: 1200px) {
-  .note-list__grid {
+  :deep(.leaf-grid) {
     grid-template-columns: 1fr;
   }
 }

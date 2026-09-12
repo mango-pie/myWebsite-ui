@@ -34,9 +34,12 @@ export interface LearningTreeVO {
 export interface LearningLeafVO {
   noteId: number | string
   title: string
+  /** 后端返回字段（noteTitle），兼容别名 */
+  noteTitle?: string
   summary?: string
   publishStatus?: string
   indexStatus?: string
+  reviewStatus?: string
   attachedAt?: string
   sortOrder?: number
 }
@@ -76,4 +79,16 @@ export interface BatchSuggestItem {
   noteId: number | string
   suggestedBranchId?: number | string
   suggestedBranchTitle?: string
+}
+
+/** 枝级复习自测（答案折叠，供前端复习 UI 使用） */
+export interface LearningReviewQuizVO {
+  branchId?: number | string
+  branchTitle?: string
+  questions: LearningReviewQuestion[]
+}
+
+export interface LearningReviewQuestion {
+  question: string
+  answer: string
 }

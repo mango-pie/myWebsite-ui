@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="morning">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>某某の小站 · 随笔设计预览 v3</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/zcool-kuaile@5/index.css">
+<style>
+:root{
+  --ink:#4c5570; --ink-soft:#7a83a0; --ink-faint:#a5acc4;
+  --paper:#fffdf8; --card:#ffffff;
+  --c-sakura:#f490ad; --c-sakura-soft:#ffd9e4;
+  --c-violet:#9b8ce8; --c-violet-soft:#e4dffd;
+  --c-lilac:#c79ae0; --c-lilac-soft:#f2e2fa;
+  --c-blue:#6aaee8; --c-blue-soft:#d8ebfb;
+  --c-mint:#5fc4a5; --c-mint-soft:#d6f2e8;
+  --c-sun:#ffcf6e;
+  --shadow-1:0 2px 6px rgba(96,116,168,.10), 0 10px 28px rgba(96,116,168,.12);
+  --shadow-2:0 4px 10px rgba(96,116,168,.14), 0 20px 48px rgba(96,116,168,.18);
+  --r-lg:28px; --r-md:20px; --r-sm:14px;
+  --ease-spring:cubic-bezier(.34,1.56,.5,1);
+  --ease-out:cubic-bezier(.22,.8,.32,1);
+}
+:root[data-theme="morning"]{--page-1:#eaf6fc;--page-2:#fdeef2;--page-3:#f3effc}
+:root[data-theme="noon"]{--page-1:#e4f2ff;--page-2:#fdf6e0;--page-3:#e6f9ef}
+:root[data-theme="dusk"]{--page-1:#fbe4cf;--page-2:#f8dbe6;--page-3:#e9ddf5}
+:root[data-theme="night"]{--page-1:#dde2f4;--page-2:#e6dcf0;--page-3:#d6e6f2}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Source Han Sans SC",sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(1200px 700px at 12% -10%, var(--page-2), transparent 60%),
+    radial-gradient(1000px 800px at 105% 110%, var(--page-3), transparent 55%),
+    linear-gradient(160deg, var(--page-1), var(--page-2) 55%, var(--page-3));
+  transition:background 1.4s var(--ease-out);
+  display:flex;justify-content:center;align-items:flex-start;
+  -webkit-font-smoothing:antialiased;
+}
+.font-display{font-family:"ZCOOL KuaiLe","PingFang SC",sans-serif}
+button,input,textarea,select{font-family:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+input,textarea,select{border:none;outline:none;background:transparent}
+.text-pretty{text-wrap:pretty}
+
+::-webkit-scrollbar{width:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(150,160,200,.4);border-radius:6px;border:2px solid transparent;background-clip:content-box}
+
+#stageWrap{position:relative;flex:none}
+#stage{
+  position:absolute;top:0;left:0;width:1920px;height:1560px;
+  transform-origin:top left;border-radius:36px;overflow:hidden;
+  background:
+    radial-gradient(900px 520px at 8% -3%, rgba(255,255,255,.85), transparent 60%),
+    radial-gradient(760px 600px at 96% 2%, rgba(255,255,255,.5), transparent 55%),
+    radial-gradient(1000px 700px at 50% 55%, rgba(255,255,255,.4), transparent 60%),
+    radial-gradient(900px 600px at 10% 98%, rgba(255,255,255,.5), transparent 60%),
+    linear-gradient(168deg, var(--page-1) 0%, var(--page-2) 30%, var(--page-3) 52%, var(--page-1) 78%, var(--page-2) 100%);
+  box-shadow:0 40px 120px rgba(70,80,130,.28);
+  transition:background 1.4s var(--ease-out), height .35s var(--ease-out);
+}
+#stage::before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:radial-gradient(rgba(120,135,180,.14) 1.2px, transparent 1.3px);
+  background-size:26px 26px;
+  mask-image:linear-gradient(180deg, rgba(0,0,0,.9), rgba(0,0,0,.25) 30%, rgba(0,0,0,.5) 60%, rgba(0,0,0,.8));
+}
+.deco{position:absolute;pointer-events:none;z-index:1;opacity:.75}
+@keyframes floaty{0%,100%{margin-top:0}50%{margin-top:-12px}}
+
+#topbar{position:relative;z-index:5;height:92px;padding:0 56px;display:flex;align-items:center;gap:40px}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-mark{
+  width:52px;height:52px;border-radius:18px;
+  background:linear-gradient(140deg,var(--c-sakura),var(--c-violet));
+  box-shadow:var(--shadow-1), inset 0 2px 4px rgba(255,255,255,.5);
+  display:grid;place-items:center;transform:rotate(-6deg);
+  transition:transform .4s var(--ease-spring);
+}
+.brand:hover .brand-mark{transform:rotate(6deg) scale(1.06)}
+.brand-mark svg{width:28px;height:28px}
+.brand-name{font-size:26px;letter-spacing:1px}
+.brand-sub{font-size:12px;color:var(--ink-faint);letter-spacing:3px;margin-top:2px}
+#mainnav{
+  display:flex;gap:6px;margin:0 auto;position:relative;
+  background:rgba(255,255,255,.72);backdrop-filter:blur(10px);
+  padding:7px;border-radius:999px;box-shadow:var(--shadow-1);border:1.5px solid rgba(255,255,255,.9);
+}
+#mainnav button{
+  padding:10px 22px;border-radius:999px;font-size:16px;color:var(--ink-soft);
+  letter-spacing:2px;position:relative;z-index:1;transition:color .3s, transform .3s var(--ease-spring);
+}
+#mainnav button:hover{color:var(--ink);transform:translateY(-2px)}
+#mainnav button.active{color:#fff}
+#navPill{
+  position:absolute;top:7px;left:0;height:calc(100% - 14px);border-radius:999px;z-index:0;
+  background:linear-gradient(135deg,var(--c-sakura),#f7b0c4);
+  box-shadow:0 6px 16px rgba(244,144,173,.45);
+  transition:left .45s var(--ease-spring), width .45s var(--ease-spring), opacity .3s;opacity:0;
+}
+.top-right{display:flex;align-items:center;gap:16px}
+.clock-chip{
+  background:rgba(255,255,255,.72);backdrop-filter:blur(10px);
+  border:1.5px solid rgba(255,255,255,.9);border-radius:18px;
+  padding:8px 18px;box-shadow:var(--shadow-1);text-align:right;line-height:1.25;
+}
+.clock-time{font-size:20px;font-weight:700;letter-spacing:2px;font-variant-numeric:tabular-nums}
+.clock-time .sec{font-size:13px;color:var(--ink-faint);font-weight:600}
+.clock-time .colon{animation:blink 2s steps(1) infinite}
+@keyframes blink{50%{opacity:.25}}
+.clock-date{font-size:11px;color:var(--ink-faint);letter-spacing:1px}
+.avatar{
+  width:52px;height:52px;border-radius:50%;flex:none;
+  background:linear-gradient(140deg,var(--c-blue-soft),var(--c-violet-soft));
+  border:3px solid #fff;box-shadow:var(--shadow-1);
+  display:grid;place-items:center;font-size:20px;color:var(--c-violet);
+  font-family:"ZCOOL KuaiLe",sans-serif;transition:transform .35s var(--ease-spring);
+}
+.avatar:hover{transform:scale(1.1) rotate(-6deg)}
+
+.page{position:relative;z-index:4;display:none;padding:8px 56px 56px;min-height:988px}
+.page.on{display:block}
+.page-label{
+  position:absolute;top:0;right:56px;z-index:6;font-size:11px;letter-spacing:3px;color:var(--ink-faint);
+  background:rgba(255,255,255,.7);backdrop-filter:blur(8px);
+  border:1.5px dashed rgba(155,140,232,.35);border-radius:999px;padding:6px 14px;
+}
+.glass{
+  background:rgba(255,255,255,.82);backdrop-filter:blur(10px);
+  border:1.5px solid rgba(255,255,255,.95);border-radius:var(--r-lg);box-shadow:var(--shadow-1);
+}
+.v3-banner{
+  position:relative;z-index:5;margin:0 56px 10px;padding:10px 18px;border-radius:14px;
+  background:rgba(255,255,255,.65);border:1.5px dashed rgba(95,196,165,.45);
+  font-size:13px;letter-spacing:1px;color:var(--ink-soft);
+}
+@keyframes riseIn{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+.anim{opacity:0;animation:riseIn .85s var(--ease-out) forwards}
+.ic{width:15px;height:15px;display:inline-block;vertical-align:-2px}
+.chip-btn svg,.stats svg,.back-chip svg{width:15px;height:15px}
+.like-mini.liked svg,.chip-btn.liked svg{fill:var(--c-sakura);stroke:var(--c-sakura)}
+#petals{position:absolute;inset:0;z-index:3;pointer-events:none}
+.petals-off #petals{display:none}
+.loading-veil{
+  display:none;position:absolute;inset:0;z-index:8;
+  background:rgba(255,253,248,.45);backdrop-filter:blur(2px);
+  align-items:center;justify-content:center;
+}
+.loading-veil.on{display:flex}
+.loader{
+  width:48px;height:48px;border-radius:50%;
+  border:3px solid rgba(150,160,200,.25);border-top-color:var(--c-sakura);
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.post-card:nth-child(1){animation-delay:.05s}
+.post-card:nth-child(2){animation-delay:.1s}
+.post-card:nth-child(3){animation-delay:.15s}
+.post-card:nth-child(4){animation-delay:.2s}
+.post-card:nth-child(5){animation-delay:.25s}
+.post-card:nth-child(6){animation-delay:.3s}
+.page.on .list-head,.page.on .list-toolbar,.page.on .sub-hero{animation:riseIn .7s var(--ease-out) both}
+.page.on .card-grid .post-card{animation:riseIn .75s var(--ease-out) both}
+.detail-cover::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg, transparent 55%, rgba(255,253,248,.55));
+}
+.switch{position:relative;width:46px;height:26px;border-radius:999px;background:#e3def2;transition:background .3s;flex:none;border:none;cursor:pointer}
+.switch.on{background:linear-gradient(90deg,var(--c-sakura),var(--c-violet))}
+.switch::after{
+  content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;
+  box-shadow:0 2px 6px rgba(0,0,0,.2);transition:transform .3s var(--ease-spring);
+}
+.switch.on::after{transform:translateX(20px)}
+#stage[data-season="summer"]{filter:saturate(1.05)}
+#stage[data-season="autumn"]{filter:saturate(1.08) hue-rotate(-8deg)}
+#stage[data-season="winter"]{filter:saturate(.85) brightness(1.03)}
+
+.list-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:24px;padding-top:12px}
+.eyebrow{font-size:12px;letter-spacing:4px;color:var(--ink-faint);margin-bottom:8px}
+.list-title-block h1{font-size:52px;letter-spacing:4px;line-height:1.1}
+.list-title-block .sub{margin-top:10px;font-size:16px;color:var(--ink-soft);letter-spacing:2px}
+.list-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.chip-btn{
+  height:44px;padding:0 18px;border-radius:14px;
+  background:rgba(255,255,255,.85);border:1.5px solid #fff;box-shadow:var(--shadow-1);
+  font-size:14px;letter-spacing:1px;color:var(--ink-soft);
+  display:inline-flex;align-items:center;gap:8px;
+  transition:transform .25s var(--ease-spring), box-shadow .25s, color .2s;
+}
+.chip-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-2);color:var(--ink)}
+.chip-btn.primary{
+  background:linear-gradient(135deg,var(--c-sakura),#f7b0c4);color:#fff;border-color:transparent;
+}
+.chip-btn.primary:hover{color:#fff}
+.chip-btn.liked{color:var(--c-sakura);background:var(--c-sakura-soft)}
+.seg-mini{
+  display:flex;background:rgba(255,255,255,.7);border-radius:999px;padding:4px;gap:2px;
+  border:1.5px solid #fff;box-shadow:var(--shadow-1);
+}
+.seg-mini button{padding:8px 16px;border-radius:999px;font-size:13px;color:var(--ink-soft);letter-spacing:1px;transition:all .25s}
+.seg-mini button.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(90,100,160,.16)}
+
+.list-toolbar{display:flex;gap:14px;align-items:center;margin-bottom:22px;flex-wrap:wrap}
+.search-box{
+  flex:1;min-width:280px;height:48px;border-radius:16px;
+  background:rgba(255,255,255,.9);border:2px solid #e8e4f5;
+  display:flex;align-items:center;padding:0 14px 0 16px;gap:10px;
+  transition:border-color .25s, box-shadow .25s;
+}
+.search-box:focus-within{border-color:var(--c-violet);box-shadow:0 0 0 5px rgba(155,140,232,.14)}
+.search-box svg{width:18px;height:18px;color:var(--ink-faint);flex:none}
+.search-box input{flex:1;font-size:15px;letter-spacing:1px;min-width:0}
+.search-box input::placeholder{color:var(--ink-faint)}
+.search-clear{
+  width:28px;height:28px;border-radius:50%;display:none;place-items:center;
+  color:var(--ink-faint);background:rgba(150,160,200,.12);
+}
+.search-box.has-value .search-clear{display:grid}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filter-pill{
+  height:36px;padding:0 14px;border-radius:999px;cursor:pointer;
+  background:rgba(255,255,255,.75);border:1.5px solid #ece7f8;
+  font-size:13px;color:var(--ink-soft);letter-spacing:1px;
+  display:inline-flex;align-items:center;gap:6px;
+  transition:all .25s var(--ease-spring);
+}
+.filter-pill:hover{transform:translateY(-2px);border-color:var(--c-sakura);color:var(--c-sakura)}
+.filter-pill.on{background:var(--c-sakura-soft);border-color:var(--c-sakura);color:#d46a8a}
+.filter-pill .n{font-size:11px;opacity:.7}
+.tag-pill{
+  height:32px;padding:0 12px;border-radius:999px;cursor:pointer;
+  background:rgba(255,255,255,.7);border:1.5px solid #ece7f8;
+  font-size:12px;color:var(--ink-soft);letter-spacing:1px;
+  transition:all .25s;
+}
+.tag-pill:hover,.tag-pill.on{background:var(--c-violet-soft);border-color:var(--c-violet);color:var(--c-violet)}
+.tag-pill.lg{font-size:14px;padding:0 14px;height:34px}
+.tag-pill.md{font-size:13px}
+.tag-pill.sm{font-size:11px;opacity:.85}
+
+.card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.post-card{
+  background:rgba(255,255,255,.88);border:1.5px solid #fff;
+  border-radius:var(--r-lg);box-shadow:var(--shadow-1);overflow:hidden;
+  display:flex;flex-direction:column;cursor:pointer;
+  transition:transform .35s var(--ease-spring), box-shadow .35s;
+}
+.post-card:hover{transform:translateY(-6px);box-shadow:var(--shadow-2)}
+.post-card .cover{
+  aspect-ratio:16/9;position:relative;overflow:hidden;
+  display:grid;place-items:center;font-size:12px;letter-spacing:2px;color:var(--ink-faint);
+}
+.post-card .cover.c1{background:radial-gradient(200px 120px at 25% 35%, var(--c-sakura-soft), transparent 70%), radial-gradient(180px 100px at 85% 70%, var(--c-violet-soft), transparent 70%), rgba(255,253,248,.7)}
+.post-card .cover.c2{background:radial-gradient(200px 120px at 70% 30%, var(--c-mint-soft), transparent 70%), radial-gradient(180px 100px at 20% 80%, var(--c-blue-soft), transparent 70%), rgba(255,253,248,.7)}
+.post-card .cover.c3{background:radial-gradient(200px 120px at 40% 60%, var(--c-lilac-soft), transparent 70%), radial-gradient(160px 90px at 90% 20%, var(--c-sun), transparent 70%), rgba(255,253,248,.75)}
+.post-card .cover .ratio{position:relative;z-index:1;background:rgba(255,255,255,.55);padding:6px 12px;border-radius:999px;border:1.5px dashed rgba(150,160,200,.35)}
+.post-card .body{padding:18px 20px 20px;flex:1;display:flex;flex-direction:column}
+.post-card .meta{display:flex;gap:12px;font-size:12px;color:var(--ink-faint);letter-spacing:1px;margin-bottom:10px}
+.post-card .title{font-size:20px;letter-spacing:1px;margin-bottom:10px;line-height:1.35}
+.post-card .summary{font-size:14px;color:var(--ink-soft);line-height:1.65;letter-spacing:.5px;flex:1}
+.post-card .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.post-card .tags span{
+  font-size:11px;padding:4px 10px;border-radius:999px;
+  background:rgba(244,144,173,.12);color:#d46a8a;letter-spacing:1px;
+}
+.post-card .stats{
+  display:flex;gap:16px;margin-top:14px;padding-top:12px;
+  border-top:1px solid rgba(150,160,200,.15);
+  font-size:12px;color:var(--ink-faint);align-items:center;
+}
+.post-card .stats button{display:inline-flex;align-items:center;gap:5px;color:var(--ink-faint);font-size:12px;transition:color .2s}
+.post-card .stats button:hover,.post-card .stats button.liked{color:var(--c-sakura)}
+.post-card .stats svg{width:14px;height:14px}
+
+.timeline-layout{display:none;grid-template-columns:280px 1fr;gap:28px}
+#stage[data-layout="timeline"] .card-grid{display:none}
+#stage[data-layout="timeline"] .timeline-layout{display:grid}
+#stage[data-layout="timeline"] .list-sort{display:none}
+
+.side-panel{padding:22px;display:flex;flex-direction:column;gap:22px;align-self:start}
+.side-block h3{font-size:16px;letter-spacing:2px;margin-bottom:12px}
+.about-text{font-size:13px;line-height:1.7;color:var(--ink-soft);letter-spacing:.5px}
+.cat-list{display:flex;flex-direction:column;gap:6px}
+.cat-item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 12px;border-radius:12px;cursor:pointer;
+  transition:background .2s, transform .25s var(--ease-spring);
+  font-size:14px;color:var(--ink-soft);letter-spacing:1px;
+}
+.cat-item:hover{background:rgba(244,144,173,.1);transform:translateX(4px)}
+.cat-item.on{background:var(--c-sakura-soft);color:#d46a8a}
+.cat-item .n{font-size:12px;opacity:.7}
+
+.timeline-rail{position:relative;padding-left:28px}
+.timeline-rail::before{
+  content:"";position:absolute;left:8px;top:8px;bottom:8px;width:2px;
+  background:linear-gradient(180deg,var(--c-sakura-soft),var(--c-violet-soft));
+}
+.tl-month{font-size:13px;letter-spacing:3px;color:var(--ink-faint);margin:8px 0 14px;font-weight:600}
+.tl-item{
+  position:relative;margin-bottom:18px;padding:18px 20px;
+  background:rgba(255,255,255,.88);border:1.5px solid #fff;
+  border-radius:var(--r-md);box-shadow:var(--shadow-1);cursor:pointer;
+  transition:transform .3s var(--ease-spring), box-shadow .3s;
+}
+.tl-item:hover{transform:translateX(6px);box-shadow:var(--shadow-2)}
+.tl-item::before{
+  content:"";position:absolute;left:-24px;top:24px;width:12px;height:12px;border-radius:50%;
+  background:var(--c-sakura);border:3px solid #fff;box-shadow:var(--shadow-1);
+}
+.tl-item .t{font-size:18px;letter-spacing:1px;margin-bottom:8px}
+.tl-item .s{font-size:13px;color:var(--ink-soft);line-height:1.6}
+
+.pagination{display:flex;justify-content:center;gap:8px;margin-top:32px}
+.page-dot{
+  min-width:40px;height:40px;padding:0 8px;border-radius:12px;cursor:pointer;
+  background:rgba(255,255,255,.75);border:1.5px solid #fff;
+  display:grid;place-items:center;font-size:14px;color:var(--ink-soft);
+  transition:all .25s var(--ease-spring);
+}
+.page-dot:hover{transform:translateY(-2px)}
+.page-dot.on{background:var(--c-sakura);color:#fff;border-color:transparent}
+
+.empty-state{
+  display:none;text-align:center;padding:64px 24px;
+  background:rgba(255,255,255,.55);border:1.5px dashed rgba(150,160,200,.4);
+  border-radius:var(--r-lg);margin-top:12px;
+}
+.empty-state.show{display:block}
+.empty-state .t{font-size:22px;letter-spacing:2px;margin-bottom:8px}
+.empty-state .d{font-size:14px;color:var(--ink-faint);letter-spacing:1px}
+
+/* Detail */
+.detail-cover{
+  height:300px;border-radius:var(--r-lg);margin-bottom:24px;position:relative;overflow:hidden;
+  background:
+    radial-gradient(420px 220px at 28% 40%, var(--c-lilac-soft), transparent 65%),
+    radial-gradient(380px 200px at 82% 55%, var(--c-blue-soft), transparent 65%),
+    rgba(255,255,255,.4);
+  border:1.5px solid #fff;box-shadow:var(--shadow-1);
+  display:grid;place-items:center;
+}
+.detail-cover .ratio{
+  background:rgba(255,255,255,.6);padding:8px 16px;border-radius:999px;
+  border:1.5px dashed rgba(150,160,200,.35);font-size:13px;letter-spacing:2px;color:var(--ink-faint);
+}
+.detail-grid{display:grid;grid-template-columns:1fr 300px;gap:28px}
+.detail-main{padding:32px 36px 40px}
+.detail-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--ink-faint);letter-spacing:1px;margin-bottom:14px}
+.detail-main h1{font-size:40px;letter-spacing:2px;line-height:1.3;margin-bottom:12px}
+.detail-summary{font-size:16px;color:var(--ink-soft);line-height:1.7;margin-bottom:16px}
+.detail-actions{display:flex;gap:10px;margin:18px 0 28px;flex-wrap:wrap}
+.blog-prose{font-size:16px;line-height:1.85;letter-spacing:.4px;color:var(--ink)}
+.blog-prose p{margin-bottom:1.1em}
+.blog-prose h2{font-size:24px;letter-spacing:2px;margin:1.4em 0 .6em;font-family:"ZCOOL KuaiLe",sans-serif}
+.blog-prose h3{font-size:18px;margin:1.2em 0 .5em;color:var(--ink-soft)}
+.blog-prose code{
+  font-family:ui-monospace,Consolas,monospace;font-size:.9em;
+  background:rgba(155,140,232,.12);padding:2px 7px;border-radius:6px;color:#6b5cb8;
+}
+.blog-prose pre{
+  background:rgba(255,255,255,.7);border:1.5px solid rgba(150,160,200,.2);
+  border-radius:14px;padding:16px 18px;overflow:auto;margin:1.2em 0;
+  font-size:13px;line-height:1.6;
+}
+.blog-prose blockquote{
+  margin:1.2em 0;padding:12px 18px;border-radius:12px;
+  background:rgba(244,144,173,.08);border-left:3px solid var(--c-sakura);
+  color:var(--ink-soft);
+}
+.blog-prose ul{padding-left:1.4em;margin-bottom:1em}
+.blog-prose li{margin-bottom:.4em}
+.related-item{
+  padding:12px 0;border-bottom:1px solid rgba(150,160,200,.15);cursor:pointer;
+  transition:transform .25s var(--ease-spring);
+}
+.related-item:last-child{border-bottom:none}
+.related-item:hover{transform:translateX(4px)}
+.related-item .t{font-size:14px;letter-spacing:1px;margin-bottom:4px}
+.related-item .d{font-size:12px;color:var(--ink-faint)}
+.comment-stub{
+  margin-top:32px;padding:22px;border-radius:var(--r-md);
+  border:1.5px dashed rgba(150,160,200,.4);text-align:center;
+  font-size:13px;color:var(--ink-faint);letter-spacing:2px;
+  background:rgba(255,255,255,.4);
+}
+
+/* Create */
+.create-grid{display:grid;grid-template-columns:1fr 340px;gap:24px}
+.form-panel{padding:28px 32px}
+.form-row{margin-bottom:18px}
+.form-label{font-size:13px;letter-spacing:2px;color:var(--ink-soft);margin-bottom:8px;display:block}
+.form-field,.form-input,.form-textarea,.form-select{
+  width:100%;border-radius:14px;border:2px solid #e8e4f5;background:#fff;
+  padding:12px 16px;font-size:15px;color:var(--ink);
+  transition:border-color .25s, box-shadow .25s;
+}
+.form-input:focus,.form-textarea:focus,.form-select:focus{
+  border-color:var(--c-violet);box-shadow:0 0 0 5px rgba(155,140,232,.14);
+}
+.form-textarea{min-height:260px;resize:vertical;line-height:1.6}
+.form-input::placeholder,.form-textarea::placeholder{color:var(--ink-faint)}
+.cover-upload{
+  aspect-ratio:16/9;border-radius:var(--r-md);cursor:pointer;
+  border:2px dashed rgba(150,160,200,.4);background:rgba(255,255,255,.55);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  font-size:13px;color:var(--ink-faint);letter-spacing:2px;
+  transition:border-color .25s, background .25s, transform .25s var(--ease-spring);
+}
+.cover-upload:hover{border-color:var(--c-violet);background:var(--c-violet-soft);transform:scale(1.01)}
+.cover-upload.filled{
+  border-style:solid;border-color:#fff;
+  background:radial-gradient(200px 120px at 30% 40%, var(--c-sakura-soft), transparent 70%),
+    radial-gradient(180px 100px at 80% 70%, var(--c-mint-soft), transparent 70%), rgba(255,255,255,.7);
+  color:var(--ink-soft);
+}
+.form-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.btn{
+  height:46px;padding:0 22px;border-radius:14px;font-size:15px;letter-spacing:2px;
+  background:rgba(255,255,255,.9);border:1.5px solid #fff;box-shadow:var(--shadow-1);
+  color:var(--ink-soft);transition:transform .25s var(--ease-spring), box-shadow .25s;
+}
+.btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-2);color:var(--ink)}
+.btn.primary{background:linear-gradient(135deg,var(--c-violet),var(--c-sakura));color:#fff;border-color:transparent}
+.btn.primary:hover{color:#fff}
+.btn.ghost{background:transparent;border:1.5px dashed rgba(150,160,200,.45);box-shadow:none}
+.toast{
+  position:fixed;top:28px;left:50%;transform:translateX(-50%) translateY(-20px);
+  background:rgba(255,255,255,.95);backdrop-filter:blur(12px);
+  border:1.5px solid #fff;border-radius:16px;padding:12px 22px;
+  box-shadow:var(--shadow-2);font-size:14px;letter-spacing:1px;color:var(--ink);
+  opacity:0;pointer-events:none;z-index:200;transition:all .35s var(--ease-out);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.sub-hero{
+  padding:28px 32px;margin-bottom:24px;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+}
+.sub-hero h1{font-size:36px;letter-spacing:3px}
+.sub-hero .count{font-size:14px;color:var(--ink-faint);letter-spacing:2px;margin-top:8px}
+.back-chip{
+  height:40px;padding:0 16px;border-radius:12px;cursor:pointer;
+  background:rgba(255,255,255,.85);border:1.5px solid #fff;box-shadow:var(--shadow-1);
+  font-size:13px;letter-spacing:1px;color:var(--ink-soft);
+  display:inline-flex;align-items:center;gap:6px;
+  transition:transform .25s var(--ease-spring);
+}
+.back-chip:hover{transform:translateX(-3px);color:var(--ink)}
+
+.share-modal{
+  display:none;position:fixed;inset:0;z-index:150;
+  background:rgba(70,80,130,.25);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;
+}
+.share-modal.open{display:flex}
+.share-card{
+  width:420px;padding:28px;border-radius:var(--r-lg);
+  background:rgba(255,255,255,.95);border:1.5px solid #fff;box-shadow:var(--shadow-2);
+}
+.share-card h3{font-size:22px;letter-spacing:2px;margin-bottom:14px}
+.share-url{
+  display:flex;gap:8px;align-items:center;
+  background:#f7f5fc;border-radius:12px;padding:10px 12px;margin-bottom:16px;
+}
+.share-url code{flex:1;font-size:12px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+#tweaks{position:fixed;right:28px;bottom:28px;z-index:99;font-size:14px}
+#tweaks .panel{
+  width:310px;background:rgba(255,255,255,.94);backdrop-filter:blur(14px);
+  border-radius:22px;box-shadow:0 20px 60px rgba(70,80,130,.35);border:1.5px solid #fff;
+  padding:18px 20px 20px;display:none;margin-bottom:12px;
+}
+#tweaks.open .panel{display:block}
+#tweaks h4{font-size:13px;letter-spacing:3px;color:var(--ink-faint);margin-bottom:14px;font-weight:600}
+#tweaks .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px}
+#tweaks .row:last-child{margin-bottom:0}
+#tweaks label{color:var(--ink-soft);letter-spacing:1px;flex:none;font-size:13px}
+.seg{display:flex;background:#f0edf9;border-radius:999px;padding:3px;gap:2px;flex-wrap:wrap;justify-content:flex-end}
+.seg button{padding:6px 10px;border-radius:999px;font-size:12px;color:var(--ink-soft);letter-spacing:1px}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(90,100,160,.18)}
+#tweaks .fab{
+  height:46px;padding:0 20px;border-radius:999px;
+  background:rgba(255,255,255,.94);backdrop-filter:blur(14px);color:var(--ink);
+  box-shadow:0 12px 34px rgba(70,80,130,.35);border:1.5px solid #fff;
+  font-size:14px;letter-spacing:2px;display:flex;align-items:center;gap:8px;
+}
+#tweaks.open .fab{display:none}
+#tweaks .fab svg{width:16px;height:16px}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+<div class="share-modal" id="shareModal">
+  <div class="share-card">
+    <h3 class="font-display">分享文章</h3>
+    <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;letter-spacing:1px">复制链接发给朋友</p>
+    <div class="share-url">
+      <code id="shareUrl">https://example.com/blog/12</code>
+      <button type="button" class="chip-btn" id="copyShare" style="height:34px">复制</button>
+    </div>
+    <button type="button" class="btn" id="closeShare" style="width:100%">关闭</button>
+  </div>
+</div>
+
+<div id="stageWrap">
+<div id="stage" data-page="list" data-layout="card" data-season="spring">
+  <div class="deco" style="left:1680px;top:110px;animation:floaty 6s ease-in-out infinite">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4L12 2z" fill="#ffcf6e" opacity=".9"/></svg>
+  </div>
+  <div class="deco" style="left:70px;top:780px;animation:floaty 7s ease-in-out infinite;animation-delay:-3s">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4L12 2z" fill="#f490ad" opacity=".7"/></svg>
+  </div>
+
+  <header id="topbar">
+    <div class="brand">
+      <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4L12 2z" fill="#fff"/></svg></div>
+      <div>
+        <div class="brand-name font-display">某某の小站</div>
+        <div class="brand-sub">MOUMOU NO STATION</div>
+      </div>
+    </div>
+    <nav id="mainnav">
+      <span id="navPill"></span>
+      <button type="button">首页</button>
+      <button type="button" class="active">随笔</button>
+      <button type="button">日记</button>
+      <button type="button">知识库</button>
+      <button type="button">实验室</button>
+      <button type="button">对话</button>
+    </nav>
+    <div class="top-right">
+      <div class="clock-chip">
+        <div class="clock-time" id="clockTime">--<span class="colon">:</span>--</div>
+        <div class="clock-date" id="clockDate">----年--月--日</div>
+      </div>
+      <div class="avatar">某</div>
+    </div>
+  </header>
+
+  <canvas id="petals" width="1920" height="1560"></canvas>
+  <div class="loading-veil" id="loadingVeil"><div class="loader" aria-hidden="true"></div></div>
+  <div class="v3-banner text-pretty anim">v3 · 动效 / 空态 / 加载示意 / 季节粒子 · 与主页氛围对齐</div>
+
+  <!-- LIST -->
+  <section class="page on" id="page-list" data-screen-label="01 List">
+    <span class="page-label">01 · LIST</span>
+    <div class="list-head">
+      <div class="list-title-block">
+        <div class="eyebrow">JOURNAL</div>
+        <h1 class="font-display">随笔</h1>
+        <div class="sub">把日子写成一页页小故事</div>
+      </div>
+      <div class="list-actions">
+        <div class="seg-mini" id="layoutSeg">
+          <button type="button" class="on" data-layout="card">卡片</button>
+          <button type="button" data-layout="timeline">时间线</button>
+        </div>
+        <div class="seg-mini list-sort" id="sortSeg">
+          <button type="button" class="on" data-sort="latest">最新</button>
+          <button type="button" data-sort="popular">热门</button>
+        </div>
+        <button type="button" class="chip-btn primary font-display" data-go="create">发布文章</button>
+      </div>
+    </div>
+
+    <div class="list-toolbar">
+      <div class="search-box" id="searchBox">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/></svg>
+        <input type="search" id="searchInput" placeholder="搜索标题…" autocomplete="off">
+        <button type="button" class="search-clear" id="searchClear" aria-label="清除">×</button>
+      </div>
+      <div class="filter-row" id="catFilters"></div>
+    </div>
+    <div class="filter-row" id="tagFilters" style="margin-bottom:20px"></div>
+
+    <div class="card-grid" id="cardGrid"></div>
+    <div class="timeline-layout">
+      <aside class="side-panel glass">
+        <div class="side-block">
+          <h3 class="font-display">关于</h3>
+          <p class="about-text text-pretty">这里是某某的随笔角落：记录学习、灵感与一点点生活碎碎念。</p>
+        </div>
+        <div class="side-block">
+          <h3 class="font-display">分类</h3>
+          <div class="cat-list" id="sideCats"></div>
+        </div>
+        <div class="side-block">
+          <h3 class="font-display">标签云</h3>
+          <div class="filter-row" id="sideTags"></div>
+        </div>
+      </aside>
+      <div id="timelineRail"></div>
+    </div>
+    <div class="empty-state" id="listEmpty">
+      <div class="t font-display">没有找到相关随笔</div>
+      <div class="d">试试换个关键词，或清除筛选</div>
+    </div>
+    <div class="pagination" id="pagination"></div>
+  </section>
+
+  <!-- DETAIL -->
+  <section class="page" id="page-detail" data-screen-label="02 Detail">
+    <span class="page-label">02 · DETAIL</span>
+    <button type="button" class="back-chip" data-go="list">← 返回列表</button>
+    <div class="detail-cover" style="margin-top:14px"><span class="ratio">[image] 21:9 cover</span></div>
+    <div class="detail-grid">
+      <article class="detail-main glass">
+        <div class="detail-meta">
+          <span id="dCat">前端</span>
+          <span id="dDate">2026-07-12</span>
+          <span>某某</span>
+          <span id="dViews">1.2k 阅读</span>
+        </div>
+        <h1 class="font-display text-pretty" id="dTitle">春日里的组件拆分笔记</h1>
+        <p class="detail-summary text-pretty" id="dSummary">把一个臃肿页面拆成可呼吸的小零件——记录一次重构的取舍。</p>
+        <div class="filter-row" id="dTags"></div>
+        <div class="detail-actions">
+          <button type="button" class="chip-btn" id="likeBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.2-4.6-9.5-8.2C.7 9.8 2.2 6 5.6 6c1.9 0 3.2 1.1 4 2.2C10.4 7.1 11.7 6 13.6 6c3.4 0 4.9 3.8 3.1 6.8C19.2 16.4 12 21 12 21z"/></svg> <span id="likeCnt">42</span> 喜欢</button>
+          <button type="button" class="chip-btn" id="shareBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg> 分享</button>
+          <button type="button" class="chip-btn" data-go="create"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> 编辑</button>
+        </div>
+        <div class="blog-prose text-pretty" id="dBody">
+          <p>最近把博客列表从「一锅炖」拆成了侧栏筛选、卡片网格和时间线三种阅读节奏。拆的时候最怕的是：为了好看，把信息层级弄乱。</p>
+          <h2>先定阅读路径</h2>
+          <p>卡片模式适合扫封面与摘要；时间线适合按月份回看。两者共用同一份数据，只是容器不同——这比复制两套列表更稳。</p>
+          <blockquote>少造一点组件，多保留一点呼吸。</blockquote>
+          <h3>实现时记下的小点</h3>
+          <ul>
+            <li>筛选状态写进 URL query，刷新不丢</li>
+            <li>点赞失败要有降级，不要假装成功</li>
+            <li>封面缺失用雾面占位，比假图诚实</li>
+          </ul>
+          <pre><code>const params = { categoryId, tagId, pageNum }</code></pre>
+          <p>接下来会把同一套视觉语言迁到详情与发布页，让「随笔」房间和主页站在同一片云上。</p>
+        </div>
+        <div class="comment-stub">评论区暂未开放 · stub</div>
+      </article>
+      <aside class="side-panel glass">
+        <div class="side-block">
+          <h3 class="font-display">相关文章</h3>
+          <div id="relatedList"></div>
+        </div>
+        <div class="side-block">
+          <h3 class="font-display">标签云</h3>
+          <div class="filter-row" id="detailTagCloud"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- CREATE -->
+  <section class="page" id="page-create" data-screen-label="03 Create">
+    <span class="page-label">03 · CREATE</span>
+    <div class="list-head" style="margin-bottom:20px">
+      <div class="list-title-block">
+        <div class="eyebrow">EDITOR</div>
+        <h1 class="font-display" style="font-size:40px">写文章</h1>
+        <div class="sub">草稿保存 · 发布上线</div>
+      </div>
+      <button type="button" class="back-chip" data-go="list">← 返回</button>
+    </div>
+    <div class="create-grid">
+      <div class="form-panel glass">
+        <div class="form-row">
+          <label class="form-label" for="fTitle">标题</label>
+          <input class="form-input" id="fTitle" placeholder="给文章起个名字">
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="fSummary">摘要</label>
+          <input class="form-input" id="fSummary" placeholder="一句话介绍（最多 200 字）">
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="fContent">正文</label>
+          <textarea class="form-textarea" id="fContent" placeholder="支持 Markdown…"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn ghost" id="btnReset">重置</button>
+          <button type="button" class="btn" id="btnDraft">存草稿</button>
+          <button type="button" class="btn primary font-display" id="btnPublish">发布</button>
+        </div>
+      </div>
+      <aside class="form-panel glass">
+        <div class="form-row">
+          <div class="form-label">封面</div>
+          <div class="cover-upload" id="coverUpload" role="button" tabindex="0">
+            <span>[image] 16:9</span>
+            <span style="font-size:11px">点击模拟上传</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="fCat">分类</label>
+          <select class="form-select" id="fCat">
+            <option value="">选择分类</option>
+            <option>前端</option>
+            <option>随想</option>
+            <option>笔记</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-label">标签</div>
+          <div class="filter-row" id="formTags"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- CATEGORY -->
+  <section class="page" id="page-category" data-screen-label="04 Category">
+    <span class="page-label">04 · CATEGORY</span>
+    <div class="sub-hero glass">
+      <div>
+        <div class="eyebrow">CATEGORY</div>
+        <h1 class="font-display" id="catTitle">前端</h1>
+        <div class="count" id="catCount">共 0 篇</div>
+      </div>
+      <button type="button" class="back-chip" data-go="list">← 全部随笔</button>
+    </div>
+    <div class="card-grid" id="catGrid"></div>
+  </section>
+
+  <!-- TAG -->
+  <section class="page" id="page-tag" data-screen-label="05 Tag">
+    <span class="page-label">05 · TAG</span>
+    <div class="sub-hero glass">
+      <div>
+        <div class="eyebrow">TAG</div>
+        <h1 class="font-display" id="tagTitle">#Vue</h1>
+        <div class="count" id="tagCount">共 0 篇</div>
+      </div>
+      <button type="button" class="back-chip" data-go="list">← 全部随笔</button>
+    </div>
+    <div class="card-grid" id="tagGrid"></div>
+  </section>
+</div>
+</div>
+
+<div id="tweaks">
+  <div class="panel">
+    <h4>TWEAKS</h4>
+    <div class="row">
+      <label>当前页</label>
+      <div class="seg" id="pageSeg">
+        <button type="button" data-page="list" class="on">列表</button>
+        <button type="button" data-page="detail">详情</button>
+        <button type="button" data-page="create">发布</button>
+        <button type="button" data-page="category">分类</button>
+        <button type="button" data-page="tag">标签</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>列表布局</label>
+      <div class="seg" id="layoutSegTweaks">
+        <button type="button" data-layout="card" class="on">卡片</button>
+        <button type="button" data-layout="timeline">时间线</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>时段主题</label>
+      <div class="seg" id="themeSeg">
+        <button type="button" data-theme="morning" class="on">清晨</button>
+        <button type="button" data-theme="noon">正午</button>
+        <button type="button" data-theme="dusk">黄昏</button>
+        <button type="button" data-theme="night">星夜</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>季节</label>
+      <div class="seg" id="seasonSeg">
+        <button type="button" data-season="spring" class="on">春</button>
+        <button type="button" data-season="summer">夏</button>
+        <button type="button" data-season="autumn">秋</button>
+        <button type="button" data-season="winter">冬</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>季节粒子</label>
+      <button type="button" class="switch on" id="petalSwitch" aria-label="粒子开关"></button>
+    </div>
+    <div class="row">
+      <label>加载示意</label>
+      <button type="button" class="chip-btn" id="demoLoad" style="height:32px;font-size:12px">播放</button>
+    </div>
+  </div>
+  <button class="fab" id="tweaksFab" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2.4"/><circle cx="8" cy="16" r="2.4"/></svg>
+    Tweaks
+  </button>
+</div>
+
+<script>
+const POSTS = [
+  {id:1,title:'春日里的组件拆分笔记',summary:'把臃肿页面拆成可呼吸的小零件，记录一次重构的取舍。',cat:'前端',tags:['Vue','设计'],date:'2026-07-12',month:'2026 · 七月',views:1280,likes:42,cover:1,popular:96},
+  {id:2,title:'雾面背景与克制渐变',summary:'大面积单色容易发闷，用薄雾径向叠一层点阵会更轻。',cat:'随想',tags:['设计','CSS'],date:'2026-07-08',month:'2026 · 七月',views:860,likes:31,cover:2,popular:78},
+  {id:3,title:'Markdown 排版小抄',summary:'标题、引用、代码块在散文里怎么排才不抢戏。',cat:'笔记',tags:['写作','Markdown'],date:'2026-06-28',month:'2026 · 六月',views:2100,likes:67,cover:3,popular:99},
+  {id:4,title:'时间线布局的两种读法',summary:'月份锚点 + 交替卡片，适合回看一年的写作节奏。',cat:'前端',tags:['Vue','UX'],date:'2026-06-21',month:'2026 · 六月',views:640,likes:19,cover:1,popular:55},
+  {id:5,title:'封面占位比假图更诚实',summary:'没有摄影素材时，比例标注的占位反而更专业。',cat:'随想',tags:['设计'],date:'2026-06-14',month:'2026 · 六月',views:420,likes:15,cover:2,popular:40},
+  {id:6,title:'发布页表单的焦点顺序',summary:'标题 → 摘要 → 正文 → 侧栏元数据，手不离开键盘。',cat:'笔记',tags:['UX','无障碍'],date:'2026-05-30',month:'2026 · 五月',views:980,likes:28,cover:3,popular:70},
+  {id:7,title:'标签云的尺寸语义',summary:'字号映射热度，但不要做成彩虹爆炸。',cat:'前端',tags:['CSS','设计'],date:'2026-05-18',month:'2026 · 五月',views:1500,likes:53,cover:1,popular:88},
+  {id:8,title:'午后一杯茶与调试',summary:'断点打多了，不如先把复现步骤写清楚。',cat:'随想',tags:['日常'],date:'2026-05-02',month:'2026 · 五月',views:310,likes:11,cover:2,popular:30}
+];
+const CATS = [
+  {name:'全部', count: POSTS.length},
+  {name:'前端', count: POSTS.filter(p=>p.cat==='前端').length},
+  {name:'随想', count: POSTS.filter(p=>p.cat==='随想').length},
+  {name:'笔记', count: POSTS.filter(p=>p.cat==='笔记').length}
+];
+const TAGS = (() => {
+  const m = {};
+  POSTS.forEach(p => p.tags.forEach(t => { m[t] = (m[t]||0)+1; }));
+  return Object.entries(m).map(([name,count]) => ({name,count})).sort((a,b)=>b.count-a.count);
+})();
+
+const STATE = { cat:'全部', tag:null, sort:'latest', q:'', page:1, pageSize:6, liked:{} };
+
+const STAGE_W = 1920;
+const PAGE_H = { list: 1560, detail: 1780, create: 1380, category: 1280, tag: 1280 };
+let STAGE_H = PAGE_H.list;
+const stageWrap = document.getElementById('stageWrap');
+const stage = document.getElementById('stage');
+
+function fit(){
+  const s = Math.min(innerWidth / STAGE_W, 1.15);
+  stage.style.transform = `scale(${s})`;
+  stage.style.height = STAGE_H + 'px';
+  stageWrap.style.width = STAGE_W * s + 'px';
+  stageWrap.style.height = STAGE_H * s + 'px';
+}
+addEventListener('resize', fit);
+
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+function setPage(name){
+  STAGE_H = PAGE_H[name] || 1400;
+  stage.dataset.page = name;
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('on', p.id === 'page-' + name));
+  document.querySelectorAll('#pageSeg button').forEach(b => b.classList.toggle('on', b.dataset.page === name));
+  if(name === 'category') renderCatPage();
+  if(name === 'tag') renderTagPage();
+  if(typeof petalCanvas !== 'undefined' && petalCanvas) petalCanvas.height = STAGE_H;
+  fit();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function setLayout(mode){
+  stage.dataset.layout = mode;
+  document.querySelectorAll('#layoutSeg button, #layoutSegTweaks button').forEach(b => {
+    b.classList.toggle('on', b.dataset.layout === mode);
+  });
+}
+function setTheme(name){
+  document.documentElement.dataset.theme = name;
+  document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.theme === name));
+}
+
+function filtered(){
+  let list = POSTS.slice();
+  if(STATE.cat !== '全部') list = list.filter(p => p.cat === STATE.cat);
+  if(STATE.tag) list = list.filter(p => p.tags.includes(STATE.tag));
+  if(STATE.q) list = list.filter(p => p.title.includes(STATE.q));
+  if(STATE.sort === 'popular') list.sort((a,b)=>b.popular-a.popular);
+  else list.sort((a,b)=>b.date.localeCompare(a.date));
+  return list;
+}
+
+function coverClass(n){ return 'c' + ((n-1)%3+1); }
+
+function cardHTML(p){
+  const liked = STATE.liked[p.id];
+  const heart = liked
+    ? '<svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.2-4.6-9.5-8.2C.7 9.8 2.2 6 5.6 6c1.9 0 3.2 1.1 4 2.2C10.4 7.1 11.7 6 13.6 6c3.4 0 4.9 3.8 3.1 6.8C19.2 16.4 12 21 12 21z"/></svg>'
+    : '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.2-4.6-9.5-8.2C.7 9.8 2.2 6 5.6 6c1.9 0 3.2 1.1 4 2.2C10.4 7.1 11.7 6 13.6 6c3.4 0 4.9 3.8 3.1 6.8C19.2 16.4 12 21 12 21z"/></svg>';
+  const eye = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  return `<article class="post-card" data-id="${p.id}">
+    <div class="cover ${coverClass(p.cover)}"><span class="ratio">16:9 cover</span></div>
+    <div class="body">
+      <div class="meta"><span>${p.cat}</span><span>${p.date}</span></div>
+      <div class="title font-display">${p.title}</div>
+      <p class="summary text-pretty">${p.summary}</p>
+      <div class="tags">${p.tags.map(t=>`<span>#${t}</span>`).join('')}</div>
+      <div class="stats">
+        <span>${eye} ${p.views}</span>
+        <button type="button" class="like-mini ${liked?'liked':''}" data-like="${p.id}">${heart} ${p.likes + (liked?1:0)}</button>
+      </div>
+    </div>
+  </article>`;
+}
+
+function renderFilters(){
+  document.getElementById('catFilters').innerHTML = CATS.map(c =>
+    `<button type="button" class="filter-pill ${STATE.cat===c.name?'on':''}" data-cat="${c.name}">${c.name}<span class="n">${c.count}</span></button>`
+  ).join('');
+  document.getElementById('tagFilters').innerHTML = TAGS.map(t =>
+    `<button type="button" class="tag-pill ${STATE.tag===t.name?'on':''}" data-tag="${t.name}">#${t.name}</button>`
+  ).join('') + (STATE.tag ? `<button type="button" class="tag-pill" data-tag="">清除标签</button>` : '');
+
+  document.getElementById('sideCats').innerHTML = CATS.map(c =>
+    `<div class="cat-item ${STATE.cat===c.name?'on':''}" data-cat="${c.name}"><span>${c.name}</span><span class="n">${c.count}</span></div>`
+  ).join('');
+  document.getElementById('sideTags').innerHTML = TAGS.map(t => {
+    const size = t.count>=3?'lg':t.count>=2?'md':'sm';
+    return `<button type="button" class="tag-pill ${size} ${STATE.tag===t.name?'on':''}" data-tag="${t.name}">#${t.name}</button>`;
+  }).join('');
+
+  document.getElementById('formTags').innerHTML = TAGS.map(t =>
+    `<button type="button" class="tag-pill" data-ftag="${t.name}">#${t.name}</button>`
+  ).join('');
+  document.getElementById('detailTagCloud').innerHTML = TAGS.map(t =>
+    `<button type="button" class="tag-pill" data-go-tag="${t.name}">#${t.name}</button>`
+  ).join('');
+}
+
+function renderList(){
+  const all = filtered();
+  const totalPages = Math.max(1, Math.ceil(all.length / STATE.pageSize));
+  if(STATE.page > totalPages) STATE.page = totalPages;
+  const start = (STATE.page-1)*STATE.pageSize;
+  const pageItems = all.slice(start, start + STATE.pageSize);
+
+  const empty = document.getElementById('listEmpty');
+  empty.classList.toggle('show', pageItems.length === 0);
+  document.getElementById('cardGrid').style.display = pageItems.length ? '' : 'none';
+
+  document.getElementById('cardGrid').innerHTML = pageItems.map(cardHTML).join('');
+
+  const byMonth = {};
+  all.forEach(p => { (byMonth[p.month] = byMonth[p.month] || []).push(p); });
+  document.getElementById('timelineRail').innerHTML = `<div class="timeline-rail">${
+    Object.keys(byMonth).map(m => `
+      <div class="tl-month">${m}</div>
+      ${byMonth[m].map(p => `
+        <div class="tl-item" data-id="${p.id}">
+          <div class="t font-display">${p.title}</div>
+          <div class="s text-pretty">${p.summary}</div>
+          <div class="meta" style="margin-top:8px;font-size:12px;color:var(--ink-faint)">${p.cat} · ${p.date}</div>
+        </div>`).join('')}
+    `).join('')
+  }</div>`;
+
+  let dots = '';
+  for(let i=1;i<=totalPages;i++){
+    dots += `<button type="button" class="page-dot ${STATE.page===i?'on':''}" data-page-num="${i}">${i}</button>`;
+  }
+  document.getElementById('pagination').innerHTML = dots;
+  document.getElementById('pagination').style.display = pageItems.length ? '' : 'none';
+}
+
+function openDetail(id){
+  const p = POSTS.find(x => x.id === id) || POSTS[0];
+  document.getElementById('dTitle').textContent = p.title;
+  document.getElementById('dSummary').textContent = p.summary;
+  document.getElementById('dCat').textContent = p.cat;
+  document.getElementById('dDate').textContent = p.date;
+  document.getElementById('dViews').textContent = p.views + ' 阅读';
+  document.getElementById('likeCnt').textContent = p.likes + (STATE.liked[p.id]?1:0);
+  document.getElementById('likeBtn').classList.toggle('liked', !!STATE.liked[p.id]);
+  document.getElementById('likeBtn').dataset.id = p.id;
+  document.getElementById('dTags').innerHTML = p.tags.map(t =>
+    `<button type="button" class="tag-pill on" data-go-tag="${t}">#${t}</button>`
+  ).join('');
+  document.getElementById('relatedList').innerHTML = POSTS.filter(x => x.id !== p.id && (x.cat===p.cat || x.tags.some(t=>p.tags.includes(t)))).slice(0,4)
+    .map(r => `<div class="related-item" data-id="${r.id}"><div class="t">${r.title}</div><div class="d">${r.date} · ${r.cat}</div></div>`).join('');
+  document.getElementById('shareUrl').textContent = `https://moumou.station/blog/${p.id}`;
+  setPage('detail');
+}
+
+function renderCatPage(){
+  const name = STATE.cat === '全部' ? '前端' : STATE.cat;
+  const list = POSTS.filter(p => p.cat === name);
+  document.getElementById('catTitle').textContent = name;
+  document.getElementById('catCount').textContent = `共 ${list.length} 篇`;
+  document.getElementById('catGrid').innerHTML = list.map(cardHTML).join('');
+}
+function renderTagPage(){
+  const name = STATE.tag || 'Vue';
+  const list = POSTS.filter(p => p.tags.includes(name));
+  document.getElementById('tagTitle').textContent = '#' + name;
+  document.getElementById('tagCount').textContent = `共 ${list.length} 篇`;
+  document.getElementById('tagGrid').innerHTML = list.map(cardHTML).join('');
+}
+
+/* clock + nav */
+const timeEl = document.getElementById('clockTime');
+const dateEl = document.getElementById('clockDate');
+const weekCN = ['日','一','二','三','四','五','六'];
+function tick(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,'0');
+  timeEl.innerHTML = `${p(d.getHours())}<span class="colon">:</span>${p(d.getMinutes())} <span class="sec">${p(d.getSeconds())}</span>`;
+  dateEl.textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 · 周${weekCN[d.getDay()]}`;
+}
+tick(); setInterval(tick, 1000);
+const nav = document.getElementById('mainnav');
+const pill = document.getElementById('navPill');
+function movePill(btn){ pill.style.left = btn.offsetLeft + 'px'; pill.style.width = btn.offsetWidth + 'px'; pill.style.opacity = 1; }
+movePill(nav.querySelector('button.active'));
+addEventListener('resize', () => movePill(nav.querySelector('button.active')));
+
+/* events */
+document.getElementById('catFilters').addEventListener('click', e => {
+  const btn = e.target.closest('[data-cat]'); if(!btn) return;
+  STATE.cat = btn.dataset.cat; STATE.page = 1; renderFilters(); renderList();
+});
+document.getElementById('sideCats').addEventListener('click', e => {
+  const btn = e.target.closest('[data-cat]'); if(!btn) return;
+  STATE.cat = btn.dataset.cat; STATE.page = 1; renderFilters(); renderList();
+});
+function onTagClick(e){
+  const btn = e.target.closest('[data-tag]'); if(!btn) return;
+  STATE.tag = btn.dataset.tag || null; STATE.page = 1; renderFilters(); renderList();
+}
+document.getElementById('tagFilters').addEventListener('click', onTagClick);
+document.getElementById('sideTags').addEventListener('click', onTagClick);
+
+document.getElementById('searchInput').addEventListener('input', e => {
+  STATE.q = e.target.value.trim(); STATE.page = 1;
+  document.getElementById('searchBox').classList.toggle('has-value', !!STATE.q);
+  renderList();
+});
+document.getElementById('searchClear').addEventListener('click', () => {
+  document.getElementById('searchInput').value = '';
+  STATE.q = ''; STATE.page = 1;
+  document.getElementById('searchBox').classList.remove('has-value');
+  renderList();
+});
+
+document.getElementById('sortSeg').addEventListener('click', e => {
+  const btn = e.target.closest('[data-sort]'); if(!btn) return;
+  STATE.sort = btn.dataset.sort;
+  document.querySelectorAll('#sortSeg button').forEach(b => b.classList.toggle('on', b.dataset.sort === STATE.sort));
+  STATE.page = 1; renderList();
+});
+
+document.getElementById('pagination').addEventListener('click', e => {
+  const btn = e.target.closest('[data-page-num]'); if(!btn) return;
+  STATE.page = +btn.dataset.pageNum; renderList();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+function bindCardClicks(root){
+  root.addEventListener('click', e => {
+    const like = e.target.closest('[data-like]');
+    if(like){
+      e.stopPropagation();
+      const id = +like.dataset.like;
+      STATE.liked[id] = !STATE.liked[id];
+      renderList();
+      if(stage.dataset.page==='category') renderCatPage();
+      if(stage.dataset.page==='tag') renderTagPage();
+      return;
+    }
+    const card = e.target.closest('[data-id]');
+    if(card) openDetail(+card.dataset.id);
+  });
+}
+bindCardClicks(document.getElementById('cardGrid'));
+bindCardClicks(document.getElementById('timelineRail'));
+bindCardClicks(document.getElementById('catGrid'));
+bindCardClicks(document.getElementById('tagGrid'));
+document.getElementById('relatedList').addEventListener('click', e => {
+  const item = e.target.closest('[data-id]'); if(item) openDetail(+item.dataset.id);
+});
+
+document.body.addEventListener('click', e => {
+  const go = e.target.closest('[data-go]');
+  if(go){ setPage(go.dataset.go); return; }
+  const gt = e.target.closest('[data-go-tag]');
+  if(gt){ STATE.tag = gt.dataset.goTag; renderFilters(); renderTagPage(); setPage('tag'); }
+});
+
+document.getElementById('likeBtn').addEventListener('click', function(){
+  const id = +this.dataset.id || 1;
+  STATE.liked[id] = !STATE.liked[id];
+  const p = POSTS.find(x => x.id === id);
+  this.classList.toggle('liked', !!STATE.liked[id]);
+  document.getElementById('likeCnt').textContent = p.likes + (STATE.liked[id]?1:0);
+  toast(STATE.liked[id] ? '已喜欢' : '已取消');
+});
+
+/* season + petals */
+let particlesOn = true;
+let season = 'spring';
+const SEASON_CFG = {
+  spring:{count:28, kind:'petal', colors:['#f490ad','#ffcf6e','#c79ae0']},
+  summer:{count:18, kind:'rain', colors:['rgba(106,174,232,.55)']},
+  autumn:{count:26, kind:'petal', colors:['#e8a05c','#d4765a','#c9a227']},
+  winter:{count:32, kind:'snow', colors:['rgba(255,255,255,.9)','rgba(220,230,255,.85)']}
+};
+const petalCanvas = document.getElementById('petals');
+const pctx = petalCanvas.getContext('2d');
+let parts = [];
+function spawn(cfg, randomY){
+  if(cfg.kind === 'rain'){
+    return {x:Math.random()*STAGE_W, y:randomY?Math.random()*STAGE_H:-20, vx:-1+Math.random()*.5, vy:8+Math.random()*6, len:10+Math.random()*10, color:cfg.colors[0]};
+  }
+  if(cfg.kind === 'snow'){
+    return {x:Math.random()*STAGE_W, y:randomY?Math.random()*STAGE_H:-10, vx:-.5+Math.random(), vy:.6+Math.random()*1.2, r:2+Math.random()*3, color:cfg.colors[Math.floor(Math.random()*cfg.colors.length)], sway:Math.random()*Math.PI*2};
+  }
+  return {x:Math.random()*STAGE_W, y:randomY?Math.random()*STAGE_H:-20, vx:-.8+Math.random()*1.6, vy:.8+Math.random()*1.4, r:4+Math.random()*5, color:cfg.colors[Math.floor(Math.random()*cfg.colors.length)], sway:Math.random()*Math.PI*2, rot:Math.random()*Math.PI*2, vr:-.02+Math.random()*.04};
+}
+function rebuildParticles(){
+  const cfg = SEASON_CFG[season];
+  parts = Array.from({length:cfg.count}, () => spawn(cfg, true));
+}
+function drawParts(){
+  const h = STAGE_H;
+  if(petalCanvas.height !== h) petalCanvas.height = h;
+  pctx.clearRect(0,0,STAGE_W,h);
+  if(particlesOn){
+    const cfg = SEASON_CFG[season];
+    for(let i=0;i<parts.length;i++){
+      const p = parts[i];
+      p.sway = (p.sway||0) + .02;
+      if(cfg.kind === 'rain'){
+        p.x += p.vx; p.y += p.vy;
+        pctx.strokeStyle = p.color; pctx.lineWidth = 1.5; pctx.lineCap = 'round';
+        pctx.beginPath(); pctx.moveTo(p.x, p.y); pctx.lineTo(p.x - p.vx*1.5, p.y - p.len); pctx.stroke();
+      }else if(cfg.kind === 'snow'){
+        p.x += p.vx + Math.sin(p.sway)*.5; p.y += p.vy;
+        pctx.fillStyle = p.color; pctx.beginPath(); pctx.arc(p.x, p.y, p.r, 0, Math.PI*2); pctx.fill();
+      }else{
+        p.x += p.vx + Math.sin(p.sway)*.5; p.y += p.vy; p.rot += p.vr;
+        pctx.save(); pctx.translate(p.x, p.y); pctx.rotate(p.rot);
+        pctx.fillStyle = p.color; pctx.globalAlpha = .85;
+        pctx.beginPath();
+        pctx.moveTo(0, -p.r);
+        pctx.quadraticCurveTo(p.r*.9, -p.r*.3, 0, p.r);
+        pctx.quadraticCurveTo(-p.r*.9, -p.r*.3, 0, -p.r);
+        pctx.fill(); pctx.restore(); pctx.globalAlpha = 1;
+      }
+      if(p.y > h+40 || p.x < -60 || p.x > STAGE_W+60) parts[i] = spawn(cfg, false);
+    }
+  }
+  requestAnimationFrame(drawParts);
+}
+rebuildParticles(); drawParts();
+
+function setSeason(name){
+  season = name;
+  stage.dataset.season = name;
+  document.querySelectorAll('#seasonSeg button').forEach(b => b.classList.toggle('on', b.dataset.season===name));
+  rebuildParticles();
+}
+document.getElementById('seasonSeg').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if(!btn) return; setSeason(btn.dataset.season);
+});
+(function initSeason(){
+  const m = new Date().getMonth()+1;
+  setSeason((m>=3&&m<=5)?'spring':(m>=6&&m<=8)?'summer':(m>=9&&m<=11)?'autumn':'winter');
+})();
+document.getElementById('petalSwitch').addEventListener('click', function(){
+  this.classList.toggle('on');
+  particlesOn = this.classList.contains('on');
+  stage.classList.toggle('petals-off', !particlesOn);
+});
+document.getElementById('demoLoad').addEventListener('click', () => {
+  const veil = document.getElementById('loadingVeil');
+  veil.classList.add('on');
+  setTimeout(() => veil.classList.remove('on'), 900);
+});
+document.getElementById('shareBtn').addEventListener('click', () => document.getElementById('shareModal').classList.add('open'));
+document.getElementById('closeShare').addEventListener('click', () => document.getElementById('shareModal').classList.remove('open'));
+document.getElementById('shareModal').addEventListener('click', e => {
+  if(e.target.id === 'shareModal') e.currentTarget.classList.remove('open');
+});
+document.getElementById('copyShare').addEventListener('click', async () => {
+  const url = document.getElementById('shareUrl').textContent;
+  try { await navigator.clipboard.writeText(url); toast('链接已复制'); }
+  catch { toast('复制失败，请手动选择'); }
+});
+
+document.getElementById('coverUpload').addEventListener('click', function(){
+  this.classList.toggle('filled');
+  this.innerHTML = this.classList.contains('filled')
+    ? '<span>封面已选择</span><span style="font-size:11px">再点清除</span>'
+    : '<span>[image] 16:9</span><span style="font-size:11px">点击模拟上传</span>';
+});
+document.getElementById('formTags').addEventListener('click', e => {
+  const btn = e.target.closest('[data-ftag]'); if(!btn) return;
+  btn.classList.toggle('on');
+});
+document.getElementById('btnReset').addEventListener('click', () => {
+  ['fTitle','fSummary','fContent'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fCat').value = '';
+  document.querySelectorAll('#formTags .tag-pill').forEach(b => b.classList.remove('on'));
+  const cover = document.getElementById('coverUpload');
+  cover.classList.remove('filled');
+  cover.innerHTML = '<span>[image] 16:9</span><span style="font-size:11px">点击模拟上传</span>';
+  toast('已重置');
+});
+document.getElementById('btnDraft').addEventListener('click', () => toast('草稿已保存（demo）'));
+document.getElementById('btnPublish').addEventListener('click', () => {
+  const t = document.getElementById('fTitle').value.trim();
+  if(!t){ toast('请填写标题'); document.getElementById('fTitle').focus(); return; }
+  toast('已发布（demo）');
+});
+
+const tweaks = document.getElementById('tweaks');
+document.getElementById('tweaksFab').addEventListener('click', () => tweaks.classList.add('open'));
+document.addEventListener('click', e => { if(!tweaks.contains(e.target)) tweaks.classList.remove('open'); });
+document.getElementById('pageSeg').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if(!btn) return; setPage(btn.dataset.page);
+});
+document.getElementById('layoutSeg').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if(!btn) return; setLayout(btn.dataset.layout);
+});
+document.getElementById('layoutSegTweaks').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if(!btn) return; setLayout(btn.dataset.layout);
+});
+document.getElementById('themeSeg').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if(!btn) return; setTheme(btn.dataset.theme);
+});
+
+renderFilters();
+renderList();
+fit();
+</script>
+</body>
+</html>

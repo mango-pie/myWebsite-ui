@@ -1,6 +1,6 @@
 /**
- * 音频播放器 Hook
- * 提供完整的音频播放控制功能
+ * 遗留播放引擎，站点已改用 `usePulsePlayer` 单例。
+ * 不要从 `@/design` 再导出或接入 FloatingPlayer，以免出现第二套 Audio。
  */
 import { ref } from 'vue';
 import type { Song, PlayMode, PlayerState } from './types';

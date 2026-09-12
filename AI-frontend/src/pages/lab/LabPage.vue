@@ -8,6 +8,7 @@ import { siteConfig } from '@/config/site'
 import { Edit, Trash2, FlaskConical, LogIn } from 'lucide-vue-next'
 import LabCreatePanel from '@/components/lab/LabCreatePanel.vue'
 import IconAction from '@/components/ui/IconAction.vue'
+import StationRoomShell from '@/components/shared/StationRoomShell.vue'
 
 function fromNow(str: string | undefined) {
   if (!str) return ''
@@ -74,6 +75,7 @@ onMounted(() => {
 </script>
 
 <template>
+  <StationRoomShell brand-path="/lab" note-label="Lab · 灵感实验" room="lab">
   <div id="labPage" data-room="lab">
     <header class="lab-page__header">
       <div class="lab-page__title-row">
@@ -149,6 +151,7 @@ onMounted(() => {
       <IconAction :icon="LogIn" label="去登录" variant="primary" @click="router.push('/user/login')" />
     </section>
   </div>
+  </StationRoomShell>
 </template>
 
 <style scoped>

@@ -8,6 +8,7 @@ import { useLoginUserStore } from '@/stores/loginUser'
 import { getChatConfigStorageKey, saveLastChatConversationId } from '@/utils/chatSession'
 import { MessagesSquare, Send } from 'lucide-vue-next'
 import IconAction from '@/components/ui/IconAction.vue'
+import StationRoomShell from '@/components/shared/StationRoomShell.vue'
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 const inputValue = ref('')
@@ -77,6 +78,7 @@ onMounted(() => {
 })
 </script>
 <template>
+  <StationRoomShell brand-path="/chat" note-label="Chat · 未完的交谈" room="chat">
   <div id="chatHomePage">
     <div class="hero">
       <div class="hero__icon">
@@ -120,6 +122,7 @@ onMounted(() => {
       </div>
     </div>
   </div>
+  </StationRoomShell>
 </template>
 <style scoped>
 #chatHomePage {

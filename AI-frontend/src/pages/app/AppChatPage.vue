@@ -11,6 +11,7 @@ import { message } from 'ant-design-vue'
 import { getAppById, deployApp } from '@/api/appController'
 import { getLatestChatHistory, listAppChatHistory } from '@/api/chatHistoryController'
 import { loadAppSettings, resolveDeployBaseUrl, type AppUxSettings } from '@/utils/appSettings'
+import StationRoomShell from '@/components/shared/StationRoomShell.vue'
 import {
   Rocket,
   Send,
@@ -301,11 +302,12 @@ onMounted(async () => {
 </script>
 
 <template>
+  <StationRoomShell brand-path="/lab" note-label="Lab · 生成中" room="lab" fill="frame">
   <div class="chat-page">
     <!-- 顶部栏 -->
     <div class="chat-header">
       <div class="chat-header__left">
-        <a-button type="text" class="chat-icon-btn" :icon="h(ArrowLeft)" @click="router.push('/')" />
+        <a-button type="text" class="chat-icon-btn" :icon="h(ArrowLeft)" @click="router.push('/lab')" />
         <span class="chat-header__title">{{ appInfo?.appName ?? '应用生成' }}</span>
       </div>
       <div class="chat-header__right">
@@ -437,6 +439,7 @@ onMounted(async () => {
       </div>
     </a-modal>
   </div>
+  </StationRoomShell>
 </template>
 
 <style scoped>

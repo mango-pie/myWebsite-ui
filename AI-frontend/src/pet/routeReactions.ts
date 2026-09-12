@@ -4,6 +4,7 @@ const ROUTE_REACTIONS: Record<string, PetRouteReaction> = {
   '/lab': { line: '要去搞点实验吗？', state: 'react' },
   '/blog': { line: '今天写点什么好呢…', state: 'react' },
   '/diary': { line: '今天的心情写了吗？', state: 'react' },
+  '/worklog': { line: '今天的工作记一下？', state: 'react' },
   '/about': { line: '想了解站主？', state: 'react' },
 }
 

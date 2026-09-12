@@ -1,0 +1,1778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音乐播放器 · 重构设计稿 v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Serif+SC:wght@500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   音乐播放器 · 重构设计稿 v1 —— 三方向设计画布
+   本地音乐优先 · 网易云可选 · 拒绝蓝紫毛玻璃
+   ============================================================ */
+
+:root {
+  --page-bg: #e7e3da;
+  --page-ink: #262119;
+  --page-muted: #7c7466;
+  --page-line: rgba(38, 33, 25, 0.16);
+  --page-accent: #c2411f;
+  --page-ease: cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background:
+    radial-gradient(1200px 500px at 15% -10%, rgba(194, 65, 31, 0.05), transparent 60%),
+    var(--page-bg);
+  color: var(--page-ink);
+  font-family: "Outfit", "PingFang SC", "Microsoft YaHei", sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; cursor: pointer; }
+
+.mono { font-family: "JetBrains Mono", "Cascadia Mono", monospace; }
+
+/* ---------- 画布页头 ---------- */
+.canvas-head {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 44px 32px 26px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--page-line);
+}
+
+.canvas-head h1 {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: clamp(26px, 3vw, 38px);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.canvas-head__sub {
+  margin-top: 8px;
+  color: var(--page-muted);
+  font-size: 14px;
+}
+
+.canvas-head__meta {
+  flex: none;
+  text-align: right;
+  color: var(--page-muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.canvas-head__meta b {
+  color: var(--page-ink);
+  font-weight: 600;
+}
+
+/* ---------- 三方向画布 ---------- */
+.canvas {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 30px 32px 8px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(300px, 1fr));
+  gap: 26px;
+  align-items: start;
+}
+
+.variant {
+  position: relative;
+  transition: opacity 0.35s var(--page-ease), transform 0.35s var(--page-ease);
+}
+
+.variant--muted { opacity: 0.38; }
+.variant--focus { transform: translateY(-4px); }
+
+.variant__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 0 4px;
+}
+
+.variant__badge {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  color: #fff;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+}
+
+.va .variant__badge { background: #1b1b18; border: 1px solid rgba(244, 241, 232, 0.35); }
+.vb .variant__badge { background: #c2411f; }
+.vc .variant__badge { background: #f0b34a; color: #14170f; }
+
+.variant__title {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.variant__school {
+  color: var(--page-muted);
+  font-size: 12px;
+  letter-spacing: 0.03em;
+}
+
+.variant__stage {
+  min-height: 880px;
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 18px 44px rgba(38, 33, 25, 0.14);
+}
+
+/* 三方向的舞台底色 */
+.va .variant__stage { background: #0e0e0c; }
+.vb .variant__stage { background: #efe9dd; }
+.vc .variant__stage { background: #0b0d0b; }
+
+.stage-scene {
+  position: relative;
+  min-height: 880px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 30px 22px 26px;
+  overflow: hidden;
+}
+
+/* 场景肌理：A 网格 / B 纸点 / C 扫描线 */
+.va .stage-scene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(244, 241, 232, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(244, 241, 232, 0.035) 1px, transparent 1px);
+  background-size: 34px 34px;
+  pointer-events: none;
+}
+
+.vb .stage-scene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(39, 33, 25, 0.09) 1px, transparent 1.4px);
+  background-size: 26px 26px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.vc .stage-scene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 2px,
+    rgba(255, 255, 255, 0.022) 2px 3px
+  );
+  pointer-events: none;
+}
+
+.stage-scene > * { position: relative; z-index: 1; }
+
+/* ---------- 展开播放器（三方向共用骨架） ---------- */
+.mock-panel {
+  width: 100%;
+  max-width: 320px;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.va .mock-panel {
+  background: #151513;
+  border: 1px solid rgba(244, 241, 232, 0.08);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42);
+}
+
+.vb .mock-panel {
+  background: #f8f4eb;
+  border: 1px solid rgba(39, 33, 25, 0.12);
+  box-shadow: 0 14px 34px rgba(39, 33, 25, 0.12);
+}
+
+.vc .mock-panel {
+  background: #121512;
+  border: 1px solid rgba(233, 231, 222, 0.1);
+  border-radius: 4px;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.46);
+}
+
+.mock-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mock-head-label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+
+.va .mock-head-label { color: #96948a; font-family: "Space Grotesk", sans-serif; }
+.vb .mock-head-label { color: #837a68; font-family: "Outfit", sans-serif; }
+.vc .mock-head-label { color: #8b938a; font-family: "JetBrains Mono", monospace; }
+
+.mock-head-actions { display: flex; gap: 6px; }
+
+.icon-btn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  color: inherit;
+  opacity: 0.72;
+  transition: opacity 0.15s var(--page-ease);
+}
+
+.icon-btn:hover { opacity: 1; }
+.icon-btn svg { width: 16px; height: 16px; }
+
+.va .icon-btn { color: #f4f1e9; }
+.vb .icon-btn { color: #272119; }
+.vc .icon-btn { color: #e9e7dd; border: 1px solid rgba(233, 231, 222, 0.16); border-radius: 3px; }
+
+/* 封面占位 */
+.mock-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.va .mock-cover {
+  border-radius: 6px;
+  background: radial-gradient(circle at center, #1b1b18 0 27%, #26241f 28% 29%, #171715 30% 100%);
+  border: 1px solid rgba(244, 241, 232, 0.09);
+}
+
+.va .mock-cover::after {
+  content: "LP";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #e2a33e;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+}
+
+.vb .mock-cover {
+  border-radius: 4px;
+  background: #c2411f;
+  border: 1px solid rgba(39, 33, 25, 0.2);
+}
+
+.vb .mock-cover::after {
+  content: "示例唱片";
+  color: #f8f4eb;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.4em;
+  text-indent: 0.4em;
+}
+
+.vc .mock-cover {
+  border-radius: 2px;
+  background:
+    linear-gradient(180deg, rgba(240, 179, 74, 0.16), transparent 45%),
+    repeating-linear-gradient(90deg, #181c18 0 10px, #131613 10px 14px);
+  border: 1px solid rgba(233, 231, 222, 0.12);
+}
+
+.vc .mock-cover::after {
+  content: "NO SIGNAL";
+  color: #f0b34a;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  opacity: 0.85;
+}
+
+.mock-cover__tag {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 2px 7px;
+  font-size: 10px;
+  border-radius: 3px;
+  backdrop-filter: blur(4px);
+}
+
+.va .mock-cover__tag { background: rgba(14, 14, 12, 0.72); color: #96948a; }
+.vb .mock-cover__tag { background: rgba(248, 244, 235, 0.86); color: #837a68; }
+.vc .mock-cover__tag { background: rgba(11, 13, 11, 0.78); color: #8b938a; }
+
+/* 曲目信息 */
+.mock-meta { text-align: center; }
+
+.mock-title {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.va .mock-title { color: #f4f1e9; font-family: "Space Grotesk", sans-serif; }
+.vb .mock-title { color: #272119; font-family: "Noto Serif SC", "Songti SC", serif; font-size: 19px; }
+.vc .mock-title { color: #e9e7dd; font-family: "JetBrains Mono", monospace; font-size: 15px; letter-spacing: 0.04em; }
+
+.mock-artist {
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.va .mock-artist { color: #96948a; }
+.vb .mock-artist { color: #837a68; }
+.vc .mock-artist { color: #8b938a; font-family: "JetBrains Mono", monospace; }
+
+.mock-badges {
+  margin-top: 8px;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.src-badge,
+.fmt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  border-radius: 999px;
+  line-height: 1.5;
+}
+
+.src-badge--local { color: #b9d98f; background: rgba(143, 208, 90, 0.13); }
+.va .src-badge--local { border: 1px solid rgba(185, 217, 143, 0.3); }
+.vb .src-badge--local { color: #3e6b31; background: rgba(62, 107, 49, 0.1); }
+.vc .src-badge--local { color: #8fd05a; background: rgba(143, 208, 90, 0.1); border: 1px solid rgba(143, 208, 90, 0.28); border-radius: 2px; }
+
+.fmt-chip { color: #a9a79e; background: rgba(244, 241, 232, 0.06); border: 1px solid rgba(244, 241, 232, 0.09); }
+.vb .fmt-chip { color: #837a68; background: transparent; border: 1px solid rgba(39, 33, 25, 0.16); border-radius: 2px; }
+.vc .fmt-chip { color: #8b938a; background: transparent; border: 1px solid rgba(233, 231, 222, 0.14); border-radius: 2px; font-family: "JetBrains Mono", monospace; }
+
+/* 进度条 */
+.mock-progress__row {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  gap: 8px;
+  align-items: center;
+}
+
+.mock-time { font-size: 10.5px; text-align: center; }
+.va .mock-time { color: #96948a; }
+.vb .mock-time { color: #837a68; font-family: "JetBrains Mono", monospace; }
+.vc .mock-time { color: #8b938a; }
+
+.mock-progress__track {
+  position: relative;
+  height: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.va .mock-progress__track::before {
+  content: "";
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(244, 241, 232, 0.12);
+}
+
+.vb .mock-progress__track::before {
+  content: "";
+  width: 100%;
+  height: 1px;
+  background: rgba(39, 33, 25, 0.24);
+}
+
+.vc .mock-progress__track::before {
+  content: "";
+  width: 100%;
+  height: 12px;
+  background:
+    repeating-linear-gradient(90deg, rgba(233, 231, 222, 0.14) 0 2px, transparent 2px 5px);
+  clip-path: polygon(0 3px, 100% 3px, 100% 9px, 0 9px);
+}
+
+.mock-progress__fill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 30%;
+  transform: translateY(-50%);
+  border-radius: 2px;
+}
+
+.va .mock-progress__fill {
+  height: 3px;
+  background: #e2a33e;
+}
+
+.vb .mock-progress__fill {
+  height: 1px;
+  background: #c2411f;
+}
+
+.vc .mock-progress__fill {
+  height: 12px;
+  background: repeating-linear-gradient(90deg, #f0b34a 0 2px, rgba(240, 179, 74, 0.45) 2px 5px);
+  clip-path: polygon(0 3px, 100% 3px, 100% 9px, 0 9px);
+}
+
+.mock-progress__thumb {
+  position: absolute;
+  top: 50%;
+  left: 30%;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.15s var(--page-ease);
+}
+
+.va .mock-progress__thumb { background: #f4f1e9; box-shadow: 0 0 0 4px rgba(226, 163, 62, 0.18); }
+.vb .mock-progress__thumb { background: #c2411f; box-shadow: 0 0 0 3px rgba(194, 65, 31, 0.14); }
+.vc .mock-progress__thumb { background: #f0b34a; box-shadow: 0 0 0 3px rgba(240, 179, 74, 0.16); border-radius: 1px; }
+
+.mock-panel:hover .mock-progress__thumb { opacity: 1; }
+
+.stage-scene.is-playing .mock-progress__fill,
+.stage-scene.is-playing .mock-progress__thumb {
+  animation: mock-prog 34s linear infinite;
+}
+
+@keyframes mock-prog {
+  0% { left: 0%; }
+  92% { left: 100%; }
+  100% { left: 100%; }
+}
+
+.va .stage-scene.is-playing .mock-cover { animation: va-spin 18s linear infinite; }
+
+@keyframes va-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 播放控制 */
+.mock-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.ctrl-btn {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  transition: background 0.15s var(--page-ease), transform 0.1s var(--page-ease);
+}
+
+.ctrl-btn:active { transform: scale(0.92); }
+.ctrl-btn svg { width: 17px; height: 17px; }
+
+.va .ctrl-btn { color: #f4f1e9; border-radius: 8px; }
+.va .ctrl-btn:hover { background: rgba(244, 241, 232, 0.08); }
+
+.vb .ctrl-btn { color: #272119; border: 1px solid rgba(39, 33, 25, 0.2); border-radius: 50%; }
+.vb .ctrl-btn:hover { background: rgba(194, 65, 31, 0.08); }
+
+.vc .ctrl-btn { color: #e9e7dd; border: 1px solid rgba(233, 231, 222, 0.14); border-radius: 2px; }
+.vc .ctrl-btn:hover { background: rgba(233, 231, 222, 0.06); }
+
+.play-btn {
+  width: 46px;
+  height: 46px;
+  border: none;
+  display: grid;
+  place-items: center;
+}
+
+.va .play-btn {
+  border-radius: 50%;
+  background: #e2a33e;
+  color: #141310;
+  box-shadow: 0 6px 18px rgba(226, 163, 62, 0.28);
+}
+
+.vb .play-btn {
+  border-radius: 50%;
+  background: #c2411f;
+  color: #f8f4eb;
+  box-shadow: 0 6px 16px rgba(194, 65, 31, 0.26);
+}
+
+.vc .play-btn {
+  border-radius: 3px;
+  background: #f0b34a;
+  color: #14170f;
+  box-shadow: 0 4px 14px rgba(240, 179, 74, 0.24);
+}
+
+.play-btn svg { width: 20px; height: 20px; }
+
+.ico-pause { display: none; }
+.stage-scene.is-playing .ico-play { display: none; }
+.stage-scene.is-playing .ico-pause { display: block; }
+
+/* 功能行：歌词 / 队列 / 倍速 / 均衡器 */
+.mock-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.action-chip {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  font-size: 11px;
+  transition: background 0.15s var(--page-ease);
+}
+
+.action-chip svg { width: 13px; height: 13px; opacity: 0.8; }
+
+.va .action-chip { color: #a9a79e; border-radius: 7px; }
+.va .action-chip:hover { background: rgba(244, 241, 232, 0.07); color: #f4f1e9; }
+
+.vb .action-chip { color: #837a68; }
+.vb .action-chip:hover { background: rgba(194, 65, 31, 0.08); color: #c2411f; }
+
+.vc .action-chip { color: #8b938a; border: 1px solid transparent; border-radius: 2px; font-family: "JetBrains Mono", monospace; }
+.vc .action-chip:hover { border-color: rgba(240, 179, 74, 0.35); color: #f0b34a; }
+
+.action-chip--active {
+  background: rgba(226, 163, 62, 0.12);
+  color: #e2a33e;
+}
+
+.vb .action-chip--active { background: rgba(194, 65, 31, 0.1); color: #c2411f; }
+.vc .action-chip--active { background: rgba(240, 179, 74, 0.1); color: #f0b34a; border-color: rgba(240, 179, 74, 0.28); }
+
+/* 本地导入入口 */
+.mock-upload {
+  margin-top: 2px;
+}
+
+.upload-btn {
+  width: 100%;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: background 0.15s var(--page-ease), border-color 0.15s var(--page-ease);
+}
+
+.upload-btn svg { width: 15px; height: 15px; }
+
+.va .upload-btn {
+  color: #f4f1e9;
+  background: rgba(226, 163, 62, 0.1);
+  border: 1px dashed rgba(226, 163, 62, 0.45);
+  border-radius: 8px;
+}
+.va .upload-btn:hover { background: rgba(226, 163, 62, 0.18); }
+
+.vb .upload-btn {
+  color: #c2411f;
+  background: transparent;
+  border: 1px solid rgba(194, 65, 31, 0.5);
+  border-radius: 3px;
+}
+.vb .upload-btn:hover { background: rgba(194, 65, 31, 0.08); }
+
+.vc .upload-btn {
+  color: #f0b34a;
+  background: transparent;
+  border: 1px solid rgba(240, 179, 74, 0.4);
+  border-radius: 2px;
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 0.08em;
+}
+.vc .upload-btn:hover { background: rgba(240, 179, 74, 0.1); }
+
+/* ---------- 本地资料库（三方向展示） ---------- */
+.mock-library {
+  width: 100%;
+  max-width: 320px;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.va .mock-library {
+  background: #131311;
+  border: 1px solid rgba(244, 241, 232, 0.08);
+}
+
+.vb .mock-library {
+  background: transparent;
+  border-top: 1px solid rgba(39, 33, 25, 0.18);
+  border-bottom: 1px solid rgba(39, 33, 25, 0.18);
+  border-radius: 0;
+}
+
+.vc .mock-library {
+  background: #101310;
+  border: 1px solid rgba(233, 231, 222, 0.1);
+  border-radius: 3px;
+}
+
+.lib-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.va .lib-title { color: #96948a; font-family: "Space Grotesk", sans-serif; }
+.vb .lib-title { color: #837a68; font-family: "Outfit", sans-serif; }
+.vc .lib-title { color: #8b938a; font-family: "JetBrains Mono", monospace; }
+
+.lib-count { opacity: 0.75; }
+
+.lib-drop {
+  border: 1px dashed rgba(244, 241, 232, 0.2);
+  border-radius: 8px;
+  padding: 12px 10px;
+  text-align: center;
+  font-size: 11.5px;
+  color: #96948a;
+  transition: border-color 0.15s var(--page-ease);
+}
+
+.va .lib-drop { border-color: rgba(244, 241, 232, 0.18); }
+.va .lib-drop:hover { border-color: rgba(226, 163, 62, 0.5); }
+
+.vb .lib-drop { border-color: rgba(39, 33, 25, 0.24); border-radius: 2px; color: #837a68; }
+.vb .lib-drop:hover { border-color: #c2411f; }
+
+.vc .lib-drop { border-color: rgba(240, 179, 74, 0.3); border-radius: 2px; color: #8b938a; font-family: "JetBrains Mono", monospace; }
+.vc .lib-drop:hover { border-color: #f0b34a; }
+
+.lib-drop__link {
+  color: #e2a33e;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.vb .lib-drop__link { color: #c2411f; }
+.vc .lib-drop__link { color: #f0b34a; }
+
+.lib-row {
+  display: grid;
+  grid-template-columns: 26px 1fr auto auto auto 22px;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 6px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  transition: background 0.15s var(--page-ease);
+}
+
+.va .lib-row { color: #d8d5cc; }
+.va .lib-row:hover { background: rgba(244, 241, 232, 0.05); }
+
+.vb .lib-row { color: #3a3329; border-bottom: 1px solid rgba(39, 33, 25, 0.08); border-radius: 0; }
+.vb .lib-row:hover { background: rgba(194, 65, 31, 0.05); }
+
+.vc .lib-row { color: #c9c6bb; border-radius: 2px; font-family: "JetBrains Mono", monospace; }
+.vc .lib-row:hover { background: rgba(233, 231, 222, 0.05); }
+
+.lib-row__num { color: #63615a; }
+.va .lib-row__num { color: #63615a; }
+.vb .lib-row__num { color: #a89f8d; }
+.vc .lib-row__num { color: #565e56; }
+
+.lib-row__name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lib-row__meta { color: #8b8a80; font-size: 10.5px; }
+.va .lib-row__meta { color: #6f6d64; }
+.vb .lib-row__meta { color: #a89f8d; }
+.vc .lib-row__meta { color: #565e56; }
+
+.lib-row__heart {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: none;
+  color: #6f6d64;
+  opacity: 0;
+  transition: opacity 0.15s var(--page-ease);
+}
+
+.vb .lib-row__heart { color: #c2411f; }
+.vc .lib-row__heart { color: #f0b34a; }
+.lib-row:hover .lib-row__heart { opacity: 1; }
+.lib-row__heart svg { width: 13px; height: 13px; }
+
+/* 网易云可选源开关 */
+.lib-netease {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 8px 6px 2px;
+  font-size: 11px;
+  opacity: 0.62;
+}
+
+.va .lib-netease { color: #96948a; border-top: 1px solid rgba(244, 241, 232, 0.07); }
+.vb .lib-netease { color: #837a68; }
+.vc .lib-netease { color: #8b938a; border-top: 1px solid rgba(233, 231, 222, 0.08); font-family: "JetBrains Mono", monospace; }
+
+.lib-netease__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lib-netease__label svg { width: 13px; height: 13px; opacity: 0.75; }
+
+.toggle {
+  width: 30px;
+  height: 17px;
+  flex: none;
+  border-radius: 999px;
+  background: rgba(244, 241, 232, 0.14);
+  position: relative;
+  transition: background 0.2s var(--page-ease);
+}
+
+.vb .toggle { background: rgba(39, 33, 25, 0.16); }
+.vc .toggle { background: rgba(233, 231, 222, 0.14); border-radius: 2px; }
+
+.toggle__knob {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #c9c7bd;
+  transition: transform 0.2s var(--page-ease);
+}
+
+.vb .toggle__knob { background: #837a68; }
+.vc .toggle__knob { background: #8b938a; border-radius: 1px; }
+
+.toggle--on { background: #e2a33e; }
+.vb .toggle--on { background: #c2411f; }
+.vc .toggle--on { background: #f0b34a; }
+
+.toggle--on .toggle__knob { transform: translateX(13px); background: #fff; }
+
+/* ---------- 底部停靠条 ---------- */
+.mock-dock {
+  width: 100%;
+  max-width: 340px;
+  height: 62px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border-radius: 12px;
+  position: relative;
+}
+
+.va .mock-dock {
+  background: #151513;
+  border: 1px solid rgba(244, 241, 232, 0.08);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+.vb .mock-dock {
+  background: #f8f4eb;
+  border: 1px solid rgba(39, 33, 25, 0.12);
+  border-radius: 4px;
+  box-shadow: 0 10px 26px rgba(39, 33, 25, 0.1);
+}
+
+.vc .mock-dock {
+  background: #121512;
+  border: 1px solid rgba(233, 231, 222, 0.1);
+  border-radius: 2px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.46);
+}
+
+.dock-cover {
+  width: 42px;
+  height: 42px;
+  border-radius: 6px;
+  background: #26241f;
+  border: 1px solid rgba(244, 241, 232, 0.1);
+}
+
+.vb .dock-cover { background: #c2411f; border-radius: 2px; }
+.vc .dock-cover { background: repeating-linear-gradient(90deg, #181c18 0 8px, #131613 8px 11px); border-radius: 1px; border-color: rgba(233, 231, 222, 0.14); }
+
+.dock-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.dock-title {
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.va .dock-title { color: #f4f1e9; font-family: "Space Grotesk", sans-serif; }
+.vb .dock-title { color: #272119; font-family: "Noto Serif SC", "Songti SC", serif; }
+.vc .dock-title { color: #e9e7dd; font-family: "JetBrains Mono", monospace; font-size: 11.5px; }
+
+.dock-artist { font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.va .dock-artist { color: #6f6d64; }
+.vb .dock-artist { color: #a89f8d; }
+.vc .dock-artist { color: #565e56; font-family: "JetBrains Mono", monospace; }
+
+.dock-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dock-btn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: none;
+  color: inherit;
+  opacity: 0.85;
+}
+
+.dock-btn svg { width: 15px; height: 15px; }
+
+.va .dock-btn { color: #d8d5cc; border-radius: 6px; }
+.va .dock-btn:hover { background: rgba(244, 241, 232, 0.08); }
+.vb .dock-btn { color: #3a3329; }
+.vb .dock-btn:hover { color: #c2411f; }
+.vc .dock-btn { color: #c9c6bb; border: 1px solid transparent; border-radius: 2px; }
+.vc .dock-btn:hover { border-color: rgba(240, 179, 74, 0.4); color: #f0b34a; }
+
+.dock-progress {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 4px;
+  height: 2px;
+  border-radius: 1px;
+  background: rgba(244, 241, 232, 0.1);
+  overflow: hidden;
+}
+
+.vb .dock-progress { background: rgba(39, 33, 25, 0.12); }
+.vc .dock-progress { background: rgba(233, 231, 222, 0.1); }
+
+.dock-progress__fill {
+  height: 100%;
+  width: 30%;
+  background: #e2a33e;
+  transition: width 0.2s linear;
+}
+
+.vb .dock-progress__fill { background: #c2411f; }
+.vc .dock-progress__fill { background: #f0b34a; }
+
+.stage-scene.is-playing .dock-progress__fill { animation: dock-prog 34s linear infinite; }
+
+@keyframes dock-prog {
+  from { width: 3%; }
+  to { width: 97%; }
+}
+
+/* ---------- 设计 tokens ---------- */
+.variant__tokens {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--page-line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.variant__tokens h3 {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--page-muted);
+  margin-bottom: 10px;
+}
+
+.token-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.token-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 5px;
+  border: 1px solid rgba(38, 33, 25, 0.14);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--page-ink);
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.token-chip__dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(38, 33, 25, 0.16);
+}
+
+.token-chip--mono { font-family: "JetBrains Mono", monospace; }
+.token-chip--serif { font-family: "Noto Serif SC", "Songti SC", serif; }
+.token-chip--grotesk { font-family: "Space Grotesk", sans-serif; }
+.token-chip--outfit { font-family: "Outfit", sans-serif; }
+
+/* ---------- 方向说明 ---------- */
+.variant__notes {
+  margin-top: 14px;
+  padding: 0 6px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.variant__notes li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 12.5px;
+  color: #4a4236;
+  line-height: 1.55;
+}
+
+.variant__notes li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.va .variant__notes li::before { background: #e2a33e; }
+.vb .variant__notes li::before { background: #c2411f; }
+.vc .variant__notes li::before { background: #f0b34a; }
+
+/* ---------- 功能架构 ---------- */
+.feature-band {
+  max-width: 1480px;
+  margin: 46px auto 0;
+  padding: 0 32px;
+}
+
+.feature-band__head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--page-line);
+}
+
+.feature-band__head h2 {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 22px;
+}
+
+.feature-band__head p { color: var(--page-muted); font-size: 13px; }
+
+.feature-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.feature-card {
+  padding: 16px 18px;
+  border: 1px solid var(--page-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.36);
+}
+
+.feature-card__no {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--page-accent);
+  letter-spacing: 0.12em;
+}
+
+.feature-card__title {
+  margin-top: 4px;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.feature-card__desc {
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: #5c5346;
+  line-height: 1.6;
+}
+
+/* ---------- 画布页脚 ---------- */
+.canvas-foot {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 34px 32px 70px;
+}
+
+.canvas-foot__box {
+  border: 1px solid var(--page-line);
+  border-radius: 14px;
+  padding: 20px 24px;
+  background: rgba(255, 255, 255, 0.4);
+  font-size: 13px;
+  color: #4a4236;
+}
+
+.canvas-foot__box strong {
+  color: var(--page-ink);
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 14px;
+}
+
+.canvas-foot__box ul {
+  margin: 10px 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* ---------- Tweaks 面板 ---------- */
+.tweaks-toggle {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 60;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(38, 33, 25, 0.2);
+  background: #262119;
+  color: #f4f1e9;
+  font-size: 12.5px;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(38, 33, 25, 0.28);
+  transition: transform 0.15s var(--page-ease);
+}
+
+.tweaks-toggle:hover { transform: translateY(-1px); }
+
+.tweaks {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 61;
+  width: 264px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(38, 33, 25, 0.97);
+  color: #f4f1e9;
+  box-shadow: 0 18px 48px rgba(38, 33, 25, 0.4);
+  transform: translateY(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s var(--page-ease), transform 0.2s var(--page-ease);
+}
+
+.tweaks.is-open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.tweaks__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tweaks__close {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: none;
+  color: #a9a79e;
+}
+
+.tweaks__close svg { width: 14px; height: 14px; }
+
+.tweak-group { margin-bottom: 13px; }
+
+.tweak-group__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: #a9a79e;
+  letter-spacing: 0.06em;
+}
+
+.tweak-seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.tweak-seg button {
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #d8d5cc;
+  font-size: 12px;
+}
+
+.tweak-seg button.is-active {
+  border-color: #e2a33e;
+  background: rgba(226, 163, 62, 0.16);
+  color: #e2a33e;
+}
+
+.tweak-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 0;
+  font-size: 12px;
+  color: #d8d5cc;
+  cursor: pointer;
+}
+
+.tweak-switch input { display: none; }
+
+.tweak-switch .toggle { pointer-events: none; }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1240px) {
+  .canvas { grid-template-columns: 1fr; }
+  .variant__stage,
+  .stage-scene { min-height: 0; }
+  .feature-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 720px) {
+  .canvas-head { flex-direction: column; align-items: flex-start; padding-top: 30px; }
+  .canvas-head__meta { text-align: left; }
+  .canvas, .feature-band, .canvas-foot { padding-left: 18px; padding-right: 18px; }
+  .feature-grid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .stage-scene.is-playing .mock-progress__fill,
+  .stage-scene.is-playing .dock-progress__fill { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="canvas-head">
+  <div>
+    <h1>音乐播放器 · 重构设计稿</h1>
+    <p class="canvas-head__sub">本地音乐优先 · 网易云降为可选源 · 三个方向对比画布（v1）</p>
+  </div>
+  <div class="canvas-head__meta">
+    <b>设计画布</b><br>
+    2026.08.01 · 未接真实封面，封面为占位
+  </div>
+</header>
+
+<main class="canvas">
+
+  <!-- ============ 方向 A：现代工具 ============ -->
+  <section class="variant va" data-variant="a">
+    <header class="variant__head">
+      <span class="variant__badge">A</span>
+      <div>
+        <div class="variant__title">现代工具</div>
+        <div class="variant__school">Linear 式 · 发丝线 · 单一暖色强调</div>
+      </div>
+    </header>
+
+    <div class="variant__stage">
+      <div class="stage-scene">
+        <div class="mock-panel">
+          <div class="mock-panel__head">
+            <span class="mock-head-label">NOW PLAYING</span>
+            <div class="mock-head-actions">
+              <button class="icon-btn" aria-label="搜索"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg></button>
+              <button class="icon-btn" aria-label="设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h9M18 7h2M4 17h3M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
+            </div>
+          </div>
+
+          <div class="mock-cover"><span class="mock-cover__tag">封面占位</span></div>
+
+          <div class="mock-meta">
+            <div class="mock-title">示例曲目</div>
+            <div class="mock-artist">本地文件占位 · 作者待填</div>
+            <div class="mock-badges">
+              <span class="src-badge src-badge--local"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 15V4M8 8l4-4 4 4M4 16.5v2A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>本地库</span>
+              <span class="fmt-chip mono">FLAC · 44.1k</span>
+            </div>
+          </div>
+
+          <div class="mock-progress">
+            <div class="mock-progress__row">
+              <span class="mock-time mono">1:24</span>
+              <div class="mock-progress__track"><div class="mock-progress__fill"></div><div class="mock-progress__thumb"></div></div>
+              <span class="mock-time mono">4:10</span>
+            </div>
+          </div>
+
+          <div class="mock-controls">
+            <button class="ctrl-btn" aria-label="播放模式"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 6H7a4 4 0 0 0-4 4v1M7 18h10a4 4 0 0 0 4-4v-1M18.5 20.5 21 18l-2.5-2.5M5.5 3.5 3 6l2.5 2.5"/></svg></button>
+            <button class="ctrl-btn" aria-label="上一首"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 5v14"/><path d="M17.5 6.5 8.5 12l9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+            <button class="ctrl-btn play-btn" aria-label="播放/暂停">
+              <svg class="ico-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+              <svg class="ico-pause" viewBox="0 0 24 24"><rect x="6.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/><rect x="13.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/></svg>
+            </button>
+            <button class="ctrl-btn" aria-label="下一首"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M17.5 5v14"/><path d="M6.5 6.5l9 5.5-9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+            <button class="ctrl-btn" aria-label="音量"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z" fill="currentColor" stroke="none"/><path d="M15.5 9a5 5 0 0 1 0 6"/><path d="M17.8 6.8a9 9 0 0 1 0 10.4"/></svg></button>
+          </div>
+
+          <div class="mock-actions">
+            <button class="action-chip action-chip--active" aria-label="歌词"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h12M4 17.5h8"/></svg>歌词</button>
+            <button class="action-chip" aria-label="播放队列"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h10M4 17.5h6"/></svg>队列</button>
+            <button class="action-chip" aria-label="倍速"><span class="mono">1.0×</span></button>
+            <button class="action-chip" aria-label="均衡器"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h14"/><circle cx="9" cy="7" r="1.8" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="11" cy="17" r="1.8" fill="currentColor" stroke="none"/></svg>EQ</button>
+          </div>
+
+          <div class="mock-upload">
+            <button class="upload-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4M4 16.5v2A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>导入本地音乐</button>
+          </div>
+        </div>
+
+        <div class="mock-library">
+          <div class="lib-title"><span>本地资料库</span><span class="lib-count mono">42 首</span></div>
+          <div class="lib-drop">拖拽文件到此处 · <span class="lib-drop__link">选择文件 / 文件夹</span></div>
+          <div class="lib-row"><span class="lib-row__num mono">01</span><span class="lib-row__name">示例音频 A.mp3</span><span class="lib-row__meta mono">MP3</span><span class="lib-row__meta mono">320k</span><span class="lib-row__meta mono">3:24</span><button class="lib-row__heart" aria-label="收藏"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7.5-4.4-9.2-9.2C1.6 7.4 4 4.5 7 4.5c2 0 3.6 1 4.5 2.6 0 0 1.6-1.6 4.5-2.6 3 0 5.4 2.9 4.2 6.3C19.5 15.6 12 20 12 20z"/></svg></button></div>
+          <div class="lib-row"><span class="lib-row__num mono">02</span><span class="lib-row__name">示例音频 B.flac</span><span class="lib-row__meta mono">FLAC</span><span class="lib-row__meta mono">24/96</span><span class="lib-row__meta mono">5:02</span><button class="lib-row__heart" aria-label="收藏"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7.5-4.4-9.2-9.2C1.6 7.4 4 4.5 7 4.5c2 0 3.6 1 4.5 2.6 0 0 1.6-1.6 4.5-2.6 3 0 5.4 2.9 4.2 6.3C19.5 15.6 12 20 12 20z"/></svg></button></div>
+          <div class="lib-netease">
+            <span class="lib-netease__label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17.3 9.5 3.8 3.8 0 0 1 17 17z"/></svg>网易云搜索 · 可选源</span>
+            <span class="toggle" data-toggle><span class="toggle__knob"></span></span>
+          </div>
+        </div>
+
+        <div class="mock-dock">
+          <div class="dock-cover"></div>
+          <div class="dock-meta">
+            <span class="dock-title">示例曲目</span>
+            <span class="dock-artist">本地文件占位</span>
+          </div>
+          <div class="dock-actions">
+            <button class="dock-btn" aria-label="上一首"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 5v14"/><path d="M17.5 6.5 8.5 12l9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+            <button class="dock-btn" aria-label="播放/暂停">
+              <svg class="ico-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+              <svg class="ico-pause" viewBox="0 0 24 24"><rect x="6.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/><rect x="13.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/></svg>
+            </button>
+            <button class="dock-btn" aria-label="队列"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h10M4 17.5h6"/></svg></button>
+          </div>
+          <div class="dock-progress"><div class="dock-progress__fill"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="variant__tokens">
+      <h3>设计 tokens</h3>
+      <div class="token-row">
+        <span class="token-chip"><span class="token-chip__dot" style="background:#0e0e0c"></span>底 0e0e0c</span>
+        <span class="token-chip"><span class="token-chip__dot" style="background:#151513"></span>面 151513</span>
+        <span class="token-chip"><span class="token-chip__dot" style="background:#f4f1e9"></span>字 f4f1e9</span>
+        <span class="token-chip"><span class="token-chip__dot" style="background:#e2a33e"></span>强调 e2a33e</span>
+        <span class="token-chip token-chip--grotesk">Space Grotesk</span>
+        <span class="token-chip token-chip--mono">JetBrains Mono</span>
+        <span class="token-chip">圆角 6–8px</span>
+      </div>
+    </div>
+
+    <ul class="variant__notes">
+      <li>发丝线 + 单一琥珀强调，彻底去掉毛玻璃与蓝紫渐变</li>
+      <li>快捷键可见（空格 / ⌘K / M），键盘优先、克制动效</li>
+      <li>3px 极细进度条，悬浮时才出现拇指</li>
+      <li>资料库表格化：格式 / 码率 / 时长直接可见</li>
+    </ul>
+  </section>
+
+  <!-- ============ 方向 B：暖纸编辑 ============ -->
+  <section class="variant vb" data-variant="b">
+    <header class="variant__head">
+      <span class="variant__badge">B</span>
+      <div>
+        <div class="variant__title">暖纸编辑</div>
+        <div class="variant__school">Stripe Press / Aesop 式 · 纸面排印 · 朱砂点缀</div>
+      </div>
+    </header>
+
+    <div class="variant__stage">
+      <div class="stage-scene">
+        <div class="mock-panel">
+          <div class="mock-panel__head">
+            <span class="mock-head-label">正在播放</span>
+            <div class="mock-head-actions">
+              <button class="icon-btn" aria-label="搜索"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg></button>
+              <button class="icon-btn" aria-label="设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h9M18 7h2M4 17h3M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
+            </div>
+          </div>
+
+          <div class="mock-cover"><span class="mock-cover__tag">封面占位</span></div>
+
+          <div class="mock-meta">
+            <div class="mock-title">示例曲目</div>
+            <div class="mock-artist">本地文件占位 · 作者待填</div>
+            <div class="mock-badges">
+              <span class="src-badge src-badge--local"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 15V4M8 8l4-4 4 4M4 16.5v2A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>本地库</span>
+              <span class="fmt-chip mono">FLAC · 44.1k</span>
+            </div>
+          </div>
+
+          <div class="mock-progress">
+            <div class="mock-progress__row">
+              <span class="mock-time">1:24</span>
+              <div class="mock-progress__track"><div class="mock-progress__fill"></div><div class="mock-progress__thumb"></div></div>
+              <span class="mock-time">4:10</span>
+            </div>
+          </div>
+
+          <div class="mock-controls">
+            <button class="ctrl-btn" aria-label="播放模式"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 6H7a4 4 0 0 0-4 4v1M7 18h10a4 4 0 0 0 4-4v-1M18.5 20.5 21 18l-2.5-2.5M5.5 3.5 3 6l2.5 2.5"/></svg></button>
+            <button class="ctrl-btn" aria-label="上一首"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 5v14"/><path d="M17.5 6.5 8.5 12l9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+            <button class="ctrl-btn play-btn" aria-label="播放/暂停">
+              <svg class="ico-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+              <svg class="ico-pause" viewBox="0 0 24 24"><rect x="6.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/><rect x="13.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/></svg>
+            </button>
+            <button class="ctrl-btn" aria-label="下一首"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M17.5 5v14"/><path d="M6.5 6.5l9 5.5-9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+            <button class="ctrl-btn" aria-label="音量"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z" fill="currentColor" stroke="none"/><path d="M15.5 9a5 5 0 0 1 0 6"/><path d="M17.8 6.8a9 9 0 0 1 0 10.4"/></svg></button>
+          </div>
+
+          <div class="mock-actions">
+            <button class="action-chip action-chip--active" aria-label="歌词"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h12M4 17.5h8"/></svg>歌词</button>
+            <button class="action-chip" aria-label="播放队列"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h10M4 17.5h6"/></svg>队列</button>
+            <button class="action-chip" aria-label="倍速"><span class="mono">1.0×</span></button>
+            <button class="action-chip" aria-label="均衡器"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h14"/><circle cx="9" cy="7" r="1.8" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="11" cy="17" r="1.8" fill="currentColor" stroke="none"/></svg>EQ</button>
+          </div>
+
+          <div class="mock-upload">
+            <button class="upload-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4M4 16.5v2A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>添加唱片到本地库</button>
+          </div>
+        </div>
+
+        <div class="mock-library">
+          <div class="lib-title"><span>本地资料库</span><span class="lib-count mono">42 首</span></div>
+          <div class="lib-drop">拖拽文件到此处 · <span class="lib-drop__link">选择文件 / 文件夹</span></div>
+          <div class="lib-row"><span class="lib-row__num">01</span><span class="lib-row__name">示例音频 A.mp3</span><span class="lib-row__meta mono">MP3</span><span class="lib-row__meta mono">320k</span><span class="lib-row__meta mono">3:24</span><button class="lib-row__heart" aria-label="收藏"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7.5-4.4-9.2-9.2C1.6 7.4 4 4.5 7 4.5c2 0 3.6 1 4.5 2.6 0 0 1.6-1.6 4.5-2.6 3 0 5.4 2.9 4.2 6.3C19.5 15.6 12 20 12 20z"/></svg></button></div>
+          <div class="lib-row"><span class="lib-row__num">02</span><span class="lib-row__name">示例音频 B.flac</span><span class="lib-row__meta mono">FLAC</span><span class="lib-row__meta mono">24/96</span><span class="lib-row__meta mono">5:02</span><button class="lib-row__heart" aria-label="收藏"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7.5-4.4-9.2-9.2C1.6 7.4 4 4.5 7 4.5c2 0 3.6 1 4.5 2.6 0 0 1.6-1.6 4.5-2.6 3 0 5.4 2.9 4.2 6.3C19.5 15.6 12 20 12 20z"/></svg></button></div>
+          <div class="lib-netease">
+            <span class="lib-netease__label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17.3 9.5 3.8 3.8 0 0 1 17 17z"/></svg>网易云搜索 · 可选源</span>
+            <span class="toggle" data-toggle><span class="toggle__knob"></span></span>
+          </div>
+        </div>
+
+        <div class="mock-dock">
+          <div class="dock-cover"></div>
+          <div class="dock-meta">
+            <span class="dock-title">示例曲目</span>
+            <span class="dock-artist">本地文件占位</span>
+          </div>
+          <div class="dock-actions">
+            <button class="dock-btn" aria-label="上一首"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 5v14"/><path d="M17.5 6.5 8.5 12l9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+            <button class="dock-btn" aria-label="播放/暂停">
+              <svg class="ico-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+              <svg class="ico-pause" viewBox="0 0 24 24"><rect x="6.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/><rect x="13.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/></svg>
+            </button>
+            <button class="dock-btn" aria-label="队列"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h10M4 17.5h6"/></svg></button>
+          </div>
+          <div class="dock-progress"><div class="dock-progress__fill"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="variant__tokens">
+      <h3>设计 tokens</h3>
+      <div class="token-row">
+        <span class="token-chip"><span class="token-chip__dot" style="background:#efe9dd"></span>纸 efe9dd</span>
+        <span class="token-chip"><span class="token-chip__dot" style="background:#f8f4eb"></span>面 f8f4eb</span>
+        <span class="token-chip"><span class="token-chip__dot" style="background:#272119"></span>墨 272119</span>
+        <span class="token-chip"><span class="token-chip__dot" style="background:#c2411f"></span>强调 c2411f</span>
+        <span class="token-chip token-chip--serif">Noto Serif SC</span>
+        <span class="token-chip token-chip--outfit">Outfit</span>
+        <span class="token-chip">圆角 2–4px</span>
+      </div>
+    </div>
+
+    <ul class="variant__notes">
+      <li>米白纸面 + 印刷黑 + 朱砂，安静、有出版物质感</li>
+      <li>封面像唱片套，文字排印为主要视觉语言</li>
+      <li>几乎无阴影、无模糊，与站点晨/午/暮/夜纸张氛围可共存</li>
+      <li>进度是一条细线，时间码用等宽字体，不打扰阅读</li>
+    </ul>
+  </section>
+
+  <!-- ============ 方向 C：监听台 ============ -->
+  <section class="variant vc" data-variant="c">
+    <header class="variant__head">
+      <span class="variant__badge">C</span>
+      <div>
+        <div class="variant__title">监听台</div>
+        <div class="variant__school">广播控制台 / Bloomberg 式 · 等宽数据 · 琥珀信号绿</div>
+      </div>
+    </header>
+
+    <div class="variant__stage">
+      <div class="stage-scene">
+        <div class="mock-panel">
+          <div class="mock-panel__head">
+            <span class="mock-head-label">CH.01 · NOW PLAYING</span>
+            <div class="mock-head-actions">
+              <button class="icon-btn" aria-label="搜索"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg></button>
+              <button class="icon-btn" aria-label="设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h9M18 7h2M4 17h3M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
+            </div>
+          </div>
+
+          <div class="mock-cover"><span class="mock-cover__tag">COVER PLACEHOLDER</span></div>
+
+          <div class="mock-meta">
+            <div class="mock-title">SAMPLE TRACK</div>
+            <div class="mock-artist">LOCAL FILE · ARTIST TBD</div>
+            <div class="mock-badges">
+              <span class="src-badge src-badge--local"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 15V4M8 8l4-4 4 4M4 16.5v2A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>LOCAL</span>
+              <span class="fmt-chip">FLAC · 24/96</span>
+            </div>
+          </div>
+
+          <div class="mock-progress">
+            <div class="mock-progress__row">
+              <span class="mock-time">00:01:24</span>
+              <div class="mock-progress__track"><div class="mock-progress__fill"></div><div class="mock-progress__thumb"></div></div>
+              <span class="mock-time">00:04:10</span>
+            </div>
+          </div>
+
+          <div class="mock-controls">
+            <button class="ctrl-btn" aria-label="播放模式"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 6H7a4 4 0 0 0-4 4v1M7 18h10a4 4 0 0 0 4-4v-1M18.5 20.5 21 18l-2.5-2.5M5.5 3.5 3 6l2.5 2.5"/></svg></button>
+            <button class="ctrl-btn" aria-label="上一首"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 5v14"/><path d="M17.5 6.5 8.5 12l9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+            <button class="ctrl-btn play-btn" aria-label="播放/暂停">
+              <svg class="ico-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+              <svg class="ico-pause" viewBox="0 0 24 24"><rect x="6.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/><rect x="13.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/></svg>
+            </button>
+            <button class="ctrl-btn" aria-label="下一首"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M17.5 5v14"/><path d="M6.5 6.5l9 5.5-9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+            <button class="ctrl-btn" aria-label="音量"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z" fill="currentColor" stroke="none"/><path d="M15.5 9a5 5 0 0 1 0 6"/><path d="M17.8 6.8a9 9 0 0 1 0 10.4"/></svg></button>
+          </div>
+
+          <div class="mock-actions">
+            <button class="action-chip action-chip--active" aria-label="歌词"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h12M4 17.5h8"/></svg>LRC</button>
+            <button class="action-chip" aria-label="播放队列"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h10M4 17.5h6"/></svg>QUEUE</button>
+            <button class="action-chip" aria-label="倍速">1.0×</button>
+            <button class="action-chip" aria-label="均衡器"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h14"/><circle cx="9" cy="7" r="1.8" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="11" cy="17" r="1.8" fill="currentColor" stroke="none"/></svg>EQ</button>
+          </div>
+
+          <div class="mock-upload">
+            <button class="upload-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4M4 16.5v2A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>IMPORT LOCAL FILES</button>
+          </div>
+        </div>
+
+        <div class="mock-library">
+          <div class="lib-title"><span>LOCAL LIBRARY</span><span class="lib-count">42 TRACKS</span></div>
+          <div class="lib-drop">DROP FILES · <span class="lib-drop__link">BROWSE / FOLDER</span></div>
+          <div class="lib-row"><span class="lib-row__num">01</span><span class="lib-row__name">SAMPLE_A.MP3</span><span class="lib-row__meta">MP3</span><span class="lib-row__meta">320K</span><span class="lib-row__meta">3:24</span><button class="lib-row__heart" aria-label="收藏"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7.5-4.4-9.2-9.2C1.6 7.4 4 4.5 7 4.5c2 0 3.6 1 4.5 2.6 0 0 1.6-1.6 4.5-2.6 3 0 5.4 2.9 4.2 6.3C19.5 15.6 12 20 12 20z"/></svg></button></div>
+          <div class="lib-row"><span class="lib-row__num">02</span><span class="lib-row__name">SAMPLE_B.FLAC</span><span class="lib-row__meta">FLAC</span><span class="lib-row__meta">24/96</span><span class="lib-row__meta">5:02</span><button class="lib-row__heart" aria-label="收藏"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7.5-4.4-9.2-9.2C1.6 7.4 4 4.5 7 4.5c2 0 3.6 1 4.5 2.6 0 0 1.6-1.6 4.5-2.6 3 0 5.4 2.9 4.2 6.3C19.5 15.6 12 20 12 20z"/></svg></button></div>
+          <div class="lib-netease">
+            <span class="lib-netease__label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17.3 9.5 3.8 3.8 0 0 1 17 17z"/></svg>NCLOUD SEARCH · OPTIONAL</span>
+            <span class="toggle" data-toggle><span class="toggle__knob"></span></span>
+          </div>
+        </div>
+
+        <div class="mock-dock">
+          <div class="dock-cover"></div>
+          <div class="dock-meta">
+            <span class="dock-title">SAMPLE TRACK</span>
+            <span class="dock-artist">LOCAL FILE</span>
+          </div>
+          <div class="dock-actions">
+            <button class="dock-btn" aria-label="上一首"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 5v14"/><path d="M17.5 6.5 8.5 12l9 5.5z" fill="currentColor" stroke="none"/></svg></button>
+            <button class="dock-btn" aria-label="播放/暂停">
+              <svg class="ico-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+              <svg class="ico-pause" viewBox="0 0 24 24"><rect x="6.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/><rect x="13.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/></svg>
+            </button>
+            <button class="dock-btn" aria-label="队列"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h10M4 17.5h6"/></svg></button>
+          </div>
+          <div class="dock-progress"><div class="dock-progress__fill"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="variant__tokens">
+      <h3>设计 tokens</h3>
+      <div class="token-row">
+        <span class="token-chip"><span class="token-chip__dot" style="background:#0b0d0b"></span>底 0b0d0b</span>
+        <span class="token-chip"><span class="token-chip__dot" style="background:#121512"></span>面 121512</span>
+        <span class="token-chip"><span class="token-chip__dot" style="background:#e9e7dd"></span>字 e9e7dd</span>
+        <span class="token-chip"><span class="token-chip__dot" style="background:#f0b34a"></span>琥珀 f0b34a</span>
+        <span class="token-chip"><span class="token-chip__dot" style="background:#8fd05a"></span>信号 8fd05a</span>
+        <span class="token-chip token-chip--mono">JetBrains Mono</span>
+        <span class="token-chip">圆角 2–4px</span>
+      </div>
+    </div>
+
+    <ul class="variant__notes">
+      <li>监听台语言：琥珀 + 信号绿，等宽字体高密度排版</li>
+      <li>波形进度 + VU 表意象，播放状态一眼可读</li>
+      <li>数据优先：码率 / 采样率 / 格式直接展示，像专业设备</li>
+      <li>纯本地、断网时也像一件完整的音频工具</li>
+    </ul>
+  </section>
+</main>
+
+<!-- ============ 功能架构（三方向共用） ============ -->
+<section class="feature-band">
+  <div class="feature-band__head">
+    <h2>功能架构</h2>
+    <p>三个方向共用同一套本地优先功能骨架，不随视觉方向变化</p>
+  </div>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-card__no">01</div>
+      <div class="feature-card__title">本地导入</div>
+      <div class="feature-card__desc">拖拽 / 选择文件 / 选择文件夹；自动解析 ID3、内嵌封面；增量扫描与去重。</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card__no">02</div>
+      <div class="feature-card__title">元数据资料库</div>
+      <div class="feature-card__desc">标题 / 艺术家 / 专辑 / 码率 / 采样率 / 时长表格化展示，支持排序、筛选、批量编辑。</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card__no">03</div>
+      <div class="feature-card__title">播放队列</div>
+      <div class="feature-card__desc">队列拖拽排序、收藏、播放历史、四种播放模式；本地不依赖任何在线服务。</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card__no">04</div>
+      <div class="feature-card__title">歌词</div>
+      <div class="feature-card__desc">优先内嵌歌词与本地 .lrc 导入；网易云仅作补全来源，接口失败自动静默降级。</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card__no">05</div>
+      <div class="feature-card__title">网易云可选源</div>
+      <div class="feature-card__desc">默认关闭；设置中显式开启搜索 / 歌词补全；所有在线请求失败都不影响本地播放。</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card__no">06</div>
+      <div class="feature-card__title">系统能力</div>
+      <div class="feature-card__desc">Media Session 锁屏控制、全局快捷键、倍速播放；频谱 / 均衡器作为后续增强项。</div>
+    </div>
+  </div>
+</section>
+
+<footer class="canvas-foot">
+  <div class="canvas-foot__box">
+    <strong>下一步：请选择方向（A / B / C，也可混搭）。</strong>
+    <ul>
+      <li>A = 功能优先、克制工具感，最贴合“强大播放器”的定位；</li>
+      <li>B = 与站点博客 / 日记的纸面气质最统一，安静但有记忆点；</li>
+      <li>C = 最个性、最“设备化”，适合想要鲜明差异的用户。</li>
+    </ul>
+    <p style="margin-top:10px;color:var(--page-muted)">确定方向后，我会按所选设计系统产出可点击的 v0 原型（含上传流程与空 / 加载 / 错误状态），再进入 Vue 重构。</p>
+  </div>
+</footer>
+
+<!-- ============ Tweaks 面板 ============ -->
+<button class="tweaks-toggle" id="tweaksToggle" aria-haspopup="true">Tweaks</button>
+
+<div class="tweaks" id="tweaks" role="dialog" aria-label="设计稿参数">
+  <div class="tweaks__head">
+    <span>Tweaks</span>
+    <button class="tweaks__close" id="tweaksClose" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+
+  <div class="tweak-group">
+    <span class="tweak-group__label">聚焦变体</span>
+    <div class="tweak-seg" id="focusSeg">
+      <button data-focus="" class="is-active">全部</button>
+      <button data-focus="a">A</button>
+      <button data-focus="b">B</button>
+      <button data-focus="c">C</button>
+    </div>
+  </div>
+
+  <div class="tweak-group">
+    <label class="tweak-switch">
+      <span>播放演示</span>
+      <input type="checkbox" id="demoPlay">
+      <span class="toggle"><span class="toggle__knob"></span></span>
+    </label>
+    <label class="tweak-switch">
+      <span>网易云源（演示开关）</span>
+      <input type="checkbox" id="neteaseToggle">
+      <span class="toggle"><span class="toggle__knob"></span></span>
+    </label>
+  </div>
+</div>
+
+<script>
+(function () {
+  var tweaks = document.getElementById('tweaks');
+  var toggleBtn = document.getElementById('tweaksToggle');
+  var closeBtn = document.getElementById('tweaksClose');
+
+  toggleBtn.addEventListener('click', function () {
+    tweaks.classList.toggle('is-open');
+    toggleBtn.style.display = tweaks.classList.contains('is-open') ? 'none' : '';
+  });
+  closeBtn.addEventListener('click', function () {
+    tweaks.classList.remove('is-open');
+    toggleBtn.style.display = '';
+  });
+
+  // 聚焦变体
+  var focusSeg = document.getElementById('focusSeg');
+  var variants = Array.prototype.slice.call(document.querySelectorAll('.variant'));
+
+  focusSeg.addEventListener('click', function (e) {
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    var focus = btn.getAttribute('data-focus');
+    Array.prototype.forEach.call(focusSeg.querySelectorAll('button'), function (b) {
+      b.classList.toggle('is-active', b === btn);
+    });
+    variants.forEach(function (v) {
+      var muted = focus !== '' && v.getAttribute('data-variant') !== focus;
+      v.classList.toggle('variant--muted', muted);
+      v.classList.toggle('variant--focus', !muted && focus !== '');
+    });
+  });
+
+  // 播放演示
+  var demoPlay = document.getElementById('demoPlay');
+  demoPlay.addEventListener('change', function () {
+    document.body.classList.toggle('demo-playing', demoPlay.checked);
+    variants.forEach(function (v) {
+      v.querySelectorAll('.stage-scene').forEach(function (s) {
+        s.classList.toggle('is-playing', demoPlay.checked);
+      });
+    });
+  });
+
+  // 网易云开关演示
+  var neteaseToggle = document.getElementById('neteaseToggle');
+  document.querySelectorAll('[data-toggle]').forEach(function (t) {
+    t.addEventListener('click', function () {
+      t.classList.toggle('toggle--on');
+      neteaseToggle.checked = t.classList.contains('toggle--on');
+    });
+  });
+  neteaseToggle.addEventListener('change', function () {
+    document.querySelectorAll('[data-toggle]').forEach(function (t) {
+      t.classList.toggle('toggle--on', neteaseToggle.checked);
+    });
+  });
+
+  // 快捷键：← → 切换聚焦，P 播放，N 网易云
+  document.addEventListener('keydown', function (e) {
+    if (e.target instanceof HTMLInputElement) return;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      var order = ['', 'a', 'b', 'c'];
+      var active = document.querySelector('#focusSeg button.is-active');
+      var idx = order.indexOf(active ? active.getAttribute('data-focus') : '');
+      var next = e.key === 'ArrowRight'
+        ? order[(idx + 1) % order.length]
+        : order[(idx + order.length - 1) % order.length];
+      var btn = focusSeg.querySelector('button[data-focus="' + next + '"]');
+      if (btn) btn.click();
+    }
+    if (e.key === 'p' || e.key === 'P') {
+      demoPlay.checked = !demoPlay.checked;
+      demoPlay.dispatchEvent(new Event('change'));
+    }
+    if (e.key === 'n' || e.key === 'N') {
+      neteaseToggle.checked = !neteaseToggle.checked;
+      neteaseToggle.dispatchEvent(new Event('change'));
+    }
+  });
+})();
+</script>
+</body>
+</html>

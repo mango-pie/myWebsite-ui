@@ -1,69 +1,116 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { message, Modal, Spin } from 'ant-design-vue'
-import { ArrowLeft, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-vue-next'
-import IconAction from '@/components/ui/IconAction.vue'
-import { deleteDiaryEntry, getDiaryEntryVo, getDiaryPrevNext } from '@/integrations/diaryController'
-import { renderBlogMarkdown } from '@/utils/blogMarkdown'
-import { diaryDisplayTitle, formatDiaryDate, getMoodEmoji } from '@/utils/diaryFormat'
+import { message, Modal } from 'ant-design-vue'
+import DiaryRoomShell from '@/components/diary/DiaryRoomShell.vue'
+import { deleteDiaryEntry, getDiaryEntryVo, getDiaryPrevNext, listDiaryByMonth } from '@/integrations/diaryController'
+import { formatDiaryDate, MOOD_OPTIONS, contentExcerpt } from '@/utils/diaryFormat'
+import { MOOD_HEX, MO_SHORT, popCraftAnim } from '@/utils/diaryCraft'
+import { useDiaryRoomTheme } from '@/composables/useDiaryRoomTheme'
 
-const router = useRouter()
+const WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
 const route = useRoute()
-
+const router = useRouter()
+const { period } = useDiaryRoomTheme()
 const entry = ref<API.DiaryEntryVO | null>(null)
 const prevNext = ref<API.DiaryEntryPrevNextVO | null>(null)
+const monthStrip = ref<API.DiaryEntryMonthItemVO[]>([])
 const loading = ref(true)
 
-const renderedContent = computed(() => {
-  if (!entry.value?.content) return ''
-  return renderBlogMarkdown(entry.value.content)
+const id = computed(() => Number(route.params.id))
+const moodLabel = computed(() => MOOD_OPTIONS.find((x) => x.value === entry.value?.mood)?.label ?? '—')
+const moodChar = computed(() => (moodLabel.value === '—' ? '空' : moodLabel.value.slice(0, 1)))
+const moodHex = computed(() => (entry.value?.mood ? MOOD_HEX[entry.value.mood] : ''))
+const waxStyle = computed(() => {
+  if (!moodHex.value) return {}
+  return {
+    background: `radial-gradient(circle at 35% 30%, #fff8, ${moodHex.value} 55%, #6a4a80)`,
+  }
 })
+const dt = computed(() => {
+  if (!entry.value?.diaryDate) return null
+  return new Date(`${entry.value.diaryDate}T12:00:00`)
+})
+const miniDay = computed(() => (dt.value ? String(dt.value.getDate()).padStart(2, '0') : '—'))
+const miniMo = computed(() =>
+  dt.value ? `${dt.value.getFullYear()} · ${MO_SHORT[dt.value.getMonth()]}` : '—',
+)
+const miniWk = computed(() => (dt.value ? WEEK[dt.value.getDay()] : '—'))
+const miniLine = computed(() => `本月 ${monthStrip.value.length} 篇`)
+const bodyParagraphs = computed(() => {
+  const body = entry.value?.content?.trim()
+  if (!body) return []
+  return body.split(/\n\n+/)
+})
+const nextTitle = computed(() =>
+  prevNext.value?.nextId ? contentExcerpt(prevNext.value.nextTitle || prevNext.value.nextDate, 24) : '没有更早的日记',
+)
+const nextEx = computed(() => (prevNext.value?.nextId ? '打开下一篇手账' : '这是时间线尽头。'))
+const nextDate = computed(() => prevNext.value?.nextDate || '—')
 
-async function fetchEntry() {
-  const id = Number(route.params.id)
-  if (!id) return
-
+async function load() {
   loading.value = true
   try {
-    const [detailRes, navRes] = await Promise.all([
-      getDiaryEntryVo({ id }),
-      getDiaryPrevNext({ id }),
-    ])
-    if (detailRes.data.code === 0 && detailRes.data.data) {
-      entry.value = detailRes.data.data
+    const [voRes, navRes] = await Promise.all([getDiaryEntryVo({ id: id.value }), getDiaryPrevNext({ id: id.value })])
+    if (voRes.data.code === 0 && voRes.data.data) {
+      entry.value = voRes.data.data
+      const date = entry.value.diaryDate
+      if (date) {
+        const [y, m] = date.split('-').map(Number)
+        if (Number.isFinite(y) && Number.isFinite(m)) {
+          const monthRes = await listDiaryByMonth({ year: y, month: m })
+          if (monthRes.data.code === 0) {
+            monthStrip.value = (monthRes.data.data || [])
+              .slice()
+              .sort((a, b) => (b.diaryDate || '').localeCompare(a.diaryDate || ''))
+          }
+        }
+      }
     } else {
-      entry.value = null
-      message.error(detailRes.data.message || '日记不存在')
+      message.error(voRes.data.message || '加载失败')
+      router.push('/diary')
+      return
     }
-    if (navRes.data.code === 0) {
-      prevNext.value = navRes.data.data ?? null
-    }
+    prevNext.value = navRes.data.code === 0 ? navRes.data.data ?? null : null
   } catch {
     message.error('加载日记失败')
+    router.push('/diary')
   } finally {
     loading.value = false
   }
 }
 
-function handleBack() {
-  router.push('/diary')
-}
-
-function handleEdit() {
+function goEdit() {
   if (entry.value?.diaryDate) {
-    router.push(`/diary/write?date=${entry.value.diaryDate}`)
+    router.push({ path: '/diary/write', query: { date: entry.value.diaryDate } })
   }
 }
-
-function handleDelete() {
-  if (!entry.value?.id) return
+function goPrev() {
+  if (prevNext.value?.prevId) router.push(`/diary/${prevNext.value.prevId}`)
+}
+function goNext() {
+  if (prevNext.value?.nextId) router.push(`/diary/${prevNext.value.nextId}`)
+}
+function openNextSpine() {
+  if (prevNext.value?.nextId) goNext()
+}
+function jumpMonthItem(item: API.DiaryEntryMonthItemVO) {
+  if (item.id) router.push(`/diary/${item.id}`)
+}
+function onWax(e: Event) {
+  popCraftAnim(e.currentTarget as HTMLElement, 'is-press', 550)
+  message.info({ content: `心情火漆 · ${moodLabel.value}`, duration: 1.2 })
+}
+function onDelete() {
   Modal.confirm({
     title: '删除这篇日记？',
-    content: '删除后可在回收站功能上线前无法恢复。',
+    content: '删除后不可恢复。',
+    okText: '删除',
     okType: 'danger',
-    onOk: async () => {
-      const res = await deleteDiaryEntry({ id: entry.value!.id! })
+    cancelText: '取消',
+    async onOk() {
+      const res = await deleteDiaryEntry({ id: id.value })
       if (res.data.code === 0) {
         message.success('已删除')
         router.push('/diary')
@@ -73,196 +120,147 @@ function handleDelete() {
     },
   })
 }
-
-function goPrev() {
-  if (prevNext.value?.prevId) {
-    router.push(`/diary/${prevNext.value.prevId}`)
+function onKeydown(e: KeyboardEvent) {
+  const tag = (e.target as HTMLElement)?.tagName || ''
+  if (tag === 'TEXTAREA' || tag === 'INPUT') return
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault()
+    goPrev()
+  }
+  if (e.key === 'ArrowRight') {
+    e.preventDefault()
+    goNext()
   }
 }
 
-function goNext() {
-  if (prevNext.value?.nextId) {
-    router.push(`/diary/${prevNext.value.nextId}`)
-  }
-}
-
-watch(
-  () => route.params.id,
-  () => fetchEntry(),
-)
-
-onMounted(() => fetchEntry())
+watch(id, (next, prev) => {
+  if (next && next !== prev) load()
+})
+onMounted(() => {
+  load()
+  window.addEventListener('keydown', onKeydown)
+})
+onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
-  <div class="diary-detail-page">
-    <a-spin :spinning="loading">
-      <div v-if="entry" class="diary-detail-container">
-        <div class="diary-detail-toolbar">
-          <IconAction :icon="ArrowLeft" label="返回" variant="ghost" motion="slide" @click="handleBack" />
-          <div class="diary-detail-toolbar__actions">
-            <IconAction :icon="Pencil" label="编辑" variant="soft" motion="pop" @click="handleEdit" />
-            <IconAction :icon="Trash2" label="删除" variant="danger" motion="shake" @click="handleDelete" />
+  <DiaryRoomShell>
+    <div class="shell">
+      <aside class="side">
+        <div class="side-stack">
+          <button type="button" class="back-chip" @click="router.push('/diary')">← 返回列表 · Esc</button>
+          <div class="period-chip"><span class="dot" /><span>{{ period.name }}</span></div>
+          <div class="mini-date glass">
+            <span class="tape sakura" />
+            <div class="big">{{ miniDay }}</div>
+            <div class="meta">{{ miniMo }}</div>
+            <div class="wk">{{ miniWk }}</div>
+            <div class="line">{{ miniLine }}</div>
+          </div>
+          <div class="side-card glass">
+            <h3>本篇</h3>
+            <div class="toc-item is-on">日期与心情</div>
+            <div class="toc-item">正文手账纸</div>
+            <div class="toc-item">页末印章</div>
+          </div>
+          <div class="side-card glass">
+            <h3>操作</h3>
+            <div class="action-row">
+              <button type="button" class="chip-btn primary" @click="goEdit">编辑这篇</button>
+              <button type="button" class="chip-btn" @click="onDelete">删除</button>
+            </div>
+          </div>
+          <div class="side-quote glass" style="margin-top: auto">
+            <div class="q">「</div>
+            <p class="text-pretty">{{ period.quote }}</p>
           </div>
         </div>
+      </aside>
 
-        <header class="diary-detail-header">
-          <div class="diary-detail-header__meta">
-            <span>{{ formatDiaryDate(entry.diaryDate) }}</span>
-            <span v-if="entry.mood" class="diary-detail-header__mood">{{ getMoodEmoji(entry.mood) }}</span>
-            <a-tag v-if="entry.status === 1" color="green">完成</a-tag>
-            <a-tag v-else color="default">草稿</a-tag>
-            <span v-if="entry.wordCount" class="diary-detail-header__words">{{ entry.wordCount }} 字</span>
+      <article class="detail-main glass">
+        <span class="page-tape" style="position: absolute; top: -8px; left: 42%; width: 70px; height: 18px; background: color-mix(in srgb, var(--craft-b) 55%, transparent); border-radius: 2px; transform: translateX(-50%) rotate(-2deg); z-index: 2" />
+        <header class="detail-hero">
+          <div class="date-line">{{ formatDiaryDate(entry?.diaryDate) }}</div>
+          <h1>{{ entry?.title || '无标题' }}</h1>
+          <div class="meta-row">
+            <span class="meta-pill">
+              <span v-if="entry?.mood" class="mood-dot" :class="entry.mood" />{{ moodLabel }}
+            </span>
+            <span class="meta-pill" style="background: var(--c-violet-soft); color: var(--c-violet)">
+              {{ entry?.statusText || '私密' }}
+            </span>
           </div>
-          <h1 class="diary-detail-header__title">{{ diaryDisplayTitle(entry) }}</h1>
         </header>
+        <div class="detail-body text-pretty">
+          <p v-for="(p, i) in bodyParagraphs" :key="i" style="white-space: pre-wrap; margin-bottom: 12px">{{ p }}</p>
+        </div>
+        <div class="detail-actions">
+          <button type="button" class="chip-btn" @click="router.push('/diary')">返回列表</button>
+          <button type="button" class="chip-btn primary" @click="goEdit">编辑这一天</button>
+        </div>
+        <footer class="detail-foot-deco" aria-hidden="true">
+          <div class="seal-sm">完</div>
+          <div class="mark-line" />
+          <div class="cap">PAGE · END</div>
+        </footer>
+      </article>
 
-        <article class="post-body blog-prose" v-html="renderedContent" />
-
-        <nav class="diary-detail-nav">
-          <button
-            type="button"
-            class="diary-detail-nav__btn"
-            :disabled="!prevNext?.prevId"
-            @click="goPrev"
-          >
-            <ChevronLeft :size="18" class="diary-nav-icon diary-nav-icon--prev" />
-            <span v-if="prevNext?.prevDate">上一篇 · {{ prevNext.prevDate }}</span>
-            <span v-else>没有更早的日记</span>
+      <aside class="deck">
+        <div class="deck-panel glass">
+          <h3 style="font-size: 15px; letter-spacing: 2px; font-family: 'ZCOOL KuaiLe', sans-serif; margin-bottom: 4px">
+            心情火漆
+          </h3>
+          <div class="mood-wax-panel">
+            <button type="button" class="wax-lg craft-hit" :style="waxStyle" title="盖章" @click="onWax">
+              {{ moodChar }}
+            </button>
+            <div class="wax-name">{{ moodLabel }}</div>
+            <div class="wax-sub">私密手账</div>
+          </div>
+          <div class="dw-flower" aria-hidden="true" />
+        </div>
+        <div class="deck-panel glass">
+          <h3 style="font-size: 15px; letter-spacing: 2px; font-family: 'ZCOOL KuaiLe', sans-serif">同月足迹</h3>
+          <div class="month-strip">
+            <button
+              v-for="item in monthStrip"
+              :key="item.id ?? item.diaryDate"
+              type="button"
+              class="chip"
+              :class="{ on: item.id === entry?.id }"
+              @click="jumpMonthItem(item)"
+            >
+              {{ item.diaryDate?.slice(5) }}
+            </button>
+          </div>
+        </div>
+        <div class="nav-pair">
+          <button type="button" class="chip-btn" style="width: 100%" :disabled="!prevNext?.prevId" @click="goPrev">
+            上一篇
           </button>
-          <button
-            type="button"
-            class="diary-detail-nav__btn diary-detail-nav__btn--next"
-            :disabled="!prevNext?.nextId"
-            @click="goNext"
-          >
-            <span v-if="prevNext?.nextDate">下一篇 · {{ prevNext.nextDate }}</span>
-            <span v-else>没有更新的日记</span>
-            <ChevronRight :size="18" class="diary-nav-icon diary-nav-icon--next" />
+          <button type="button" class="chip-btn" style="width: 100%" :disabled="!prevNext?.nextId" @click="goNext">
+            下一篇
           </button>
-        </nav>
-      </div>
-
-      <div v-else-if="!loading" class="diary-detail-empty">
-        <p>日记不存在或无权访问</p>
-        <IconAction :icon="ArrowLeft" label="返回日记主页" variant="primary" motion="slide" @click="handleBack" />
-      </div>
-    </a-spin>
-  </div>
+        </div>
+        <div class="detail-keys">← → 相邻日记 · Esc 返回</div>
+        <div
+          class="spine-card glass grow"
+          :class="{ 'is-empty': !prevNext?.nextId }"
+          role="button"
+          tabindex="0"
+          @click="openNextSpine"
+          @keydown.enter="openNextSpine"
+        >
+          <span class="tape" />
+          <div class="no">NEXT</div>
+          <h4>{{ nextTitle }}</h4>
+          <p class="text-pretty">{{ nextEx }}</p>
+          <div class="go-row">
+            <span>{{ nextDate }}</span>
+            <span>打开 →</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </DiaryRoomShell>
 </template>
-
-<style scoped>
-.diary-detail-page {
-  min-height: calc(100vh - 160px);
-}
-
-.diary-detail-container {
-  max-width: 820px;
-  margin: 0 auto;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 32px;
-}
-
-.diary-detail-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.diary-detail-toolbar__actions {
-  display: flex;
-  gap: 8px;
-}
-
-.diary-detail-header {
-  margin-bottom: 32px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.diary-detail-header__meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  color: var(--color-text-secondary);
-  font-size: 0.9rem;
-  margin-bottom: 12px;
-}
-
-.diary-detail-header__mood {
-  font-size: 1.2rem;
-}
-
-.diary-detail-header__title {
-  margin: 0;
-  font-size: 1.75rem;
-  line-height: 1.35;
-}
-
-.diary-detail-nav {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 40px;
-  padding-top: 24px;
-  border-top: 1px solid var(--color-border);
-}
-
-.diary-detail-nav__btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.03);
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-}
-
-.diary-detail-nav__btn--next {
-  justify-content: flex-end;
-  text-align: right;
-}
-
-.diary-detail-nav__btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.diary-detail-empty {
-  text-align: center;
-  padding: 80px 24px;
-  color: var(--color-text-secondary);
-}
-
-.diary-detail-empty :deep(.icon-action) {
-  margin: 0 auto;
-}
-
-.diary-nav-icon {
-  transition: transform var(--transition-fast);
-}
-.diary-detail-nav__btn:hover:not(:disabled) .diary-nav-icon--prev {
-  transform: translateX(-4px);
-}
-.diary-detail-nav__btn:hover:not(:disabled) .diary-nav-icon--next {
-  transform: translateX(4px);
-}
-@media (prefers-reduced-motion: reduce) {
-  .diary-nav-icon {
-    transition: none;
-  }
-  .diary-detail-nav__btn:hover:not(:disabled) .diary-nav-icon {
-    transform: none;
-  }
-}
-</style>

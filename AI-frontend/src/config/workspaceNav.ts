@@ -19,6 +19,7 @@ import {
   Info,
   ListChecks,
   ListTree,
+  ClipboardList,
 } from 'lucide-vue-next'
 import type { CapabilityGate, RequiredRole } from '@/config/permission'
 import { canShowMenuItem, type MenuItemConfig } from '@/config/permission'
@@ -63,6 +64,15 @@ export const WORKSPACE_NAV: WorkspaceNavItem[] = [
     requiredRole: 'user',
     requireModule: 'diary',
     matchPrefix: '/diary',
+  },
+  {
+    key: 'worklog',
+    label: '工作日志',
+    path: '/worklog',
+    icon: ClipboardList,
+    requiredRole: 'user',
+    requireModule: 'worklog',
+    matchPrefix: '/worklog',
   },
   {
     key: 'blog',

@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="morning">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>某某の小站 · 随笔设计预览 v4</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/zcool-kuaile@5/index.css">
+<style>
+/* Design tokens — Home v3 · Redesign Overhaul layout (anti long-bar) */
+:root{
+  --ink:#4c5570; --ink-soft:#7a83a0; --ink-faint:#a5acc4;
+  --paper:#fffdf8; --card:#ffffff;
+  --c-sakura:#f490ad; --c-sakura-soft:#ffd9e4;
+  --c-violet:#9b8ce8; --c-violet-soft:#e4dffd;
+  --c-lilac:#c79ae0; --c-lilac-soft:#f2e2fa;
+  --c-blue:#6aaee8; --c-blue-soft:#d8ebfb;
+  --c-mint:#5fc4a5; --c-mint-soft:#d6f2e8;
+  --c-sun:#ffcf6e;
+  --shadow-1:0 2px 6px rgba(96,116,168,.10), 0 10px 28px rgba(96,116,168,.12);
+  --shadow-2:0 4px 10px rgba(96,116,168,.14), 0 20px 48px rgba(96,116,168,.18);
+  --shadow-pop:0 6px 0 rgba(76,85,112,.10), 0 18px 40px rgba(96,116,168,.20);
+  --r-lg:28px; --r-md:20px; --r-sm:14px;
+  --ease-spring:cubic-bezier(.34,1.56,.5,1);
+  --ease-out:cubic-bezier(.22,.8,.32,1);
+  --col-read:680px;
+  --col-side:248px;
+  --col-deck:300px;
+}
+:root[data-theme="morning"]{
+  --sky-1:#bfe6f7; --sky-2:#dcf2fb; --sky-3:#fff3df;
+  --page-1:#eaf6fc; --page-2:#fdeef2; --page-3:#f3effc;
+  --hill-1:#a8d8b9; --hill-2:#7ec8a0;
+  --cloud-color:#ffffff; --glow-o:.85; --moon-o:0; --star-o:0; --sun-noon-o:0; --sun-dusk-o:0; --rays-o:0; --mist-o:.5;
+}
+:root[data-theme="noon"]{
+  --sky-1:#3d9be9; --sky-2:#7cc4f5; --sky-3:#dcf2ff;
+  --page-1:#e4f2ff; --page-2:#fdf6e0; --page-3:#e6f9ef;
+  --hill-1:#8fd6a8; --hill-2:#54bd8a;
+  --cloud-color:#ffffff; --glow-o:0; --moon-o:0; --star-o:0; --sun-noon-o:1; --sun-dusk-o:0; --rays-o:.85; --mist-o:0;
+}
+:root[data-theme="dusk"]{
+  --sky-1:#6b4f9e; --sky-2:#e0699b; --sky-3:#ffb45e;
+  --page-1:#fbe4cf; --page-2:#f8dbe6; --page-3:#e9ddf5;
+  --hill-1:#8a5a8f; --hill-2:#64426e;
+  --cloud-color:#f8c9ae; --glow-o:0; --moon-o:0; --star-o:.3; --sun-noon-o:0; --sun-dusk-o:1; --rays-o:0; --mist-o:0;
+}
+:root[data-theme="night"]{
+  --sky-1:#1d2350; --sky-2:#3d3f7a; --sky-3:#7a5ba8;
+  --page-1:#dde2f4; --page-2:#e6dcf0; --page-3:#d6e6f2;
+  --hill-1:#3a3f75; --hill-2:#2b2f5c;
+  --cloud-color:rgba(170,182,225,.28); --glow-o:0; --moon-o:1; --star-o:1; --sun-noon-o:0; --sun-dusk-o:0; --rays-o:0; --mist-o:0;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%;overflow:hidden}
+body{
+  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Source Han Sans SC",sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(1200px 700px at 12% -10%, var(--page-2), transparent 60%),
+    radial-gradient(1000px 800px at 105% 110%, var(--page-3), transparent 55%),
+    linear-gradient(160deg, var(--page-1), var(--page-2) 55%, var(--page-3));
+  transition:background 1.4s var(--ease-out);
+  display:flex;justify-content:center;align-items:flex-start;
+  -webkit-font-smoothing:antialiased;
+}
+.font-display{font-family:"ZCOOL KuaiLe","PingFang SC",sans-serif}
+button,input,textarea,select{font-family:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+input,textarea,select{border:none;outline:none;background:transparent}
+.text-pretty{text-wrap:pretty}
+
+#stageWrap{position:relative;flex:none}
+#stage{
+  position:absolute;top:0;left:0;width:1920px;height:1080px;
+  transform-origin:top left;border-radius:36px;overflow:hidden;
+  background:
+    radial-gradient(900px 520px at 8% -3%, rgba(255,255,255,.85), transparent 60%),
+    radial-gradient(760px 600px at 96% 2%, rgba(255,255,255,.5), transparent 55%),
+    radial-gradient(900px 600px at 10% 98%, rgba(255,255,255,.5), transparent 60%),
+    linear-gradient(168deg, var(--page-1) 0%, var(--page-2) 40%, var(--page-3) 70%, var(--page-1) 100%);
+  box-shadow:0 40px 120px rgba(70,80,130,.28);
+  transition:background 1.4s var(--ease-out);
+}
+#stage::before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:radial-gradient(rgba(120,135,180,.14) 1.2px, transparent 1.3px);
+  background-size:26px 26px;
+  mask-image:linear-gradient(180deg, rgba(0,0,0,.85), rgba(0,0,0,.2) 40%, rgba(0,0,0,.55));
+}
+.deco{position:absolute;pointer-events:none;z-index:1;opacity:.8}
+@keyframes floaty{0%,100%{margin-top:0}50%{margin-top:-12px}}
+@keyframes riseIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+.anim{opacity:0;animation:riseIn .8s var(--ease-out) forwards}
+
+/* topbar */
+#topbar{position:relative;z-index:5;height:84px;padding:0 48px;display:flex;align-items:center;gap:28px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{
+  width:46px;height:46px;border-radius:16px;
+  background:linear-gradient(140deg,var(--c-sakura),var(--c-violet));
+  box-shadow:var(--shadow-1), inset 0 2px 4px rgba(255,255,255,.5);
+  display:grid;place-items:center;transform:rotate(-6deg);
+  transition:transform .4s var(--ease-spring);
+}
+.brand:hover .brand-mark{transform:rotate(6deg) scale(1.06)}
+.brand-mark svg{width:24px;height:24px}
+.brand-name{font-size:22px;letter-spacing:1px}
+.brand-sub{font-size:11px;color:var(--ink-faint);letter-spacing:3px;margin-top:2px}
+#mainnav{
+  display:flex;gap:4px;margin:0 auto;position:relative;
+  background:rgba(255,255,255,.72);backdrop-filter:blur(10px);
+  padding:6px;border-radius:999px;box-shadow:var(--shadow-1);border:1.5px solid rgba(255,255,255,.9);
+}
+#mainnav button{
+  padding:9px 18px;border-radius:999px;font-size:15px;color:var(--ink-soft);
+  letter-spacing:2px;position:relative;z-index:1;transition:color .3s, transform .3s var(--ease-spring);
+}
+#mainnav button:hover{color:var(--ink);transform:translateY(-2px)}
+#mainnav button.active{color:#fff}
+#navPill{
+  position:absolute;top:6px;left:0;height:calc(100% - 12px);border-radius:999px;z-index:0;
+  background:linear-gradient(135deg,var(--c-sakura),#f7b0c4);
+  box-shadow:0 6px 16px rgba(244,144,173,.45);
+  transition:left .45s var(--ease-spring), width .45s var(--ease-spring), opacity .3s;opacity:0;
+}
+.top-right{display:flex;align-items:center;gap:14px}
+.clock-chip{
+  background:rgba(255,255,255,.72);backdrop-filter:blur(10px);
+  border:1.5px solid rgba(255,255,255,.9);border-radius:16px;
+  padding:6px 14px;box-shadow:var(--shadow-1);text-align:right;line-height:1.2;
+}
+.clock-time{font-size:18px;font-weight:700;letter-spacing:2px;font-variant-numeric:tabular-nums}
+.clock-time .sec{font-size:12px;color:var(--ink-faint)}
+.clock-time .colon{animation:blink 2s steps(1) infinite}
+@keyframes blink{50%{opacity:.25}}
+.clock-date{font-size:10px;color:var(--ink-faint);letter-spacing:1px}
+.avatar{
+  width:46px;height:46px;border-radius:50%;
+  background:linear-gradient(140deg,var(--c-blue-soft),var(--c-violet-soft));
+  border:3px solid #fff;box-shadow:var(--shadow-1);
+  display:grid;place-items:center;font-size:18px;color:var(--c-violet);
+  font-family:"ZCOOL KuaiLe",sans-serif;
+}
+
+.note-chip{
+  position:absolute;z-index:6;top:90px;left:48px;
+  font-size:11px;letter-spacing:2px;color:var(--ink-faint);
+  background:rgba(255,255,255,.55);border:1.5px dashed rgba(155,140,232,.35);
+  border-radius:999px;padding:5px 12px;max-width:420px;
+}
+
+/* pages */
+.page{display:none;position:relative;z-index:4;height:996px;padding:8px 48px 28px}
+.page.on{display:block}
+.glass{
+  background:rgba(255,255,255,.82);backdrop-filter:blur(10px);
+  border:1.5px solid rgba(255,255,255,.95);border-radius:var(--r-md);box-shadow:var(--shadow-1);
+}
+
+/* ========== LIST: 三栏构图，不拉满 ========== */
+.list-shell{
+  display:grid;
+  grid-template-columns:var(--col-side) minmax(0,1fr) var(--col-deck);
+  gap:22px;height:calc(100% - 8px);padding-top:36px;
+}
+.list-side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.side-card{padding:16px 18px;position:relative}
+.side-card .tape{
+  position:absolute;top:-10px;right:28px;width:72px;height:22px;transform:rotate(4deg);
+  background:repeating-linear-gradient(45deg, rgba(244,144,173,.45) 0 7px, rgba(244,144,173,.28) 7px 14px);
+  border-radius:3px;
+}
+.side-card h3{font-size:15px;letter-spacing:2px;margin-bottom:10px}
+.about-text{font-size:12px;line-height:1.65;color:var(--ink-soft);letter-spacing:.3px}
+.search-compact{
+  height:40px;border-radius:12px;border:2px solid #e8e4f5;background:#fff;
+  display:flex;align-items:center;gap:8px;padding:0 12px;width:100%;
+  transition:border-color .25s, box-shadow .25s;
+}
+.search-compact:focus-within{border-color:var(--c-violet);box-shadow:0 0 0 4px rgba(155,140,232,.14)}
+.search-compact svg{width:15px;height:15px;color:var(--ink-faint);flex:none}
+.search-compact input{flex:1;font-size:13px;min-width:0}
+.search-compact input::placeholder{color:var(--ink-faint)}
+.cat-list{display:flex;flex-direction:column;gap:4px;margin-top:4px}
+.cat-item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 10px;border-radius:10px;cursor:pointer;font-size:13px;color:var(--ink-soft);letter-spacing:1px;
+  transition:background .2s, transform .25s var(--ease-spring);
+}
+.cat-item:hover{background:rgba(244,144,173,.1);transform:translateX(3px)}
+.cat-item.on{background:var(--c-sakura-soft);color:#d46a8a}
+.cat-item .n{font-size:11px;opacity:.7}
+.tag-cloud{display:flex;flex-wrap:wrap;gap:6px}
+.tag-pill{
+  height:28px;padding:0 10px;border-radius:999px;cursor:pointer;
+  background:rgba(255,255,255,.75);border:1.5px solid #ece7f8;
+  font-size:11px;color:var(--ink-soft);letter-spacing:1px;transition:all .25s;
+}
+.tag-pill:hover,.tag-pill.on{background:var(--c-violet-soft);border-color:var(--c-violet);color:var(--c-violet)}
+
+.list-main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.list-head{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+  margin-bottom:14px;flex:none;
+}
+.eyebrow{font-size:11px;letter-spacing:4px;color:var(--ink-faint);margin-bottom:4px}
+.list-head h1{font-size:42px;letter-spacing:3px;line-height:1;position:relative;width:max-content}
+.list-head h1 .sticker{
+  position:absolute;right:-96px;top:-6px;transform:rotate(8deg);
+  background:#fff;border-radius:12px;padding:5px 10px;font-size:12px;letter-spacing:1px;
+  box-shadow:var(--shadow-1);color:var(--c-sakura);border:2px solid var(--c-sakura-soft);white-space:nowrap;
+}
+.list-head .sub{margin-top:6px;font-size:13px;color:var(--ink-soft);letter-spacing:2px}
+.list-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.seg-mini{
+  display:flex;background:rgba(255,255,255,.75);border-radius:999px;padding:3px;gap:2px;
+  border:1.5px solid #fff;box-shadow:var(--shadow-1);
+}
+.seg-mini button{padding:6px 12px;border-radius:999px;font-size:12px;color:var(--ink-soft);letter-spacing:1px}
+.seg-mini button.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(90,100,160,.16)}
+.chip-btn{
+  height:36px;padding:0 14px;border-radius:12px;
+  background:rgba(255,255,255,.88);border:1.5px solid #fff;box-shadow:var(--shadow-1);
+  font-size:12px;letter-spacing:1px;color:var(--ink-soft);
+  display:inline-flex;align-items:center;gap:6px;
+  transition:transform .25s var(--ease-spring), box-shadow .25s;
+}
+.chip-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-2);color:var(--ink)}
+.chip-btn.primary{background:linear-gradient(135deg,var(--c-sakura),#f7b0c4);color:#fff;border-color:transparent}
+.chip-btn.primary:hover{color:#fff}
+.chip-btn.liked{color:var(--c-sakura);background:var(--c-sakura-soft)}
+.chip-btn svg{width:14px;height:14px}
+
+/* bento cards — 小而密，非三列大卡 */
+.bento{
+  flex:1;min-height:0;display:grid;
+  grid-template-columns:repeat(4,1fr);
+  grid-template-rows:repeat(2,1fr);
+  gap:14px;
+}
+.post-card{
+  background:rgba(255,255,255,.9);border:1.5px solid #fff;
+  border-radius:20px;box-shadow:var(--shadow-1);overflow:hidden;
+  display:flex;flex-direction:column;cursor:pointer;min-width:0;
+  transform:rotate(var(--rz,0deg));
+  transition:transform .35s var(--ease-spring), box-shadow .35s;
+}
+.post-card:nth-child(odd){--rz:-.6deg}
+.post-card:nth-child(even){--rz:.5deg}
+.post-card:hover{transform:rotate(0) translateY(-5px) scale(1.02);box-shadow:var(--shadow-2);z-index:2}
+.post-card.featured{
+  grid-column:span 2;grid-row:span 2;--rz:-1deg;
+  display:grid;grid-template-rows:1.15fr .85fr;
+}
+.post-card .cover{
+  position:relative;overflow:hidden;min-height:0;
+  display:grid;place-items:center;
+}
+.post-card:not(.featured) .cover{aspect-ratio:16/10;flex:none;height:auto;max-height:110px}
+.post-card.featured .cover{height:100%}
+.post-card .cover.c1{background:radial-gradient(120px 80px at 30% 40%, var(--c-sakura-soft), transparent 70%), radial-gradient(100px 70px at 80% 70%, var(--c-violet-soft), transparent 70%), #fff8fb}
+.post-card .cover.c2{background:radial-gradient(120px 80px at 70% 30%, var(--c-mint-soft), transparent 70%), radial-gradient(100px 70px at 20% 80%, var(--c-blue-soft), transparent 70%), #f7fcfa}
+.post-card .cover.c3{background:radial-gradient(120px 80px at 40% 60%, var(--c-lilac-soft), transparent 70%), radial-gradient(90px 60px at 85% 25%, #ffe9b8, transparent 70%), #fcf8ff}
+.post-card .cover .masthead{
+  position:absolute;left:10px;top:8px;font-size:9px;letter-spacing:3px;color:rgba(76,85,112,.45);
+}
+.post-card .cover .ratio{
+  font-size:10px;letter-spacing:2px;color:var(--ink-faint);
+  background:rgba(255,255,255,.55);padding:3px 8px;border-radius:999px;
+  border:1px dashed rgba(150,160,200,.35);
+}
+.post-card .body{padding:10px 12px 12px;flex:1;display:flex;flex-direction:column;min-height:0}
+.post-card.featured .body{padding:14px 16px 16px}
+.post-card .meta{display:flex;gap:8px;font-size:10px;color:var(--ink-faint);letter-spacing:1px;margin-bottom:4px}
+.post-card .title{font-size:15px;letter-spacing:1px;line-height:1.3;margin-bottom:4px}
+.post-card.featured .title{font-size:22px;margin-bottom:8px}
+.post-card .summary{
+  font-size:11px;color:var(--ink-soft);line-height:1.5;letter-spacing:.2px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.post-card.featured .summary{-webkit-line-clamp:3;font-size:13px;line-height:1.6}
+.post-card .foot{
+  margin-top:auto;padding-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;
+  font-size:10px;color:var(--ink-faint);
+}
+.post-card .tags{display:flex;gap:4px;flex-wrap:wrap}
+.post-card .tags span{
+  font-size:9px;padding:2px 7px;border-radius:999px;
+  background:rgba(244,144,173,.12);color:#d46a8a;letter-spacing:1px;
+}
+.post-card .stats{display:inline-flex;align-items:center;gap:8px}
+.post-card .stats button{display:inline-flex;align-items:center;gap:3px;font-size:10px;color:var(--ink-faint)}
+.post-card .stats button.liked{color:var(--c-sakura)}
+.post-card .stats svg{width:12px;height:12px}
+
+.list-foot{
+  flex:none;display:flex;align-items:center;justify-content:space-between;
+  margin-top:12px;padding-top:4px;
+}
+.page-dots{display:flex;gap:6px}
+.page-dot{
+  min-width:32px;height:32px;padding:0 6px;border-radius:10px;cursor:pointer;
+  background:rgba(255,255,255,.75);border:1.5px solid #fff;
+  display:grid;place-items:center;font-size:12px;color:var(--ink-soft);
+  transition:all .25s var(--ease-spring);
+}
+.page-dot.on{background:var(--c-sakura);color:#fff;border-color:transparent}
+.page-dot:hover{transform:translateY(-2px)}
+.snap-hint{font-size:11px;color:var(--ink-faint);letter-spacing:2px}
+
+/* timeline — 窄卡交替，禁止通栏长条 */
+.timeline-wrap{display:none;flex:1;min-height:0;overflow:hidden;position:relative}
+#stage[data-layout="timeline"] .bento{display:none}
+#stage[data-layout="timeline"] .timeline-wrap{display:block}
+.tl-scroll{
+  height:100%;overflow:hidden;position:relative;
+  padding:8px 40px 8px;
+}
+.tl-line{
+  position:absolute;left:50%;top:12px;bottom:12px;width:2px;margin-left:-1px;
+  background:linear-gradient(180deg,var(--c-sakura-soft),var(--c-violet-soft));
+}
+.tl-row{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:16px;align-items:start}
+.tl-row .tl-card{
+  max-width:340px;width:100%;padding:14px 16px;cursor:pointer;
+  background:rgba(255,255,255,.9);border:1.5px solid #fff;border-radius:16px;
+  box-shadow:var(--shadow-1);position:relative;
+  transition:transform .3s var(--ease-spring), box-shadow .3s;
+}
+.tl-row .tl-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-2)}
+.tl-row:nth-child(odd) .tl-card{justify-self:end;transform:rotate(-.8deg)}
+.tl-row:nth-child(even) .tl-card{justify-self:start;grid-column:2;transform:rotate(.8deg)}
+.tl-row:nth-child(odd) .tl-card:hover,.tl-row:nth-child(even) .tl-card:hover{transform:rotate(0) translateY(-3px)}
+.tl-row .tl-card::after{
+  content:"";position:absolute;top:22px;width:10px;height:10px;border-radius:50%;
+  background:var(--c-sakura);border:3px solid #fff;box-shadow:var(--shadow-1);
+}
+.tl-row:nth-child(odd) .tl-card::after{right:-24px}
+.tl-row:nth-child(even) .tl-card::after{left:-24px}
+.tl-card .t{font-size:15px;letter-spacing:1px;margin-bottom:6px}
+.tl-card .s{font-size:12px;color:var(--ink-soft);line-height:1.5}
+.tl-card .m{margin-top:8px;font-size:10px;color:var(--ink-faint);letter-spacing:1px}
+.tl-month{
+  text-align:center;font-size:11px;letter-spacing:3px;color:var(--ink-faint);
+  margin:4px 0 12px;font-weight:600;
+}
+
+/* right deck — 装饰窗，像主页天空之窗缩小版 */
+.deck{
+  position:relative;border-radius:28px;overflow:hidden;
+  border:8px solid #fff;box-shadow:var(--shadow-pop);
+  background:linear-gradient(180deg,var(--sky-1) 0%,var(--sky-2) 55%,var(--sky-3) 100%);
+  transition:background 1.4s var(--ease-out);
+}
+.deck .sky-glow{
+  position:absolute;top:8%;right:10%;width:90px;height:90px;border-radius:50%;
+  background:radial-gradient(circle,#ffe9a8,transparent 68%);opacity:var(--glow-o);filter:blur(2px);
+}
+.deck .sun-noon{
+  position:absolute;top:10%;left:14%;width:48px;height:48px;border-radius:50%;
+  background:radial-gradient(circle at 38% 36%,#fffef5,#ffedaa 72%);
+  box-shadow:0 0 30px 14px rgba(255,240,180,.65);opacity:var(--sun-noon-o);
+}
+.deck .sun-dusk{
+  position:absolute;bottom:28%;left:50%;margin-left:-36px;width:72px;height:72px;border-radius:50%;
+  background:radial-gradient(circle at 42% 38%,#ffe3a0,#ff9e5e 58%,#ff7e6b);
+  box-shadow:0 0 40px 18px rgba(255,150,90,.4);opacity:var(--sun-dusk-o);
+}
+.deck .sky-moon{
+  position:absolute;top:12%;right:16%;width:40px;height:40px;border-radius:50%;
+  background:radial-gradient(circle at 34% 34%,#fffdf4,#f2ead6 70%);
+  box-shadow:0 0 24px 8px rgba(255,250,230,.5);opacity:var(--moon-o);
+}
+.deck .stars{position:absolute;inset:0;opacity:var(--star-o)}
+.deck .stars i{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff}
+.deck .hills{position:absolute;left:0;right:0;bottom:0;height:38%}
+.deck .hills svg{width:100%;height:100%;display:block}
+.deck .polaroid{
+  position:absolute;background:#fff;border-radius:8px;padding:7px 7px 22px;
+  box-shadow:0 8px 20px rgba(90,100,160,.28);width:108px;pointer-events:auto;
+  transition:transform .4s var(--ease-spring);
+}
+.deck .polaroid:hover{transform:rotate(0) scale(1.08)!important;z-index:5}
+.deck .polaroid .ph{height:72px;border-radius:5px}
+.deck .polaroid .cap{position:absolute;left:0;right:0;bottom:5px;text-align:center;font-size:10px;color:var(--ink-soft);letter-spacing:1px}
+.deck .p1{left:16px;top:18%;transform:rotate(-8deg);animation:floaty 5s ease-in-out infinite}
+.deck .p2{right:14px;top:42%;transform:rotate(6deg);animation:floaty 6.2s ease-in-out infinite;animation-delay:-2s;width:96px}
+.deck .p2 .ph{height:60px}
+.deck .issue-badge{
+  position:absolute;left:14px;right:14px;bottom:14px;
+  background:rgba(255,255,255,.86);backdrop-filter:blur(10px);
+  border-radius:14px;border:1.5px solid rgba(255,255,255,.95);
+  padding:10px 12px;box-shadow:var(--shadow-1);
+}
+.deck .issue-badge .k{font-size:10px;letter-spacing:2px;color:var(--ink-faint)}
+.deck .issue-badge .v{font-size:16px;letter-spacing:1px;margin-top:2px}
+
+.empty-state{
+  display:none;grid-column:1/-1;align-self:center;justify-self:center;
+  text-align:center;padding:32px;border:1.5px dashed rgba(150,160,200,.4);
+  border-radius:var(--r-md);background:rgba(255,255,255,.5);
+}
+.empty-state.show{display:block}
+.empty-state .t{font-size:18px;letter-spacing:2px;margin-bottom:6px}
+
+/* ========== DETAIL：阅读栏 + 侧栏，封面不拉满 ========== */
+.detail-shell{
+  display:grid;grid-template-columns:minmax(0,var(--col-read)) 260px;
+  gap:24px;justify-content:center;height:calc(100% - 8px);padding-top:28px;
+  max-width:1100px;margin:0 auto;
+}
+.detail-main{padding:0;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.detail-cover{
+  height:160px;margin:16px 16px 0;border-radius:18px;position:relative;overflow:hidden;flex:none;
+  background:
+    radial-gradient(220px 120px at 30% 40%, var(--c-lilac-soft), transparent 65%),
+    radial-gradient(200px 110px at 80% 60%, var(--c-blue-soft), transparent 65%),
+    rgba(255,255,255,.45);
+  display:grid;place-items:center;
+}
+.detail-cover .ratio{font-size:11px;letter-spacing:2px;color:var(--ink-faint);background:rgba(255,255,255,.6);padding:5px 12px;border-radius:999px;border:1.5px dashed rgba(150,160,200,.35)}
+.detail-body{padding:16px 22px 20px;overflow:auto;flex:1;min-height:0}
+.detail-meta{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--ink-faint);letter-spacing:1px;margin-bottom:8px}
+.detail-body h1{font-size:28px;letter-spacing:2px;line-height:1.3;margin-bottom:8px}
+.detail-summary{font-size:13px;color:var(--ink-soft);line-height:1.6;margin-bottom:10px}
+.detail-actions{display:flex;gap:8px;margin:10px 0 14px;flex-wrap:wrap}
+.blog-prose{font-size:14px;line-height:1.8;letter-spacing:.3px}
+.blog-prose p{margin-bottom:.85em}
+.blog-prose h2{font-size:18px;letter-spacing:2px;margin:1em 0 .45em;font-family:"ZCOOL KuaiLe",sans-serif}
+.blog-prose blockquote{
+  margin:1em 0;padding:10px 14px;border-radius:10px;
+  background:rgba(244,144,173,.08);border-left:3px solid var(--c-sakura);color:var(--ink-soft);font-size:13px;
+}
+.blog-prose code{font-family:ui-monospace,Consolas,monospace;font-size:.88em;background:rgba(155,140,232,.12);padding:1px 6px;border-radius:5px;color:#6b5cb8}
+.blog-prose pre{background:rgba(255,255,255,.7);border:1.5px solid rgba(150,160,200,.2);border-radius:12px;padding:12px 14px;font-size:12px;margin:1em 0;overflow:auto}
+.comment-stub{margin-top:16px;padding:12px;border-radius:12px;border:1.5px dashed rgba(150,160,200,.4);text-align:center;font-size:11px;color:var(--ink-faint);letter-spacing:2px}
+.detail-side{display:flex;flex-direction:column;gap:12px;min-height:0}
+.related-item{padding:10px 0;border-bottom:1px solid rgba(150,160,200,.15);cursor:pointer;transition:transform .25s var(--ease-spring)}
+.related-item:hover{transform:translateX(3px)}
+.related-item .t{font-size:13px;letter-spacing:1px;margin-bottom:3px}
+.related-item .d{font-size:11px;color:var(--ink-faint)}
+.back-chip{
+  height:34px;padding:0 12px;border-radius:10px;cursor:pointer;
+  background:rgba(255,255,255,.85);border:1.5px solid #fff;box-shadow:var(--shadow-1);
+  font-size:12px;letter-spacing:1px;color:var(--ink-soft);
+  display:inline-flex;align-items:center;gap:4px;margin-bottom:8px;
+  transition:transform .25s var(--ease-spring);
+}
+.back-chip:hover{transform:translateX(-3px);color:var(--ink)}
+
+/* ========== CREATE：窄表单 ========== */
+.create-shell{
+  display:grid;grid-template-columns:minmax(0,640px) 260px;
+  gap:20px;justify-content:center;max-width:960px;margin:0 auto;
+  height:calc(100% - 8px);padding-top:28px;
+}
+.form-panel{padding:18px 20px;overflow:auto;min-height:0}
+.form-row{margin-bottom:12px}
+.form-label{font-size:11px;letter-spacing:2px;color:var(--ink-soft);margin-bottom:6px;display:block}
+.form-input,.form-textarea,.form-select{
+  width:100%;border-radius:12px;border:2px solid #e8e4f5;background:#fff;
+  padding:10px 12px;font-size:13px;color:var(--ink);
+  transition:border-color .25s, box-shadow .25s;
+}
+.form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--c-violet);box-shadow:0 0 0 4px rgba(155,140,232,.14)}
+.form-textarea{min-height:200px;resize:vertical;line-height:1.55}
+.form-input::placeholder,.form-textarea::placeholder{color:var(--ink-faint)}
+.cover-upload{
+  aspect-ratio:16/9;max-height:140px;border-radius:14px;cursor:pointer;
+  border:2px dashed rgba(150,160,200,.4);background:rgba(255,255,255,.55);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  font-size:11px;color:var(--ink-faint);letter-spacing:2px;
+  transition:border-color .25s, background .25s, transform .25s var(--ease-spring);
+}
+.cover-upload:hover{border-color:var(--c-violet);background:var(--c-violet-soft);transform:scale(1.01)}
+.cover-upload.filled{
+  border-style:solid;border-color:#fff;
+  background:radial-gradient(120px 70px at 30% 40%, var(--c-sakura-soft), transparent 70%),
+    radial-gradient(100px 60px at 80% 70%, var(--c-mint-soft), transparent 70%), rgba(255,255,255,.75);
+  color:var(--ink-soft);
+}
+.form-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.btn{
+  height:38px;padding:0 16px;border-radius:12px;font-size:13px;letter-spacing:2px;
+  background:rgba(255,255,255,.9);border:1.5px solid #fff;box-shadow:var(--shadow-1);
+  color:var(--ink-soft);transition:transform .25s var(--ease-spring);
+}
+.btn:hover{transform:translateY(-2px);color:var(--ink)}
+.btn.primary{background:linear-gradient(135deg,var(--c-violet),var(--c-sakura));color:#fff;border-color:transparent}
+.btn.ghost{background:transparent;border:1.5px dashed rgba(150,160,200,.45);box-shadow:none}
+
+/* category / tag */
+.sub-shell{max-width:1180px;margin:0 auto;height:calc(100% - 8px);padding-top:28px;display:flex;flex-direction:column;min-height:0}
+.sub-hero{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:14px 18px;margin-bottom:14px;max-width:520px;flex:none;
+}
+.sub-hero h1{font-size:28px;letter-spacing:2px}
+.sub-hero .count{font-size:12px;color:var(--ink-faint);letter-spacing:2px;margin-top:4px}
+.sub-grid{
+  flex:1;min-height:0;display:grid;
+  grid-template-columns:repeat(4,1fr);gap:14px;align-content:start;
+}
+
+.toast{
+  position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-16px);
+  background:rgba(255,255,255,.95);backdrop-filter:blur(12px);
+  border:1.5px solid #fff;border-radius:14px;padding:10px 18px;
+  box-shadow:var(--shadow-2);font-size:13px;letter-spacing:1px;
+  opacity:0;pointer-events:none;z-index:200;transition:all .35s var(--ease-out);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.share-modal{
+  display:none;position:fixed;inset:0;z-index:150;
+  background:rgba(70,80,130,.25);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;
+}
+.share-modal.open{display:flex}
+.share-card{width:360px;padding:22px;border-radius:var(--r-lg);background:rgba(255,255,255,.95);border:1.5px solid #fff;box-shadow:var(--shadow-2)}
+.share-card h3{font-size:18px;letter-spacing:2px;margin-bottom:10px}
+.share-url{display:flex;gap:8px;align-items:center;background:#f7f5fc;border-radius:10px;padding:8px 10px;margin-bottom:12px}
+.share-url code{flex:1;font-size:11px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+#tweaks{position:fixed;right:24px;bottom:24px;z-index:99;font-size:13px}
+#tweaks .panel{
+  width:300px;background:rgba(255,255,255,.94);backdrop-filter:blur(14px);
+  border-radius:20px;box-shadow:0 20px 60px rgba(70,80,130,.35);border:1.5px solid #fff;
+  padding:16px 18px;display:none;margin-bottom:10px;
+}
+#tweaks.open .panel{display:block}
+#tweaks h4{font-size:12px;letter-spacing:3px;color:var(--ink-faint);margin-bottom:12px;font-weight:600}
+#tweaks .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px}
+#tweaks .row:last-child{margin-bottom:0}
+#tweaks label{color:var(--ink-soft);letter-spacing:1px;flex:none;font-size:12px}
+.seg{display:flex;background:#f0edf9;border-radius:999px;padding:3px;gap:2px;flex-wrap:wrap;justify-content:flex-end}
+.seg button{padding:5px 9px;border-radius:999px;font-size:11px;color:var(--ink-soft);letter-spacing:1px}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(90,100,160,.18)}
+#tweaks .fab{
+  height:42px;padding:0 16px;border-radius:999px;
+  background:rgba(255,255,255,.94);backdrop-filter:blur(14px);color:var(--ink);
+  box-shadow:0 12px 34px rgba(70,80,130,.35);border:1.5px solid #fff;
+  font-size:13px;letter-spacing:2px;display:flex;align-items:center;gap:8px;
+}
+#tweaks.open .fab{display:none}
+#tweaks .fab svg{width:15px;height:15px}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+<div class="share-modal" id="shareModal">
+  <div class="share-card">
+    <h3 class="font-display">分享文章</h3>
+    <div class="share-url">
+      <code id="shareUrl">https://moumou.station/blog/1</code>
+      <button type="button" class="chip-btn" id="copyShare" style="height:30px">复制</button>
+    </div>
+    <button type="button" class="btn" id="closeShare" style="width:100%">关闭</button>
+  </div>
+</div>
+
+<div id="stageWrap">
+<div id="stage" data-page="list" data-layout="card" data-season="spring">
+  <div class="deco" style="left:980px;top:96px;animation:floaty 6s ease-in-out infinite">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4L12 2z" fill="#ffcf6e"/></svg>
+  </div>
+  <div class="deco" style="left:70px;top:920px;animation:floaty 7s ease-in-out infinite;animation-delay:-3s">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4L12 2z" fill="#f490ad" opacity=".75"/></svg>
+  </div>
+  <div class="deco" style="left:1760px;top:700px;animation:floaty 8s ease-in-out infinite;animation-delay:-1s">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="#9b8ce8" stroke-width="3" opacity=".5"/></svg>
+  </div>
+
+  <header id="topbar" class="anim">
+    <div class="brand">
+      <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4L12 2z" fill="#fff"/></svg></div>
+      <div>
+        <div class="brand-name font-display">某某の小站</div>
+        <div class="brand-sub">MOUMOU NO STATION</div>
+      </div>
+    </div>
+    <nav id="mainnav">
+      <span id="navPill"></span>
+      <button type="button">首页</button>
+      <button type="button" class="active">随笔</button>
+      <button type="button">日记</button>
+      <button type="button">知识库</button>
+      <button type="button">实验室</button>
+      <button type="button">对话</button>
+    </nav>
+    <div class="top-right">
+      <div class="clock-chip">
+        <div class="clock-time" id="clockTime">--<span class="colon">:</span>--</div>
+        <div class="clock-date" id="clockDate">----年--月--日</div>
+      </div>
+      <div class="avatar">某</div>
+    </div>
+  </header>
+
+  <div class="note-chip anim" style="animation-delay:.1s">v4 · 去长条重排 · 单屏 1920×1080 · 请审查后再进 v5</div>
+
+  <!-- LIST -->
+  <section class="page on" id="page-list" data-screen-label="01 List">
+    <div class="list-shell">
+      <aside class="list-side anim" style="animation-delay:.15s">
+        <div class="side-card glass">
+          <span class="tape"></span>
+          <h3 class="font-display">关于</h3>
+          <p class="about-text text-pretty">学习、灵感与一点点生活碎碎念。不把组件拉成通栏，才有呼吸。</p>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">搜索</h3>
+          <div class="search-compact">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/></svg>
+            <input type="search" id="searchInput" placeholder="搜标题…" autocomplete="off">
+          </div>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">分类</h3>
+          <div class="cat-list" id="sideCats"></div>
+        </div>
+        <div class="side-card glass" style="flex:1;min-height:0">
+          <h3 class="font-display">标签</h3>
+          <div class="tag-cloud" id="sideTags"></div>
+        </div>
+      </aside>
+
+      <div class="list-main anim" style="animation-delay:.22s">
+        <div class="list-head">
+          <div>
+            <div class="eyebrow">JOURNAL</div>
+            <h1 class="font-display">随笔<span class="sticker font-display">Vol.26</span></h1>
+            <div class="sub">把日子写成一页页小故事</div>
+          </div>
+          <div class="list-actions">
+            <div class="seg-mini" id="layoutSeg">
+              <button type="button" class="on" data-layout="card">卡片</button>
+              <button type="button" data-layout="timeline">时间线</button>
+            </div>
+            <div class="seg-mini list-sort" id="sortSeg">
+              <button type="button" class="on" data-sort="latest">最新</button>
+              <button type="button" data-sort="popular">热门</button>
+            </div>
+            <button type="button" class="chip-btn primary font-display" data-go="create">发布</button>
+          </div>
+        </div>
+
+        <div class="bento" id="cardGrid"></div>
+        <div class="timeline-wrap"><div class="tl-scroll" id="timelineRail"><div class="tl-line"></div></div></div>
+        <div class="empty-state" id="listEmpty"><div class="t font-display">没有找到相关随笔</div></div>
+
+        <div class="list-foot">
+          <div class="page-dots" id="pagination"></div>
+          <div class="snap-hint">单屏构图 · 分页翻页</div>
+        </div>
+      </div>
+
+      <aside class="deck anim" style="animation-delay:.3s" id="skyDeck">
+        <div class="sky-glow"></div>
+        <div class="sun-noon"></div>
+        <div class="sun-dusk"></div>
+        <div class="sky-moon"></div>
+        <div class="stars" id="deckStars"></div>
+        <div class="hills">
+          <svg viewBox="0 0 300 120" preserveAspectRatio="none">
+            <path d="M0,70 C40,40 80,38 120,58 C160,78 200,48 240,56 C270,62 290,74 300,78 L300,120 L0,120 Z" fill="var(--hill-1)" opacity=".7"/>
+            <path d="M0,90 C50,68 100,66 150,82 C200,98 250,76 300,88 L300,120 L0,120 Z" fill="var(--hill-2)"/>
+          </svg>
+        </div>
+        <div class="polaroid p1">
+          <div class="ph" style="background:linear-gradient(160deg,#ffd9e4,#bfe6f7)"></div>
+          <div class="cap">春日散步</div>
+        </div>
+        <div class="polaroid p2">
+          <div class="ph" style="background:linear-gradient(160deg,#d8ebfb,#e4dffd)"></div>
+          <div class="cap">云的标本</div>
+        </div>
+        <div class="issue-badge">
+          <div class="k">本季随笔</div>
+          <div class="v font-display" id="issueCount">共 8 篇</div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- DETAIL -->
+  <section class="page" id="page-detail" data-screen-label="02 Detail">
+    <div class="detail-shell">
+      <article class="detail-main glass">
+        <div style="padding:12px 16px 0"><button type="button" class="back-chip" data-go="list">← 返回</button></div>
+        <div class="detail-cover"><span class="ratio">[image] cover · 不拉满</span></div>
+        <div class="detail-body">
+          <div class="detail-meta"><span id="dCat">前端</span><span id="dDate">2026-07-12</span><span id="dViews">1280 阅读</span></div>
+          <h1 class="font-display text-pretty" id="dTitle">春日里的组件拆分笔记</h1>
+          <p class="detail-summary text-pretty" id="dSummary">把臃肿页面拆成可呼吸的小零件。</p>
+          <div class="tag-cloud" id="dTags" style="margin-bottom:4px"></div>
+          <div class="detail-actions">
+            <button type="button" class="chip-btn" id="likeBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.2-4.6-9.5-8.2C.7 9.8 2.2 6 5.6 6c1.9 0 3.2 1.1 4 2.2C10.4 7.1 11.7 6 13.6 6c3.4 0 4.9 3.8 3.1 6.8C19.2 16.4 12 21 12 21z"/></svg> <span id="likeCnt">42</span></button>
+            <button type="button" class="chip-btn" id="shareBtn">分享</button>
+            <button type="button" class="chip-btn" data-go="create">编辑</button>
+          </div>
+          <div class="blog-prose text-pretty" id="dBody">
+            <p>列表不该被 1920 宽强迫拉成通栏。主页舒服，是因为每块都有自己的宽度预算。</p>
+            <h2>约束宽度</h2>
+            <p>搜索、时间线条目、阅读栏都给 max-width；空白留给装饰窗与呼吸。</p>
+            <blockquote>少拉一点组件，多留一点云。</blockquote>
+            <pre><code>grid: side 248 | main 1fr | deck 300</code></pre>
+          </div>
+          <div class="comment-stub">评论区 stub</div>
+        </div>
+      </article>
+      <aside class="detail-side">
+        <div class="side-card glass">
+          <h3 class="font-display">相关</h3>
+          <div id="relatedList"></div>
+        </div>
+        <div class="side-card glass">
+          <h3 class="font-display">标签</h3>
+          <div class="tag-cloud" id="detailTagCloud"></div>
+        </div>
+        <div class="deck" style="flex:1;min-height:160px">
+          <div class="sky-glow"></div>
+          <div class="hills" style="height:45%">
+            <svg viewBox="0 0 300 120" preserveAspectRatio="none">
+              <path d="M0,70 C60,40 140,50 200,70 C250,85 280,78 300,82 L300,120 L0,120 Z" fill="var(--hill-2)"/>
+            </svg>
+          </div>
+          <div class="issue-badge"><div class="k">继续读</div><div class="v font-display" style="font-size:14px">下一篇在云上</div></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- CREATE -->
+  <section class="page" id="page-create" data-screen-label="03 Create">
+    <div class="create-shell">
+      <div class="form-panel glass">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div>
+            <div class="eyebrow">EDITOR</div>
+            <div class="font-display" style="font-size:26px;letter-spacing:2px">写文章</div>
+          </div>
+          <button type="button" class="back-chip" data-go="list" style="margin:0">← 返回</button>
+        </div>
+        <div class="form-row"><label class="form-label" for="fTitle">标题</label><input class="form-input" id="fTitle" placeholder="给文章起个名字"></div>
+        <div class="form-row"><label class="form-label" for="fSummary">摘要</label><input class="form-input" id="fSummary" placeholder="一句话介绍"></div>
+        <div class="form-row"><label class="form-label" for="fContent">正文</label><textarea class="form-textarea" id="fContent" placeholder="Markdown…"></textarea></div>
+        <div class="form-actions">
+          <button type="button" class="btn ghost" id="btnReset">重置</button>
+          <button type="button" class="btn" id="btnDraft">存草稿</button>
+          <button type="button" class="btn primary font-display" id="btnPublish">发布</button>
+        </div>
+      </div>
+      <aside class="form-panel glass">
+        <div class="form-row"><div class="form-label">封面</div><div class="cover-upload" id="coverUpload" role="button" tabindex="0"><span>[image] 16:9</span><span style="font-size:10px">点击模拟</span></div></div>
+        <div class="form-row"><label class="form-label" for="fCat">分类</label><select class="form-select" id="fCat"><option value="">选择分类</option><option>前端</option><option>随想</option><option>笔记</option></select></div>
+        <div class="form-row"><div class="form-label">标签</div><div class="tag-cloud" id="formTags"></div></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- CATEGORY -->
+  <section class="page" id="page-category" data-screen-label="04 Category">
+    <div class="sub-shell">
+      <div class="sub-hero glass">
+        <div>
+          <div class="eyebrow">CATEGORY</div>
+          <h1 class="font-display" id="catTitle">前端</h1>
+          <div class="count" id="catCount">共 0 篇</div>
+        </div>
+        <button type="button" class="back-chip" data-go="list" style="margin:0">← 全部</button>
+      </div>
+      <div class="sub-grid" id="catGrid"></div>
+    </div>
+  </section>
+
+  <!-- TAG -->
+  <section class="page" id="page-tag" data-screen-label="05 Tag">
+    <div class="sub-shell">
+      <div class="sub-hero glass">
+        <div>
+          <div class="eyebrow">TAG</div>
+          <h1 class="font-display" id="tagTitle">#Vue</h1>
+          <div class="count" id="tagCount">共 0 篇</div>
+        </div>
+        <button type="button" class="back-chip" data-go="list" style="margin:0">← 全部</button>
+      </div>
+      <div class="sub-grid" id="tagGrid"></div>
+    </div>
+  </section>
+</div>
+</div>
+
+<div id="tweaks">
+  <div class="panel">
+    <h4>TWEAKS</h4>
+    <div class="row">
+      <label>当前页</label>
+      <div class="seg" id="pageSeg">
+        <button type="button" data-page="list" class="on">列表</button>
+        <button type="button" data-page="detail">详情</button>
+        <button type="button" data-page="create">发布</button>
+        <button type="button" data-page="category">分类</button>
+        <button type="button" data-page="tag">标签</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>列表布局</label>
+      <div class="seg" id="layoutSegTweaks">
+        <button type="button" data-layout="card" class="on">卡片</button>
+        <button type="button" data-layout="timeline">时间线</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>时段</label>
+      <div class="seg" id="themeSeg">
+        <button type="button" data-theme="morning" class="on">晨</button>
+        <button type="button" data-theme="noon">午</button>
+        <button type="button" data-theme="dusk">昏</button>
+        <button type="button" data-theme="night">夜</button>
+      </div>
+    </div>
+  </div>
+  <button class="fab" id="tweaksFab" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2.4"/><circle cx="8" cy="16" r="2.4"/></svg>
+    Tweaks
+  </button>
+</div>
+
+<script>
+const POSTS = [
+  {id:1,title:'春日里的组件拆分笔记',summary:'把臃肿页面拆成可呼吸的小零件。',cat:'前端',tags:['Vue','设计'],date:'2026-07-12',month:'2026 · 七月',views:1280,likes:42,cover:1,popular:96},
+  {id:2,title:'雾面背景与克制渐变',summary:'大面积单色发闷，薄雾径向更轻。',cat:'随想',tags:['设计','CSS'],date:'2026-07-08',month:'2026 · 七月',views:860,likes:31,cover:2,popular:78},
+  {id:3,title:'Markdown 排版小抄',summary:'标题与引用怎样才不抢戏。',cat:'笔记',tags:['写作','Markdown'],date:'2026-06-28',month:'2026 · 六月',views:2100,likes:67,cover:3,popular:99},
+  {id:4,title:'时间线的窄卡读法',summary:'通栏长条很丑，交替窄卡才有节奏。',cat:'前端',tags:['Vue','UX'],date:'2026-06-21',month:'2026 · 六月',views:640,likes:19,cover:1,popular:55},
+  {id:5,title:'封面占位比假图诚实',summary:'没有摄影时，比例标注更专业。',cat:'随想',tags:['设计'],date:'2026-06-14',month:'2026 · 六月',views:420,likes:15,cover:2,popular:40},
+  {id:6,title:'表单宽度预算',summary:'输入框不必横贯整屏。',cat:'笔记',tags:['UX'],date:'2026-05-30',month:'2026 · 五月',views:980,likes:28,cover:3,popular:70},
+  {id:7,title:'标签云的尺寸语义',summary:'字号映射热度，别做成彩虹墙。',cat:'前端',tags:['CSS','设计'],date:'2026-05-18',month:'2026 · 五月',views:1500,likes:53,cover:1,popular:88},
+  {id:8,title:'午后一杯茶与调试',summary:'先写清复现，再打断点。',cat:'随想',tags:['日常'],date:'2026-05-02',month:'2026 · 五月',views:310,likes:11,cover:2,popular:30}
+];
+const CATS = [
+  {name:'全部', count: POSTS.length},
+  {name:'前端', count: POSTS.filter(p=>p.cat==='前端').length},
+  {name:'随想', count: POSTS.filter(p=>p.cat==='随想').length},
+  {name:'笔记', count: POSTS.filter(p=>p.cat==='笔记').length}
+];
+const TAGS = (() => {
+  const m = {};
+  POSTS.forEach(p => p.tags.forEach(t => { m[t] = (m[t]||0)+1; }));
+  return Object.entries(m).map(([name,count]) => ({name,count})).sort((a,b)=>b.count-a.count);
+})();
+
+const STATE = { cat:'全部', tag:null, sort:'latest', q:'', page:1, pageSize:7, liked:{} };
+const STAGE_W = 1920, STAGE_H = 1080;
+const stageWrap = document.getElementById('stageWrap');
+const stage = document.getElementById('stage');
+
+function fit(){
+  const s = Math.min(innerWidth / STAGE_W, innerHeight / STAGE_H, 1.15);
+  stage.style.transform = `scale(${s})`;
+  stageWrap.style.width = STAGE_W * s + 'px';
+  stageWrap.style.height = STAGE_H * s + 'px';
+}
+addEventListener('resize', fit);
+
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), 1600);
+}
+
+function setPage(name){
+  stage.dataset.page = name;
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('on', p.id === 'page-' + name));
+  document.querySelectorAll('#pageSeg button').forEach(b => b.classList.toggle('on', b.dataset.page === name));
+  if(name === 'category') renderCatPage();
+  if(name === 'tag') renderTagPage();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function setLayout(mode){
+  stage.dataset.layout = mode;
+  document.querySelectorAll('#layoutSeg button, #layoutSegTweaks button').forEach(b => {
+    b.classList.toggle('on', b.dataset.layout === mode);
+  });
+}
+function setTheme(name){
+  document.documentElement.dataset.theme = name;
+  document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.theme === name));
+}
+
+function filtered(){
+  let list = POSTS.slice();
+  if(STATE.cat !== '全部') list = list.filter(p => p.cat === STATE.cat);
+  if(STATE.tag) list = list.filter(p => p.tags.includes(STATE.tag));
+  if(STATE.q) list = list.filter(p => p.title.includes(STATE.q));
+  if(STATE.sort === 'popular') list.sort((a,b)=>b.popular-a.popular);
+  else list.sort((a,b)=>b.date.localeCompare(a.date));
+  return list;
+}
+function coverClass(n){ return 'c' + ((n-1)%3+1); }
+
+const eye = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+function heart(liked){
+  return liked
+    ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.2-4.6-9.5-8.2C.7 9.8 2.2 6 5.6 6c1.9 0 3.2 1.1 4 2.2C10.4 7.1 11.7 6 13.6 6c3.4 0 4.9 3.8 3.1 6.8C19.2 16.4 12 21 12 21z"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.2-4.6-9.5-8.2C.7 9.8 2.2 6 5.6 6c1.9 0 3.2 1.1 4 2.2C10.4 7.1 11.7 6 13.6 6c3.4 0 4.9 3.8 3.1 6.8C19.2 16.4 12 21 12 21z"/></svg>';
+}
+
+function cardHTML(p, featured){
+  const liked = STATE.liked[p.id];
+  return `<article class="post-card ${featured?'featured':''}" data-id="${p.id}">
+    <div class="cover ${coverClass(p.cover)}">
+      <span class="masthead">JOURNAL</span>
+      <span class="ratio">16:9</span>
+    </div>
+    <div class="body">
+      <div class="meta"><span>${p.cat}</span><span>${p.date.slice(5)}</span></div>
+      <div class="title font-display">${p.title}</div>
+      <p class="summary text-pretty">${p.summary}</p>
+      <div class="foot">
+        <div class="tags">${p.tags.slice(0,2).map(t=>`<span>#${t}</span>`).join('')}</div>
+        <div class="stats">
+          <span style="display:inline-flex;align-items:center;gap:3px">${eye}${p.views>999?(p.views/1000).toFixed(1)+'k':p.views}</span>
+          <button type="button" class="like-mini ${liked?'liked':''}" data-like="${p.id}">${heart(liked)}${p.likes+(liked?1:0)}</button>
+        </div>
+      </div>
+    </div>
+  </article>`;
+}
+
+function renderFilters(){
+  document.getElementById('sideCats').innerHTML = CATS.map(c =>
+    `<div class="cat-item ${STATE.cat===c.name?'on':''}" data-cat="${c.name}"><span>${c.name}</span><span class="n">${c.count}</span></div>`
+  ).join('');
+  document.getElementById('sideTags').innerHTML = TAGS.map(t =>
+    `<button type="button" class="tag-pill ${STATE.tag===t.name?'on':''}" data-tag="${t.name}">#${t.name}</button>`
+  ).join('') + (STATE.tag?`<button type="button" class="tag-pill" data-tag="">清除</button>`:'');
+  document.getElementById('formTags').innerHTML = TAGS.map(t =>
+    `<button type="button" class="tag-pill" data-ftag="${t.name}">#${t.name}</button>`
+  ).join('');
+  document.getElementById('detailTagCloud').innerHTML = TAGS.map(t =>
+    `<button type="button" class="tag-pill" data-go-tag="${t.name}">#${t.name}</button>`
+  ).join('');
+}
+
+function renderList(){
+  const all = filtered();
+  document.getElementById('issueCount').textContent = `共 ${all.length} 篇`;
+  const totalPages = Math.max(1, Math.ceil(all.length / STATE.pageSize));
+  if(STATE.page > totalPages) STATE.page = totalPages;
+  const pageItems = all.slice((STATE.page-1)*STATE.pageSize, STATE.page*STATE.pageSize);
+
+  const empty = document.getElementById('listEmpty');
+  empty.classList.toggle('show', pageItems.length === 0);
+  document.getElementById('cardGrid').style.opacity = pageItems.length ? '1' : '0';
+
+  /* featured first + 6 small = 7 slots in bento */
+  document.getElementById('cardGrid').innerHTML = pageItems.map((p,i) => cardHTML(p, i===0)).join('');
+
+  const byMonth = {};
+  all.forEach(p => { (byMonth[p.month]=byMonth[p.month]||[]).push(p); });
+  let tl = '<div class="tl-line"></div>';
+  Object.keys(byMonth).forEach(m => {
+    tl += `<div class="tl-month">${m}</div>`;
+    byMonth[m].forEach(p => {
+      tl += `<div class="tl-row"><div class="tl-card" data-id="${p.id}">
+        <div class="t font-display">${p.title}</div>
+        <div class="s text-pretty">${p.summary}</div>
+        <div class="m">${p.cat} · ${p.date}</div>
+      </div></div>`;
+    });
+  });
+  document.getElementById('timelineRail').innerHTML = tl;
+
+  let dots = '';
+  for(let i=1;i<=totalPages;i++) dots += `<button type="button" class="page-dot ${STATE.page===i?'on':''}" data-page-num="${i}">${i}</button>`;
+  document.getElementById('pagination').innerHTML = dots;
+}
+
+function openDetail(id){
+  const p = POSTS.find(x => x.id === id) || POSTS[0];
+  document.getElementById('dTitle').textContent = p.title;
+  document.getElementById('dSummary').textContent = p.summary;
+  document.getElementById('dCat').textContent = p.cat;
+  document.getElementById('dDate').textContent = p.date;
+  document.getElementById('dViews').textContent = p.views + ' 阅读';
+  document.getElementById('likeCnt').textContent = p.likes + (STATE.liked[p.id]?1:0);
+  document.getElementById('likeBtn').classList.toggle('liked', !!STATE.liked[p.id]);
+  document.getElementById('likeBtn').dataset.id = p.id;
+  document.getElementById('dTags').innerHTML = p.tags.map(t => `<button type="button" class="tag-pill on" data-go-tag="${t}">#${t}</button>`).join('');
+  document.getElementById('relatedList').innerHTML = POSTS.filter(x => x.id!==p.id && (x.cat===p.cat || x.tags.some(t=>p.tags.includes(t)))).slice(0,3)
+    .map(r => `<div class="related-item" data-id="${r.id}"><div class="t">${r.title}</div><div class="d">${r.date}</div></div>`).join('');
+  document.getElementById('shareUrl').textContent = `https://moumou.station/blog/${p.id}`;
+  setPage('detail');
+}
+
+function compactCard(p){
+  const liked = STATE.liked[p.id];
+  return `<article class="post-card" data-id="${p.id}">
+    <div class="cover ${coverClass(p.cover)}"><span class="ratio">16:9</span></div>
+    <div class="body">
+      <div class="meta"><span>${p.cat}</span><span>${p.date.slice(5)}</span></div>
+      <div class="title font-display">${p.title}</div>
+      <p class="summary text-pretty">${p.summary}</p>
+      <div class="foot">
+        <div class="tags">${p.tags.slice(0,1).map(t=>`<span>#${t}</span>`).join('')}</div>
+        <div class="stats"><button type="button" class="like-mini ${liked?'liked':''}" data-like="${p.id}">${heart(liked)}${p.likes+(liked?1:0)}</button></div>
+      </div>
+    </div>
+  </article>`;
+}
+function renderCatPage(){
+  const name = STATE.cat === '全部' ? '前端' : STATE.cat;
+  const list = POSTS.filter(p => p.cat === name);
+  document.getElementById('catTitle').textContent = name;
+  document.getElementById('catCount').textContent = `共 ${list.length} 篇`;
+  document.getElementById('catGrid').innerHTML = list.map(compactCard).join('');
+}
+function renderTagPage(){
+  const name = STATE.tag || 'Vue';
+  const list = POSTS.filter(p => p.tags.includes(name));
+  document.getElementById('tagTitle').textContent = '#' + name;
+  document.getElementById('tagCount').textContent = `共 ${list.length} 篇`;
+  document.getElementById('tagGrid').innerHTML = list.map(compactCard).join('');
+}
+
+/* clock + nav */
+const timeEl = document.getElementById('clockTime');
+const dateEl = document.getElementById('clockDate');
+const weekCN = ['日','一','二','三','四','五','六'];
+function tick(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,'0');
+  timeEl.innerHTML = `${p(d.getHours())}<span class="colon">:</span>${p(d.getMinutes())} <span class="sec">${p(d.getSeconds())}</span>`;
+  dateEl.textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 · 周${weekCN[d.getDay()]}`;
+}
+tick(); setInterval(tick, 1000);
+const nav = document.getElementById('mainnav');
+const pill = document.getElementById('navPill');
+function movePill(btn){ pill.style.left = btn.offsetLeft + 'px'; pill.style.width = btn.offsetWidth + 'px'; pill.style.opacity = 1; }
+movePill(nav.querySelector('button.active'));
+addEventListener('resize', () => movePill(nav.querySelector('button.active')));
+
+(function stars(){
+  const box = document.getElementById('deckStars');
+  for(let i=0;i<18;i++){
+    const s = document.createElement('i');
+    s.style.left = Math.random()*100+'%';
+    s.style.top = Math.random()*55+'%';
+    box.appendChild(s);
+  }
+})();
+
+document.getElementById('sideCats').addEventListener('click', e => {
+  const btn = e.target.closest('[data-cat]'); if(!btn) return;
+  STATE.cat = btn.dataset.cat; STATE.page = 1; renderFilters(); renderList();
+});
+document.getElementById('sideTags').addEventListener('click', e => {
+  const btn = e.target.closest('[data-tag]'); if(!btn) return;
+  STATE.tag = btn.dataset.tag || null; STATE.page = 1; renderFilters(); renderList();
+});
+document.getElementById('searchInput').addEventListener('input', e => {
+  STATE.q = e.target.value.trim(); STATE.page = 1; renderList();
+});
+document.getElementById('sortSeg').addEventListener('click', e => {
+  const btn = e.target.closest('[data-sort]'); if(!btn) return;
+  STATE.sort = btn.dataset.sort;
+  document.querySelectorAll('#sortSeg button').forEach(b => b.classList.toggle('on', b.dataset.sort===STATE.sort));
+  STATE.page = 1; renderList();
+});
+document.getElementById('pagination').addEventListener('click', e => {
+  const btn = e.target.closest('[data-page-num]'); if(!btn) return;
+  STATE.page = +btn.dataset.pageNum; renderList();
+});
+
+function bindCards(root){
+  root.addEventListener('click', e => {
+    const like = e.target.closest('[data-like]');
+    if(like){ e.stopPropagation(); STATE.liked[+like.dataset.like] = !STATE.liked[+like.dataset.like]; renderList(); if(stage.dataset.page==='category') renderCatPage(); if(stage.dataset.page==='tag') renderTagPage(); return; }
+    const card = e.target.closest('[data-id]');
+    if(card) openDetail(+card.dataset.id);
+  });
+}
+bindCards(document.getElementById('cardGrid'));
+bindCards(document.getElementById('timelineRail'));
+bindCards(document.getElementById('catGrid'));
+bindCards(document.getElementById('tagGrid'));
+document.getElementById('relatedList').addEventListener('click', e => {
+  const item = e.target.closest('[data-id]'); if(item) openDetail(+item.dataset.id);
+});
+
+document.body.addEventListener('click', e => {
+  const go = e.target.closest('[data-go]');
+  if(go){ setPage(go.dataset.go); return; }
+  const gt = e.target.closest('[data-go-tag]');
+  if(gt){ STATE.tag = gt.dataset.goTag; renderFilters(); renderTagPage(); setPage('tag'); }
+});
+
+document.getElementById('likeBtn').addEventListener('click', function(){
+  const id = +this.dataset.id || 1;
+  STATE.liked[id] = !STATE.liked[id];
+  const p = POSTS.find(x => x.id === id);
+  this.classList.toggle('liked', !!STATE.liked[id]);
+  document.getElementById('likeCnt').textContent = p.likes + (STATE.liked[id]?1:0);
+  toast(STATE.liked[id] ? '已喜欢' : '已取消');
+});
+document.getElementById('shareBtn').addEventListener('click', () => document.getElementById('shareModal').classList.add('open'));
+document.getElementById('closeShare').addEventListener('click', () => document.getElementById('shareModal').classList.remove('open'));
+document.getElementById('shareModal').addEventListener('click', e => { if(e.target.id==='shareModal') e.currentTarget.classList.remove('open'); });
+document.getElementById('copyShare').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(document.getElementById('shareUrl').textContent); toast('已复制'); }
+  catch { toast('请手动复制'); }
+});
+
+document.getElementById('coverUpload').addEventListener('click', function(){
+  this.classList.toggle('filled');
+  this.innerHTML = this.classList.contains('filled')
+    ? '<span>封面已选</span><span style="font-size:10px">再点清除</span>'
+    : '<span>[image] 16:9</span><span style="font-size:10px">点击模拟</span>';
+});
+document.getElementById('formTags').addEventListener('click', e => {
+  const btn = e.target.closest('[data-ftag]'); if(btn) btn.classList.toggle('on');
+});
+document.getElementById('btnReset').addEventListener('click', () => {
+  ['fTitle','fSummary','fContent'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('fCat').value='';
+  document.querySelectorAll('#formTags .tag-pill').forEach(b => b.classList.remove('on'));
+  const c = document.getElementById('coverUpload'); c.classList.remove('filled');
+  c.innerHTML = '<span>[image] 16:9</span><span style="font-size:10px">点击模拟</span>';
+  toast('已重置');
+});
+document.getElementById('btnDraft').addEventListener('click', () => toast('草稿已保存（demo）'));
+document.getElementById('btnPublish').addEventListener('click', () => {
+  if(!document.getElementById('fTitle').value.trim()){ toast('请填写标题'); return; }
+  toast('已发布（demo）');
+});
+
+const tweaks = document.getElementById('tweaks');
+document.getElementById('tweaksFab').addEventListener('click', () => tweaks.classList.add('open'));
+document.addEventListener('click', e => { if(!tweaks.contains(e.target)) tweaks.classList.remove('open'); });
+document.getElementById('pageSeg').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if(btn) setPage(btn.dataset.page);
+});
+document.getElementById('layoutSeg').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if(btn) setLayout(btn.dataset.layout);
+});
+document.getElementById('layoutSegTweaks').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if(btn) setLayout(btn.dataset.layout);
+});
+document.getElementById('themeSeg').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if(btn) setTheme(btn.dataset.theme);
+});
+
+renderFilters();
+renderList();
+fit();
+</script>
+</body>
+</html>

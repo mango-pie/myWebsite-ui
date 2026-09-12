@@ -14,12 +14,13 @@ const props = defineProps<{
 
 const router = useRouter()
 
-/** ops 放在运维分组，上半侧栏不再重复展示 */
+/** ops / modules 放在运维分组，上半侧栏不再重复展示 */
 const formModules = computed(() =>
-  (props.modules || []).filter((m) => m.code && m.code !== 'ops'),
+  (props.modules || []).filter((m) => m.code && m.code !== 'ops' && m.code !== 'modules'),
 )
 
 const opsLinks = [
+  { key: 'modules', label: '业务模块', path: '/admin/settings/modules' },
   { key: 'audit', label: '变更审计', path: '/admin/settings/audit' },
   { key: 'health', label: '依赖健康', path: '/admin/settings/health' },
   { key: 'ops', label: '运维开关', path: '/admin/settings/ops' },
@@ -76,9 +77,9 @@ function goOps(path: string, key: string) {
 
 <style scoped>
 .settings-nav {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  border-radius: 18px;
   padding: 12px;
   backdrop-filter: blur(16px);
   position: sticky;

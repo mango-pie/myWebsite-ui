@@ -1,0 +1,2346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>初音电台 39 · 音乐播放器设计稿 v7（Miku 全息特辑）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800&family=ZCOOL+QingKe+HuangYou&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   初音电台 39 · v7（Miku 全息特辑）
+   ------------------------------------------------------------
+   设计语言：二次元初音未来风格 · 全息歌姬
+   - 背景：深空蓝黑 + 苍绿星尘 + 扫描线 + 数据流 + 缎带光轨
+   - 按钮：全息芯片（细线描边 + 苍绿辉光）
+   - 装饰：39 符号 / 双马尾缎带 / 音波环 / 卡拉OK扫光
+   - 唱片：全息棱镜唱片（中心 39 标）
+   排印骨架沿用已确认系列；材质与元素全部重新设计。
+   与「晨 / 午 / 暮 / 夜」四版零共享元素，完全独立。
+   ============================================================ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  /* 色 · 全息歌姬 */
+  --teal: #39c5bb;
+  --teal-bright: #7ce9e0;
+  --teal-deep: #1c8f8b;
+  --pink: #ffb7cd;
+  --ink-0: #050d18;
+  --ink-1: #0a1424;
+  --paper: #0c1828;
+  --paper-2: #102036;
+  --paper-3: #162c46;
+  --ink: #e7f7f4;
+  --sub: #8fb6b8;
+  --dim: #4f6f78;
+  --line: rgba(57, 197, 187, 0.16);
+  --line-strong: rgba(57, 197, 187, 0.44);
+  --holo-1: #39c5bb;
+  --holo-2: #7ce9e0;
+  --holo-3: #9adcff;
+  --holo-4: #b7a6ff;
+  --holo-5: #ffb7cd;
+  --glow-soft: 0 0 14px rgba(57, 197, 187, 0.28);
+  --glow-mid: 0 0 24px rgba(57, 197, 187, 0.4);
+  --glow-strong: 0 0 46px rgba(57, 197, 187, 0.55);
+  --ease: cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+
+body[data-theme="sakura"] {
+  --teal: #ff9fb8;
+  --teal-bright: #ffc9d8;
+  --teal-deep: #d9658c;
+  --line: rgba(255, 159, 184, 0.18);
+  --line-strong: rgba(255, 159, 184, 0.46);
+  --holo-1: #ff9fb8;
+  --holo-2: #ffc9d8;
+  --holo-3: #e7b7ff;
+  --holo-4: #9adcff;
+  --holo-5: #39c5bb;
+  --glow-soft: 0 0 14px rgba(255, 159, 184, 0.3);
+  --glow-mid: 0 0 24px rgba(255, 159, 184, 0.42);
+  --glow-strong: 0 0 46px rgba(255, 159, 184, 0.56);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background:
+    radial-gradient(900px 460px at 82% -8%, rgba(57, 197, 187, 0.13), transparent 62%),
+    radial-gradient(760px 420px at -8% 108%, rgba(255, 183, 205, 0.07), transparent 60%),
+    var(--ink-0);
+  color: var(--ink);
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; cursor: pointer; }
+
+:focus-visible {
+  outline: 2px solid var(--teal-bright);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.mono { font-family: "Orbitron", "Consolas", monospace; }
+.cn-display { font-family: "ZCOOL QingKe HuangYou", "PingFang SC", "Microsoft YaHei", sans-serif; }
+
+/* ---------- 画布页头 ---------- */
+.canvas-head {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 40px 34px 20px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.canvas-head h1 {
+  font-family: "ZCOOL QingKe HuangYou", "PingFang SC", sans-serif;
+  font-size: clamp(27px, 3vw, 40px);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+  text-shadow: 0 0 26px rgba(57, 197, 187, 0.35);
+}
+
+.canvas-head h1 em {
+  font-style: normal;
+  color: var(--teal-bright);
+  -webkit-text-stroke: 0;
+}
+
+.canvas-head__sub {
+  margin-top: 8px;
+  color: var(--sub);
+  font-size: 14px;
+}
+
+.canvas-head__meta {
+  flex: none;
+  text-align: right;
+  color: var(--dim);
+  font-size: 12px;
+  line-height: 1.9;
+}
+
+.canvas-head__meta b { color: var(--ink); font-weight: 600; }
+
+.canvas-head__stamp {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 12px;
+  border: 1px solid var(--teal);
+  border-radius: 2px;
+  color: var(--teal-bright);
+  font-family: "Orbitron", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  background: rgba(57, 197, 187, 0.07);
+  box-shadow: var(--glow-soft);
+}
+
+/* ---------- 主舞台 ---------- */
+.page-stage {
+  max-width: 1500px;
+  margin: 18px 34px 0;
+}
+
+.browser-frame {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow:
+    0 34px 90px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(57, 197, 187, 0.08),
+    0 0 80px -30px rgba(57, 197, 187, 0.35);
+}
+
+.browser-frame__bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.browser-frame__dots { display: flex; gap: 7px; }
+.browser-frame__dots i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--paper-3);
+}
+.browser-frame__dots i:first-child { background: rgba(57, 197, 187, 0.55); }
+.browser-frame__dots i:nth-child(2) { background: rgba(255, 183, 205, 0.45); }
+
+.browser-frame__url {
+  flex: 1;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 5px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--sub);
+  font-size: 11.5px;
+  text-align: center;
+  font-family: "Orbitron", monospace;
+  letter-spacing: 0.05em;
+}
+
+/* ---- 报头（全息频道头） ---- */
+.app-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 30px 14px;
+  border-bottom: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(57, 197, 187, 0.06), transparent 70%),
+    var(--paper);
+}
+
+.app-callsign { display: flex; align-items: center; gap: 14px; }
+
+.app-seal {
+  width: 42px;
+  height: 42px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--teal-bright);
+  background:
+    radial-gradient(circle at 34% 30%, rgba(124, 233, 224, 0.95), var(--teal) 58%, rgba(28, 143, 139, 0.65));
+  color: #04231f;
+  font-family: "Orbitron", monospace;
+  font-size: 17px;
+  font-weight: 800;
+  box-shadow: var(--glow-mid);
+  position: relative;
+}
+
+.app-seal::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px dashed rgba(57, 197, 187, 0.5);
+  animation: seal-spin 18s linear infinite;
+}
+
+@keyframes seal-spin { to { transform: rotate(360deg); } }
+
+.app-callsign__name {
+  font-family: "ZCOOL QingKe HuangYou", "PingFang SC", sans-serif;
+  font-size: 23px;
+  letter-spacing: 0.14em;
+  line-height: 1.1;
+}
+
+.app-callsign__name span { color: var(--teal-bright); }
+
+.app-callsign__freq {
+  margin-top: 4px;
+  font-family: "Orbitron", monospace;
+  font-size: 10px;
+  color: var(--sub);
+  letter-spacing: 0.2em;
+  line-height: 1.7;
+}
+
+.app-callsign__freq b {
+  color: var(--teal-bright);
+  font-weight: 600;
+}
+
+.app-nav { display: flex; gap: 2px; }
+
+.app-nav button {
+  position: relative;
+  padding: 7px 14px;
+  background: transparent;
+  border: none;
+  color: var(--sub);
+  font-size: 13px;
+  border-radius: 4px;
+  transition: color 0.25s var(--ease), background 0.25s var(--ease);
+}
+
+.app-nav button:hover { color: var(--ink); background: rgba(57, 197, 187, 0.1); }
+.app-nav button.is-active { color: var(--teal-bright); font-weight: 600; }
+.app-nav button.is-active::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 1px;
+  height: 1px;
+  background: var(--teal-bright);
+  box-shadow: 0 0 8px rgba(57, 197, 187, 0.9);
+}
+
+.app-head__actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.on-air {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: 6px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--sub);
+  font-family: "Orbitron", monospace;
+}
+
+.on-air__lamp {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--teal-bright);
+  box-shadow: 0 0 0 0 rgba(124, 233, 224, 0.6);
+}
+
+.is-playing .on-air__lamp { animation: lamp-pulse 2.4s ease-in-out infinite; }
+
+@keyframes lamp-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 233, 224, 0.5); }
+  50% { box-shadow: 0 0 0 8px rgba(124, 233, 224, 0); }
+}
+
+/* 全息芯片按钮 */
+.holo-btn {
+  height: 34px;
+  padding: 0 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: rgba(57, 197, 187, 0.05);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: border-color 0.25s var(--ease), background 0.25s var(--ease),
+    box-shadow 0.25s var(--ease), color 0.25s var(--ease), transform 0.15s var(--ease);
+}
+
+.holo-btn svg { width: 14px; height: 14px; }
+.holo-btn:hover {
+  border-color: var(--teal-bright);
+  background: rgba(57, 197, 187, 0.12);
+  color: var(--teal-bright);
+  box-shadow: var(--glow-soft);
+}
+.holo-btn:active { transform: translateY(1px); }
+
+/* ---- 主体三栏 ---- */
+.radio-body {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr) 0;
+  min-height: 640px;
+  transition: grid-template-columns 0.45s var(--ease);
+  position: relative;
+}
+
+.radio-body.has-drawer { grid-template-columns: 208px minmax(0, 1fr) 300px; }
+
+/* 左栏：全息频道列表 */
+.rail {
+  border-right: 1px solid var(--line);
+  padding: 18px 14px 20px;
+  background:
+    linear-gradient(180deg, rgba(57, 197, 187, 0.05), transparent 34%),
+    var(--paper-2);
+}
+
+.rail__group {
+  margin-top: 16px;
+  padding: 0 8px 6px;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--dim);
+  font-family: "Orbitron", monospace;
+  border-bottom: 1px solid var(--line);
+}
+
+.rail__group:first-child { margin-top: 0; }
+
+.rail-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--sub);
+  font-size: 13px;
+  text-align: left;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.rail-item:hover { background: rgba(57, 197, 187, 0.09); color: var(--ink); }
+.rail-item.is-active {
+  color: var(--teal-bright);
+  background: rgba(57, 197, 187, 0.12);
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--teal-bright);
+}
+
+.rail-item__num {
+  font-family: "Orbitron", monospace;
+  font-size: 10px;
+  color: var(--dim);
+  transition: color 0.2s var(--ease);
+}
+
+.rail-item.is-active .rail-item__num { color: var(--teal-bright); }
+
+.rail-item__count {
+  margin-left: auto;
+  font-family: "Orbitron", monospace;
+  font-size: 10.5px;
+  color: var(--dim);
+}
+
+.rail-item__badge {
+  margin-left: auto;
+  font-size: 9px;
+  padding: 1px 7px;
+  border: 1px solid var(--teal);
+  border-radius: 3px;
+  color: var(--teal-bright);
+  letter-spacing: 0.12em;
+  font-family: "Orbitron", monospace;
+}
+
+/* ---- 中栏舞台 ---- */
+.stage {
+  position: relative;
+  min-height: 640px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 40px 34px;
+  overflow: hidden;
+  text-align: center;
+}
+
+.stage > * { position: relative; z-index: 1; }
+
+/* 全息背景层 */
+.holo-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hb-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(57, 197, 187, 0.22) 1px, transparent 1.4px);
+  background-size: 26px 26px;
+  mask-image: radial-gradient(ellipse at 50% 42%, #000 10%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 42%, #000 10%, transparent 72%);
+  opacity: 0.55;
+}
+
+.hb-nebula {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(560px 360px at 18% 12%, rgba(57, 197, 187, 0.16), transparent 64%),
+    radial-gradient(640px 420px at 84% 88%, rgba(255, 183, 205, 0.1), transparent 66%),
+    radial-gradient(420px 300px at 66% 10%, rgba(154, 220, 255, 0.1), transparent 60%);
+}
+
+.hb-scan {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 3px,
+    rgba(124, 233, 224, 0.025) 3px 4px
+  );
+  opacity: 0.9;
+  animation: scan-drift 9s linear infinite;
+}
+
+@keyframes scan-drift {
+  from { background-position: 0 0; }
+  to { background-position: 0 34px; }
+}
+
+.hb-data {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 26px;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(57, 197, 187, 0.5), transparent);
+  opacity: 0.35;
+}
+
+.hb-data::before,
+.hb-data::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 1px;
+  height: 46px;
+  background: linear-gradient(180deg, transparent, var(--teal-bright), transparent);
+  animation: data-fall 5.4s linear infinite;
+}
+
+.hb-data::after {
+  animation-delay: -2.7s;
+  opacity: 0.6;
+}
+
+.hb-data--r { left: auto; right: 26px; }
+
+@keyframes data-fall {
+  from { top: -48px; }
+  to { top: 108%; }
+}
+
+.hb-particles i {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: var(--teal-bright);
+  box-shadow: 0 0 8px rgba(124, 233, 224, 0.9);
+  animation: particle-float 7s ease-in-out infinite alternate;
+}
+
+.hb-particles i:nth-child(1) { left: 10%; top: 22%; animation-delay: -0.5s; }
+.hb-particles i:nth-child(2) { left: 22%; top: 68%; animation-delay: -2.4s; }
+.hb-particles i:nth-child(3) { left: 33%; top: 14%; animation-delay: -1.2s; }
+.hb-particles i:nth-child(4) { left: 44%; top: 78%; animation-delay: -3.1s; }
+.hb-particles i:nth-child(5) { left: 57%; top: 20%; animation-delay: -1.8s; }
+.hb-particles i:nth-child(6) { left: 66%; top: 72%; animation-delay: -0.9s; }
+.hb-particles i:nth-child(7) { left: 78%; top: 26%; animation-delay: -2.7s; }
+.hb-particles i:nth-child(8) { left: 88%; top: 60%; animation-delay: -1.4s; }
+.hb-particles i:nth-child(9) { left: 15%; top: 44%; animation-delay: -3.6s; }
+.hb-particles i:nth-child(10) { left: 71%; top: 42%; animation-delay: -0.3s; }
+.hb-particles i:nth-child(11) { left: 92%; top: 18%; animation-delay: -2.1s; }
+.hb-particles i:nth-child(12) { left: 5%; top: 82%; animation-delay: -4.2s; }
+
+@keyframes particle-float {
+  from { transform: translateY(0) scale(0.7); opacity: 0.25; }
+  to { transform: translateY(-18px) scale(1.15); opacity: 0.95; }
+}
+
+/* 双马尾 → 抽象缎带光轨 */
+.hb-ribbon {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+}
+
+.hb-ribbon svg { width: 100%; height: 100%; overflow: visible; }
+
+.hb-ribbon path {
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 5px rgba(57, 197, 187, 0.65));
+}
+
+.hb-ribbon .ribbon-a {
+  stroke: url("#holoGradA");
+  stroke-dasharray: 900;
+  stroke-dashoffset: 900;
+  animation: ribbon-draw 7s var(--ease) infinite alternate;
+}
+
+.hb-ribbon .ribbon-b {
+  stroke: url("#holoGradB");
+  stroke-dasharray: 1100;
+  stroke-dashoffset: 1100;
+  animation: ribbon-draw 9s var(--ease) infinite alternate-reverse;
+}
+
+@keyframes ribbon-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* 音场：声呐环 + 波形 */
+.sound-field {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.sf-sonar {
+  position: absolute;
+  left: 50%;
+  bottom: 42px;
+  width: 270px;
+  height: 270px;
+  margin-left: -135px;
+  opacity: 0.4;
+}
+
+.sf-sonar i {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(57, 197, 187, 0.55);
+  border-radius: 50%;
+  animation: sonar-ping 5.2s ease-out infinite;
+}
+
+.sf-sonar i:nth-child(2) { animation-delay: -1.7s; }
+.sf-sonar i:nth-child(3) { animation-delay: -3.4s; }
+
+@keyframes sonar-ping {
+  0% { transform: scale(0.12); opacity: 0.9; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+.sf-wave {
+  position: absolute;
+  left: 9%;
+  right: 9%;
+  bottom: 48px;
+  height: 40px;
+  opacity: 0.45;
+}
+
+.sf-wave svg { width: 100%; height: 100%; overflow: visible; }
+
+.sf-wave path {
+  fill: none;
+  stroke: var(--teal-bright);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+}
+
+.sf-wave .wave-a { animation: wave-flow 7s ease-in-out infinite alternate; }
+.sf-wave .wave-b { animation: wave-flow 9s ease-in-out infinite alternate-reverse; opacity: 0.55; }
+
+@keyframes wave-flow {
+  from { transform: translateX(-10px) scaleY(1); }
+  to { transform: translateX(12px) scaleY(1.08); }
+}
+
+.sf-note {
+  position: absolute;
+  left: 18px;
+  bottom: 16px;
+  font-family: "Orbitron", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+}
+
+/* 均衡器 */
+.eq {
+  position: absolute;
+  top: 24px;
+  right: 28px;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 30px;
+  z-index: 2;
+}
+
+.eq i {
+  width: 3px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--teal-bright);
+  box-shadow: 0 0 6px rgba(124, 233, 224, 0.8);
+  animation: eq-bounce 1.1s ease-in-out infinite;
+}
+
+.eq i:nth-child(1) { animation-delay: 0s; }
+.eq i:nth-child(2) { animation-delay: -0.3s; }
+.eq i:nth-child(3) { animation-delay: -0.55s; }
+.eq i:nth-child(4) { animation-delay: -0.2s; }
+.eq i:nth-child(5) { animation-delay: -0.7s; }
+.eq i:nth-child(6) { animation-delay: -0.42s; }
+.eq i:nth-child(7) { animation-delay: -0.88s; }
+
+@keyframes eq-bounce {
+  0%, 100% { height: 6px; }
+  40% { height: 26px; }
+  70% { height: 13px; }
+}
+
+.is-playing .eq i { animation-play-state: running; }
+.eq i { animation-play-state: paused; }
+
+/* 全息棱镜唱片 */
+.holo-disc {
+  position: relative;
+  width: 236px;
+  height: 236px;
+  flex: none;
+  border-radius: 50%;
+  z-index: 2;
+}
+
+.holo-disc__ring {
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  border: 1px dashed rgba(57, 197, 187, 0.45);
+  animation: disc-ring 26s linear infinite;
+}
+
+.is-playing .holo-disc__ring { animation: disc-ring 26s linear infinite; }
+
+@keyframes disc-ring { to { transform: rotate(360deg); } }
+
+.holo-disc__prism {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.22), transparent 52%),
+    conic-gradient(
+      from 210deg,
+      var(--holo-1),
+      var(--holo-2),
+      var(--holo-3),
+      var(--holo-4),
+      var(--holo-5),
+      var(--holo-1)
+    );
+  box-shadow:
+    inset 0 0 0 2px rgba(7, 17, 28, 0.9),
+    inset 0 0 0 10px rgba(7, 17, 28, 0.65),
+    0 18px 44px rgba(0, 0, 0, 0.5),
+    var(--glow-mid);
+  overflow: hidden;
+}
+
+.holo-disc__prism::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-radial-gradient(
+    circle,
+    transparent 0 3px,
+    rgba(5, 13, 24, 0.35) 3px 3.6px
+  );
+  mix-blend-mode: multiply;
+}
+
+.holo-disc__prism::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.35) 0%, transparent 28%, transparent 62%, rgba(255, 255, 255, 0.12) 100%);
+  animation: prism-shimmer 5s ease-in-out infinite alternate;
+}
+
+@keyframes prism-shimmer {
+  from { opacity: 0.35; transform: rotate(0deg); }
+  to { opacity: 0.8; transform: rotate(12deg); }
+}
+
+.holo-disc.is-playing .holo-disc__prism { animation: prism-spin 26s linear infinite; }
+
+@keyframes prism-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.holo-disc__label {
+  position: absolute;
+  inset: 30%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(57, 197, 187, 0.14), transparent 72%),
+    #081320;
+  border: 1px solid var(--line-strong);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  z-index: 2;
+  box-shadow: inset 0 0 22px rgba(57, 197, 187, 0.16);
+}
+
+.holo-disc__label b {
+  font-family: "Orbitron", monospace;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--teal-bright);
+  text-shadow: 0 0 16px rgba(124, 233, 224, 0.85);
+  line-height: 1;
+}
+
+.holo-disc__label small {
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  color: var(--dim);
+  font-family: "Orbitron", monospace;
+}
+
+.holo-disc__pin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px;
+  border-radius: 50%;
+  background: #e7f7f4;
+  box-shadow: 0 0 10px rgba(124, 233, 224, 0.9);
+  z-index: 3;
+}
+
+/* 曲目信息 */
+.now-meta { margin-top: 30px; max-width: 540px; }
+
+.now-meta__eyebrow {
+  font-family: "Orbitron", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.26em;
+  color: var(--teal-bright);
+  margin-bottom: 8px;
+}
+
+.now-meta__eyebrow::before { content: "· "; letter-spacing: 0; }
+
+.now-meta__title {
+  font-family: "ZCOOL QingKe HuangYou", "PingFang SC", sans-serif;
+  font-size: clamp(21px, 2.4vw, 29px);
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  font-weight: 400;
+  text-shadow: 0 0 22px rgba(57, 197, 187, 0.3);
+}
+
+.now-meta__artist {
+  margin-top: 4px;
+  color: var(--sub);
+  font-size: 14px;
+}
+
+.now-meta__chips {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 11px;
+  font-size: 11px;
+  color: var(--sub);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(57, 197, 187, 0.04);
+}
+
+.chip--accent {
+  color: var(--teal-bright);
+  border-color: var(--teal);
+  background: rgba(57, 197, 187, 0.1);
+  font-weight: 500;
+  box-shadow: var(--glow-soft);
+}
+
+.chip svg { width: 12px; height: 12px; }
+
+/* 轮播歌词（卡拉OK扫光） */
+.lyric-carousel {
+  position: relative;
+  width: min(540px, 92%);
+  height: 112px;
+  margin: 22px auto 0;
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(57, 197, 187, 0.04), transparent 50%, rgba(57, 197, 187, 0.04));
+}
+
+.lyric-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: transform 0.7s var(--ease);
+}
+
+.lyric-line {
+  height: 42px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  color: var(--dim);
+  transition: color 0.4s var(--ease), opacity 0.4s var(--ease), transform 0.4s var(--ease);
+  opacity: 0.45;
+}
+
+.lyric-line.is-near { color: var(--sub); opacity: 0.8; }
+
+.lyric-line.is-current {
+  font-weight: 700;
+  font-size: 16.5px;
+  opacity: 1;
+  color: transparent;
+  background: linear-gradient(100deg, var(--teal) 0%, var(--teal-bright) 35%, #ffffff 50%, var(--teal-bright) 65%, var(--teal) 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: karaoke-sweep 3.2s linear infinite;
+  text-shadow: none;
+}
+
+@keyframes karaoke-sweep {
+  from { background-position: 130% 0; }
+  to { background-position: -90% 0; }
+}
+
+.lyric-tip {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--dim);
+  letter-spacing: 0.08em;
+}
+
+/* 进度 */
+.now-progress {
+  width: min(520px, 92%);
+  margin-top: 18px;
+}
+
+.now-progress__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.now-progress__time {
+  flex: none;
+  font-family: "Orbitron", monospace;
+  font-size: 10.5px;
+  color: var(--sub);
+  min-width: 34px;
+}
+
+.now-progress__time:last-child { text-align: right; }
+
+.now-progress__track {
+  position: relative;
+  flex: 1;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(57, 197, 187, 0.14);
+  overflow: visible;
+}
+
+.now-progress__fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 38%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--teal-deep), var(--teal-bright));
+  box-shadow: 0 0 10px rgba(124, 233, 224, 0.8);
+}
+
+.now-progress__thumb {
+  position: absolute;
+  left: 38%;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  border-radius: 50%;
+  background: #eafff8;
+  border: 2px solid var(--teal-bright);
+  box-shadow: 0 0 12px rgba(124, 233, 224, 0.95);
+}
+
+/* 播放控制 */
+.now-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.ctrl {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(57, 197, 187, 0.04);
+  color: var(--sub);
+  transition: border-color 0.25s var(--ease), color 0.25s var(--ease),
+    background 0.25s var(--ease), box-shadow 0.25s var(--ease), transform 0.15s var(--ease);
+}
+
+.ctrl svg { width: 17px; height: 17px; }
+.ctrl:hover {
+  color: var(--teal-bright);
+  border-color: var(--teal);
+  background: rgba(57, 197, 187, 0.12);
+  box-shadow: var(--glow-soft);
+}
+.ctrl:active { transform: scale(0.94); }
+
+.ctrl.play {
+  width: 58px;
+  height: 58px;
+  border: none;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(124, 233, 224, 0.95), var(--teal) 58%, var(--teal-deep));
+  color: #04231f;
+  box-shadow: var(--glow-mid);
+  position: relative;
+}
+
+.ctrl.play::before,
+.ctrl.play::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid rgba(57, 197, 187, 0.5);
+  opacity: 0;
+}
+
+.is-playing .ctrl.play::before {
+  animation: pulse-ring 2.4s ease-out infinite;
+}
+
+.is-playing .ctrl.play::after {
+  animation: pulse-ring 2.4s ease-out 1.2s infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.75; }
+  100% { transform: scale(1.45); opacity: 0; }
+}
+
+.ctrl.play:hover { box-shadow: var(--glow-strong); }
+
+.ico-pause { display: none; }
+.is-playing .ico-play { display: none; }
+.is-playing .ico-pause { display: block; }
+
+/* 快捷动作 */
+.now-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.chip-btn {
+  height: 30px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--sub);
+  font-size: 11.5px;
+  transition: color 0.25s var(--ease), border-color 0.25s var(--ease),
+    background 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+.chip-btn svg { width: 13px; height: 13px; }
+.chip-btn:hover {
+  color: var(--teal-bright);
+  border-color: var(--teal);
+  background: rgba(57, 197, 187, 0.08);
+}
+
+.chip-btn.is-active {
+  color: var(--teal-bright);
+  border-color: var(--teal);
+  background: rgba(57, 197, 187, 0.12);
+  box-shadow: var(--glow-soft);
+}
+
+/* ---- 设置抽屉 ---- */
+.settings-drawer {
+  border-left: 1px solid var(--line);
+  background:
+    linear-gradient(200deg, rgba(57, 197, 187, 0.06), transparent 46%),
+    var(--paper-2);
+  overflow-y: auto;
+}
+
+.settings-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.settings-drawer__head h3 {
+  font-family: "ZCOOL QingKe HuangYou", "PingFang SC", sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+}
+
+.settings-drawer__head small {
+  display: block;
+  font-family: "Orbitron", monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+  margin-top: 2px;
+}
+
+.settings-drawer__head button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--sub);
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.settings-drawer__head button:hover { color: var(--teal-bright); border-color: var(--teal); }
+.settings-drawer__head svg { width: 13px; height: 13px; }
+
+.settings-body { padding: 6px 18px 20px; }
+
+.set-group { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.set-group:last-child { border-bottom: none; }
+
+.set-group__title {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--dim);
+  font-family: "Orbitron", monospace;
+  margin-bottom: 10px;
+}
+
+.set-seg {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.set-seg button {
+  flex: 1;
+  min-width: 46px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--sub);
+  font-size: 11.5px;
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease),
+    background 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+
+.set-seg button:disabled { opacity: 0.38; cursor: not-allowed; }
+.set-seg button:not(:disabled):hover {
+  color: var(--teal-bright);
+  border-color: var(--teal);
+}
+
+.set-seg button.is-on {
+  color: var(--teal-bright);
+  border-color: var(--teal);
+  background: rgba(57, 197, 187, 0.13);
+  box-shadow: var(--glow-soft);
+}
+
+.set-seg button.is-on[data-miku] {
+  color: #04231f;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--teal-bright), var(--teal));
+  border-color: transparent;
+  box-shadow: var(--glow-mid);
+}
+
+.period-status {
+  margin-top: 9px;
+  font-size: 11px;
+  color: var(--dim);
+  line-height: 1.7;
+}
+
+.set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.set-row__label { font-size: 12.5px; color: var(--ink); }
+
+.set-row__hint {
+  display: block;
+  font-size: 10.5px;
+  color: var(--dim);
+  margin-top: 1px;
+}
+
+.set-row__value {
+  font-family: "Orbitron", monospace;
+  font-size: 11px;
+  color: var(--sub);
+}
+
+.toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  flex: none;
+  border-radius: 20px;
+  background: var(--paper-3);
+  border: 1px solid var(--line);
+  transition: background 0.25s var(--ease), border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+  cursor: pointer;
+}
+
+.toggle::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--dim);
+  transition: transform 0.25s var(--ease), background 0.25s var(--ease);
+}
+
+.toggle.is-on {
+  background: rgba(57, 197, 187, 0.22);
+  border-color: var(--teal);
+  box-shadow: var(--glow-soft);
+}
+
+.toggle.is-on::after {
+  transform: translateX(16px);
+  background: var(--teal-bright);
+  box-shadow: 0 0 8px rgba(124, 233, 224, 0.9);
+}
+
+.set-note {
+  margin-top: 8px;
+  padding: 8px 10px;
+  font-size: 10.5px;
+  color: var(--dim);
+  border: 1px dashed var(--line);
+  border-radius: 5px;
+  line-height: 1.7;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: 12px;
+  color: var(--sub);
+}
+
+.shortcut-row kbd {
+  font-family: "Orbitron", monospace;
+  font-size: 10px;
+  color: var(--teal-bright);
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  padding: 1px 7px;
+  background: rgba(57, 197, 187, 0.06);
+}
+
+/* ============ 悬浮窗 ============ */
+.float-stage {
+  max-width: 1500px;
+  margin: 22px 34px 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.float-frame {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45), var(--glow-soft);
+}
+
+.float-frame__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 14px;
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--line);
+  font-size: 11.5px;
+  color: var(--sub);
+}
+
+.float-frame__bar b { color: var(--teal-bright); font-weight: 600; }
+
+.float-frame__bar .mono {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+}
+
+.float-scene {
+  position: relative;
+  min-height: 176px;
+  padding: 20px 22px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.float-scene .holo-bg { border-radius: 0; }
+
+.float-mini-disc {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  flex: none;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.2), transparent 52%),
+    conic-gradient(from 210deg, var(--holo-1), var(--holo-3), var(--holo-5), var(--holo-1));
+  box-shadow: inset 0 0 0 3px rgba(7, 17, 28, 0.85), var(--glow-mid);
+}
+
+.float-mini-disc::after {
+  content: "39";
+  position: absolute;
+  inset: 30%;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #081320;
+  color: var(--teal-bright);
+  font-family: "Orbitron", monospace;
+  font-size: 15px;
+  font-weight: 800;
+  box-shadow: 0 0 12px rgba(124, 233, 224, 0.7);
+}
+
+.is-playing .float-mini-disc { animation: prism-spin 18s linear infinite; }
+
+.float-mini-meta { min-width: 0; flex: 1; }
+
+.float-mini-meta__title {
+  font-family: "ZCOOL QingKe HuangYou", "PingFang SC", sans-serif;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.float-mini-meta__artist {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.float-mini-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgba(57, 197, 187, 0.12);
+}
+
+.float-mini-progress i {
+  display: block;
+  width: 38%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal-deep), var(--teal-bright));
+  box-shadow: 0 0 10px rgba(124, 233, 224, 0.8);
+}
+
+.float-mini-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.float-mini-controls .ctrl { width: 34px; height: 34px; }
+.float-mini-controls .ctrl svg { width: 14px; height: 14px; }
+.float-mini-controls .ctrl.play { width: 40px; height: 40px; }
+
+/* 停靠条 39 DOCK */
+.dock-bar {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45), var(--glow-soft);
+}
+
+.dock-bar__main {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px 16px;
+}
+
+.dock-bar__vinyl {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 50%;
+  background: conic-gradient(from 210deg, var(--holo-1), var(--holo-3), var(--holo-5), var(--holo-1));
+  box-shadow: inset 0 0 0 2px rgba(7, 17, 28, 0.9), var(--glow-soft);
+  position: relative;
+}
+
+.dock-bar__vinyl::after {
+  content: "";
+  position: absolute;
+  inset: 34%;
+  border-radius: 50%;
+  background: #081320;
+  box-shadow: 0 0 8px rgba(124, 233, 224, 0.8);
+}
+
+.is-playing .dock-bar__vinyl { animation: prism-spin 12s linear infinite; }
+
+.dock-bar__meta { min-width: 0; flex: 1; }
+
+.dock-bar__title {
+  font-family: "ZCOOL QingKe HuangYou", "PingFang SC", sans-serif;
+  font-size: 13.5px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dock-bar__artist {
+  font-size: 10.5px;
+  color: var(--dim);
+}
+
+.dock-bar__actions { display: flex; align-items: center; gap: 7px; }
+
+.dock-bar__actions button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--sub);
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+
+.dock-bar__actions button:hover {
+  color: var(--teal-bright);
+  border-color: var(--teal);
+  box-shadow: var(--glow-soft);
+}
+
+.dock-bar__actions svg { width: 14px; height: 14px; }
+
+.dock-bar__actions .ico-pause { display: none; }
+.is-playing .dock-bar__actions .ico-play { display: none; }
+.is-playing .dock-bar__actions .ico-pause { display: block; }
+
+.dock-bar__progress {
+  height: 3px;
+  background: rgba(57, 197, 187, 0.12);
+}
+
+.dock-bar__progress i {
+  display: block;
+  width: 38%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal-deep), var(--teal-bright));
+  box-shadow: 0 0 10px rgba(124, 233, 224, 0.8);
+}
+
+/* ============ 本期排印说明 ============ */
+.note-band {
+  max-width: 1500px;
+  margin: 46px 34px 0;
+}
+
+.note-band__head {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.note-band__head h2 {
+  font-family: "ZCOOL QingKe HuangYou", "PingFang SC", sans-serif;
+  font-size: clamp(21px, 2.2vw, 28px);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+.note-band__head h2 em {
+  font-style: normal;
+  color: var(--teal-bright);
+}
+
+.note-band__head p {
+  margin-top: 6px;
+  color: var(--sub);
+  font-size: 13.5px;
+}
+
+.note-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.note-card {
+  position: relative;
+  padding: 18px 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background:
+    linear-gradient(160deg, rgba(57, 197, 187, 0.07), transparent 62%),
+    var(--paper);
+  overflow: hidden;
+  transition: border-color 0.3s var(--ease), box-shadow 0.3s var(--ease), transform 0.3s var(--ease);
+}
+
+.note-card:hover {
+  border-color: var(--teal);
+  box-shadow: var(--glow-soft);
+  transform: translateY(-2px);
+}
+
+.note-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--teal), transparent);
+  opacity: 0.7;
+}
+
+.note-card__no {
+  font-family: "Orbitron", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  color: var(--teal-bright);
+}
+
+.note-card__title {
+  margin-top: 10px;
+  font-family: "ZCOOL QingKe HuangYou", "PingFang SC", sans-serif;
+  font-size: 16.5px;
+  letter-spacing: 0.05em;
+  color: var(--ink);
+}
+
+.note-card__desc {
+  margin-top: 7px;
+  font-size: 12px;
+  color: var(--sub);
+  line-height: 1.75;
+}
+
+/* ============ 页脚 ============ */
+.canvas-foot {
+  max-width: 1500px;
+  margin: 40px 34px 0;
+  padding: 22px 0 60px;
+  border-top: 1px solid var(--line);
+}
+
+.canvas-foot__box {
+  max-width: 820px;
+  font-size: 13px;
+  color: var(--sub);
+  line-height: 1.9;
+}
+
+.canvas-foot__box strong {
+  color: var(--teal-bright);
+  font-weight: 600;
+}
+
+.canvas-foot__box ul {
+  margin: 10px 0 0 18px;
+}
+
+.canvas-foot__box li { margin-top: 4px; }
+
+/* ============ Tweaks ============ */
+.tweaks-toggle {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 9990;
+  height: 36px;
+  padding: 0 18px;
+  border: 1px solid var(--teal);
+  border-radius: 8px;
+  background: rgba(8, 19, 32, 0.88);
+  color: var(--teal-bright);
+  font-family: "Orbitron", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  backdrop-filter: blur(10px);
+  box-shadow: var(--glow-mid);
+  transition: box-shadow 0.25s var(--ease), transform 0.15s var(--ease);
+}
+
+.tweaks-toggle:hover { box-shadow: var(--glow-strong); }
+.tweaks-toggle:active { transform: translateY(1px); }
+
+.tweaks {
+  position: fixed;
+  right: 22px;
+  bottom: 68px;
+  z-index: 9991;
+  width: 264px;
+  padding: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: rgba(8, 19, 32, 0.94);
+  backdrop-filter: blur(14px);
+  color: var(--ink);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), var(--glow-soft);
+  transform: translateY(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.3s var(--ease), opacity 0.3s var(--ease);
+}
+
+.tweaks.is-open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tweaks__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-family: "Orbitron", monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--teal-bright);
+}
+
+.tweaks__close {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--sub);
+}
+
+.tweaks__close:hover { color: var(--teal-bright); border-color: var(--teal); }
+.tweaks__close svg { width: 11px; height: 11px; }
+
+.tweak-group { padding: 10px 0; border-top: 1px solid var(--line); }
+.tweak-group:first-of-type { border-top: none; }
+
+.tweak-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 12.5px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.tweak-switch input { position: absolute; opacity: 0; pointer-events: none; }
+.tweak-switch .toggle { pointer-events: none; }
+.tweak-switch input:focus-visible + .toggle { outline: 2px solid var(--teal-bright); outline-offset: 2px; }
+
+.tweak-seg {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.tweak-seg button {
+  flex: 1;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--sub);
+  font-size: 11.5px;
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease),
+    background 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+
+.tweak-seg button:hover { color: var(--teal-bright); border-color: var(--teal); }
+
+.tweak-seg button.is-on {
+  color: #04231f;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--teal-bright), var(--teal));
+  border-color: transparent;
+  box-shadow: var(--glow-mid);
+}
+
+/* 特效开关：关闭时隐藏氛围层 */
+.fx-reduced .hb-particles,
+.fx-reduced .hb-data,
+.fx-reduced .hb-scan,
+.fx-reduced .hb-ribbon,
+.fx-reduced .sf-sonar { display: none; }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1180px) {
+  .radio-body, .radio-body.has-drawer { grid-template-columns: 190px minmax(0, 1fr); }
+  .settings-drawer { display: none; }
+}
+
+@media (max-width: 860px) {
+  .canvas-head { flex-direction: column; align-items: flex-start; }
+  .canvas-head__meta { text-align: left; }
+  .app-head { grid-template-columns: 1fr auto; }
+  .app-nav { display: none; }
+  .float-stage { grid-template-columns: 1fr; }
+  .note-grid { grid-template-columns: 1fr 1fr; }
+  .page-stage, .canvas-head, .note-band, .canvas-foot { margin-left: 18px; margin-right: 18px; }
+}
+
+@media (max-width: 560px) {
+  .radio-body, .radio-body.has-drawer { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .stage { padding: 26px 18px 30px; }
+  .note-grid { grid-template-columns: 1fr; }
+  .holo-disc { width: 190px; height: 190px; }
+  .holo-disc__label b { font-size: 21px; }
+}
+
+/* ---------- 减少动效 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .lyric-line.is-current {
+    color: var(--teal-bright);
+    background: none;
+    -webkit-background-clip: initial;
+    background-clip: initial;
+  }
+
+  .hb-particles, .hb-data, .hb-ribbon, .sf-sonar { display: none; }
+}
+</style>
+</head>
+<body id="themeRoot" data-theme="miku">
+
+<!-- ============ 画布页头 ============ -->
+<header class="canvas-head">
+  <div>
+    <h1>初音电台 <em>39</em> · 全息歌姬</h1>
+    <p class="canvas-head__sub">音乐播放器设计稿 v7（Miku 全息特辑）· 二次元初音未来风格 · 与「晨 / 午 / 暮 / 夜」四版完全独立</p>
+  </div>
+  <div class="canvas-head__meta">
+    <span>设计语言 <b>全息歌姬 Holo Idol</b></span><br>
+    <span>版本 <b>v7</b> · 日期 <b>2026.08.02</b> · 状态 <b>概念稿 · 待评审</b></span><br>
+    <span class="canvas-head__stamp">MIKU 39 · HOLOGRAM EDITION</span>
+  </div>
+</header>
+
+<!-- ============ 主舞台 ============ -->
+<div class="page-stage">
+  <div class="browser-frame">
+    <div class="browser-frame__bar">
+      <div class="browser-frame__dots" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="browser-frame__url">miku39://player/hologram-edition</div>
+    </div>
+
+    <header class="app-head">
+      <div class="app-callsign">
+        <div class="app-seal" aria-hidden="true">39</div>
+        <div>
+          <div class="app-callsign__name">初音电台 <span>39</span></div>
+          <div class="app-callsign__freq">HATSUNE MIKU 39 · <b>HOLO CHANNEL</b></div>
+        </div>
+      </div>
+
+      <nav class="app-nav" aria-label="主导航">
+        <button class="is-active">推荐</button>
+        <button>曲库</button>
+        <button>歌单</button>
+        <button>电台</button>
+      </nav>
+
+      <div class="app-head__actions">
+        <span class="on-air"><span class="on-air__lamp" aria-hidden="true"></span>ON AIR · 39</span>
+        <button class="holo-btn" aria-label="收藏">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2 14.8 9l5.2.7-3.8 3.7.9 5.2-4.6-2.4-4.6 2.4.9-5.2L5 9.7l5.2-.7z"/></svg>
+          收藏
+        </button>
+        <button class="holo-btn" id="openSettingsBtn" aria-label="打开设置">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>
+          设置
+        </button>
+      </div>
+    </header>
+
+    <div class="radio-body" id="radioBody">
+      <!-- 左栏：全息频道 -->
+      <nav class="rail" aria-label="曲库导航">
+        <div class="rail__group">正在播放</div>
+        <button class="rail-item is-active"><span class="rail-item__num">01</span>全息电台<span class="rail-item__badge">39</span></button>
+        <button class="rail-item"><span class="rail-item__num">02</span>最近播放<span class="rail-item__count">08</span></button>
+
+        <div class="rail__group">曲库</div>
+        <button class="rail-item"><span class="rail-item__num">03</span>全部曲目<span class="rail-item__count">39+</span></button>
+        <button class="rail-item"><span class="rail-item__num">04</span>收藏夹<span class="rail-item__count">12</span></button>
+        <button class="rail-item"><span class="rail-item__num">05</span>本地下载<span class="rail-item__count">占位</span></button>
+
+        <div class="rail__group">我的</div>
+        <button class="rail-item"><span class="rail-item__num">06</span>歌单<span class="rail-item__count">待填</span></button>
+        <button class="rail-item"><span class="rail-item__num">07</span>订阅电台<span class="rail-item__count">待填</span></button>
+      </nav>
+
+      <!-- 中栏：舞台 -->
+      <main class="stage" aria-label="正在播放">
+        <div class="holo-bg" aria-hidden="true">
+          <div class="hb-grid"></div>
+          <div class="hb-nebula"></div>
+          <div class="hb-scan"></div>
+          <div class="hb-data"></div>
+          <div class="hb-data hb-data--r"></div>
+          <div class="hb-particles"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <svg class="hb-ribbon" viewBox="0 0 900 560" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <linearGradient id="holoGradA" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#39c5bb"/>
+                <stop offset="0.55" stop-color="#7ce9e0"/>
+                <stop offset="1" stop-color="#ffb7cd"/>
+              </linearGradient>
+              <linearGradient id="holoGradB" x1="1" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#9adcff"/>
+                <stop offset="0.6" stop-color="#b7a6ff"/>
+                <stop offset="1" stop-color="#39c5bb"/>
+              </linearGradient>
+            </defs>
+            <path class="ribbon-a" d="M120 470 C 240 250, 300 120, 430 90 C 560 62, 620 190, 560 300 C 500 410, 380 430, 300 360"/>
+            <path class="ribbon-b" d="M780 470 C 660 250, 600 120, 470 90 C 340 62, 280 190, 340 300 C 400 410, 520 430, 600 360"/>
+          </svg>
+        </div>
+
+        <div class="sound-field" aria-hidden="true">
+          <div class="sf-sonar"><i></i><i></i><i></i></div>
+          <div class="sf-wave">
+            <svg viewBox="0 0 900 40" preserveAspectRatio="none">
+              <path class="wave-a" d="M0 20 C 60 12, 120 28, 190 20 S 320 10, 400 20 540 30, 620 20 760 8, 900 20"/>
+              <path class="wave-b" d="M0 20 C 70 26, 140 12, 220 20 S 360 28, 440 20 580 12, 660 20 800 28, 900 20"/>
+            </svg>
+          </div>
+          <span class="sf-note">HOLO FIELD · 全息音场（占位）</span>
+        </div>
+
+        <div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+        <div class="holo-disc" id="mainDisc">
+          <div class="holo-disc__ring"></div>
+          <div class="holo-disc__prism"></div>
+          <div class="holo-disc__label">
+            <b>39</b>
+            <small>LOCAL COVER · 占位</small>
+          </div>
+          <div class="holo-disc__pin"></div>
+        </div>
+
+        <div class="now-meta">
+          <div class="now-meta__eyebrow">NOW PLAYING · 全息频道 01</div>
+          <h3 class="now-meta__title cn-display">示例曲目（本地文件占位）</h3>
+          <p class="now-meta__artist">艺术家待填 · 专辑待填</p>
+          <div class="now-meta__chips">
+            <span class="chip chip--accent">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 15V4M8 8l4-4 4 4M4 16.5v2A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>
+              本地库
+            </span>
+            <span class="chip mono">FLAC · 44.1kHz</span>
+            <span class="chip mono">320kbps</span>
+          </div>
+        </div>
+
+        <div class="lyric-carousel">
+          <div class="lyric-track" id="lyricTrack">
+            <div class="lyric-line is-near">全息的心跳 跟着节拍闪耀</div>
+            <div class="lyric-line is-near">双马尾划过 夜空的轨道</div>
+            <div class="lyric-line is-current">39 次的呼唤 我在回应你</div>
+            <div class="lyric-line is-near">舞台的边界 由歌声打破</div>
+            <div class="lyric-line is-near">代码与旋律 交织成未来</div>
+            <div class="lyric-line">下一首 唱给屏幕前的你</div>
+            <div class="lyric-line">别忘了 此刻的约定</div>
+          </div>
+        </div>
+        <div class="lyric-tip">轮播歌词 · 占位文本 · 点击可跳转（待实现）</div>
+
+        <div class="now-progress">
+          <div class="now-progress__row">
+            <span class="now-progress__time">1:24</span>
+            <div class="now-progress__track"><div class="now-progress__fill"></div><div class="now-progress__thumb"></div></div>
+            <span class="now-progress__time">3:39</span>
+          </div>
+        </div>
+
+        <div class="now-controls">
+          <button class="ctrl" aria-label="随机播放">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 6H7a4 4 0 0 0-4 4v1M7 18h10a4 4 0 0 0 4-4v-1M18.5 20.5 21 18l-2.5-2.5M5.5 3.5 3 6l2.5 2.5"/></svg>
+          </button>
+          <button class="ctrl" aria-label="上一首">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 5v14"/><path d="M17.5 6.5 8.5 12l9 5.5z" fill="currentColor" stroke="none"/></svg>
+          </button>
+          <button class="ctrl play" id="mainPlayBtn" aria-label="播放或暂停">
+            <svg class="ico-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+            <svg class="ico-pause" viewBox="0 0 24 24"><rect x="6.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/><rect x="13.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/></svg>
+          </button>
+          <button class="ctrl" aria-label="下一首">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M17.5 5v14"/><path d="M6.5 6.5l9 5.5-9 5.5z" fill="currentColor" stroke="none"/></svg>
+          </button>
+          <button class="ctrl" aria-label="音量">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z" fill="currentColor" stroke="none"/><path d="M15.5 9a5 5 0 0 1 0 6"/><path d="M17.8 6.8a9 9 0 0 1 0 10.4"/></svg>
+          </button>
+        </div>
+
+        <div class="now-actions">
+          <button class="chip-btn is-active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h12M4 17.5h8"/></svg>
+            歌词
+          </button>
+          <button class="chip-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h10M4 17.5h6"/></svg>
+            队列
+          </button>
+          <button class="chip-btn mono">1.0×</button>
+          <button class="chip-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h14"/><circle cx="9" cy="7" r="1.8" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="11" cy="17" r="1.8" fill="currentColor" stroke="none"/></svg>
+            EQ
+          </button>
+        </div>
+      </main>
+
+      <!-- 右栏：设置抽屉 -->
+      <aside class="settings-drawer" id="settingsDrawer" aria-label="设置">
+        <div class="settings-drawer__head">
+          <h3>设置<small>SETTINGS · MIKU 39</small></h3>
+          <button id="closeSettingsBtn" aria-label="关闭设置">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+        <div class="settings-body">
+          <div class="set-group">
+            <div class="set-group__title">主题时段</div>
+            <div class="set-seg">
+              <button disabled title="已排印">晨</button>
+              <button disabled title="已排印">午</button>
+              <button disabled title="已排印">暮</button>
+              <button disabled title="已排印">夜</button>
+              <button class="is-on" data-miku>39</button>
+            </div>
+            <div class="period-status">v7 为系列之外的全息特辑，材质与晨午暮夜零共享；四版均已独立排印完成。</div>
+          </div>
+
+          <div class="set-group">
+            <div class="set-group__title">播放</div>
+            <div class="set-row">
+              <span>
+                <span class="set-row__label">无缝播放</span>
+                <span class="set-row__hint">同采样率曲目无缝衔接</span>
+              </span>
+              <span class="toggle is-on" data-toggle role="switch" aria-checked="true" tabindex="0"></span>
+            </div>
+            <div class="set-row">
+              <span>
+                <span class="set-row__label">交叉淡化</span>
+                <span class="set-row__hint">切歌时淡入淡出</span>
+              </span>
+              <span class="toggle" data-toggle role="switch" aria-checked="false" tabindex="0"></span>
+            </div>
+            <div class="set-row">
+              <span class="set-row__label">播放倍速</span>
+              <span class="set-row__value mono">1.0×</span>
+            </div>
+          </div>
+
+          <div class="set-group">
+            <div class="set-group__title">歌词</div>
+            <div class="set-seg set-seg--2" data-lyric-seg>
+              <button class="is-on">逐词</button>
+              <button>逐行</button>
+            </div>
+            <div class="set-row" style="margin-top:10px">
+              <span class="set-row__label">本地 LRC 优先</span>
+              <span class="toggle is-on" data-toggle role="switch" aria-checked="true" tabindex="0"></span>
+            </div>
+          </div>
+
+          <div class="set-group">
+            <div class="set-group__title">音乐源</div>
+            <div class="set-row">
+              <span>
+                <span class="set-row__label">本地资料库</span>
+                <span class="set-row__hint">文件夹扫描 · 始终可用</span>
+              </span>
+              <span class="toggle is-on" data-toggle data-lock role="switch" aria-checked="true"></span>
+            </div>
+            <div class="set-row">
+              <span>
+                <span class="set-row__label">网易云搜索</span>
+                <span class="set-row__hint">可选源 · 接口不稳定</span>
+              </span>
+              <span class="toggle" data-toggle data-netease role="switch" aria-checked="false" tabindex="0"></span>
+            </div>
+            <div class="set-note">开启后仅在搜索 / 歌词补全时联网；失败自动降级为本地库。</div>
+          </div>
+
+          <div class="set-group">
+            <div class="set-group__title">快捷键</div>
+            <div class="shortcut-row"><span>播放 / 暂停</span><kbd>P</kbd></div>
+            <div class="shortcut-row"><span>上一首 / 下一首</span><kbd>← →</kbd></div>
+            <div class="shortcut-row"><span>搜索</span><kbd>Ctrl K</kbd></div>
+            <div class="shortcut-row"><span>静音</span><kbd>M</kbd></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 悬浮窗 ============ -->
+<div class="float-stage">
+  <div class="float-frame">
+    <div class="float-frame__bar">
+      <span><b>全息小卡</b> · Miku 39 迷你播放器</span>
+      <span class="mono">HOLOGRAM FLOAT</span>
+    </div>
+    <div class="float-scene">
+      <div class="holo-bg" aria-hidden="true">
+        <div class="hb-grid"></div>
+        <div class="hb-nebula"></div>
+        <div class="hb-particles"><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="float-mini-disc"></div>
+      <div class="float-mini-meta">
+        <div class="float-mini-meta__title cn-display">示例曲目（本地占位）</div>
+        <div class="float-mini-meta__artist">艺术家待填 · 全息歌单</div>
+      </div>
+      <div class="float-mini-controls">
+        <button class="ctrl" aria-label="上一首">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 5v14"/><path d="M17.5 6.5 8.5 12l9 5.5z" fill="currentColor" stroke="none"/></svg>
+        </button>
+        <button class="ctrl play" aria-label="播放或暂停">
+          <svg class="ico-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+          <svg class="ico-pause" viewBox="0 0 24 24"><rect x="6.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/><rect x="13.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/></svg>
+        </button>
+        <button class="ctrl" aria-label="下一首">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M17.5 5v14"/><path d="M6.5 6.5l9 5.5-9 5.5z" fill="currentColor" stroke="none"/></svg>
+        </button>
+      </div>
+      <div class="float-mini-progress"><i></i></div>
+    </div>
+  </div>
+
+  <div class="dock-bar">
+    <div class="dock-bar__main">
+      <div class="dock-bar__vinyl" aria-hidden="true"></div>
+      <div class="dock-bar__meta">
+        <div class="dock-bar__title cn-display">示例曲目（本地占位）</div>
+        <div class="dock-bar__artist">艺术家待填 · 39 DOCK</div>
+      </div>
+      <div class="dock-bar__actions">
+        <button aria-label="上一首">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.5 5v14"/><path d="M17.5 6.5 8.5 12l9 5.5z" fill="currentColor" stroke="none"/></svg>
+        </button>
+        <button aria-label="播放或暂停">
+          <svg class="ico-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+          <svg class="ico-pause" viewBox="0 0 24 24"><rect x="6.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/><rect x="13.8" y="5" width="3.4" height="14" rx="1" fill="currentColor"/></svg>
+        </button>
+        <button aria-label="队列">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6.5h16M4 12h10M4 17.5h6"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="dock-bar__progress"><i></i></div>
+  </div>
+</div>
+
+<!-- ============ 本期排印说明 ============ -->
+<section class="note-band">
+  <div class="note-band__head">
+    <h2>本期「<em>Miku</em>」排印了什么</h2>
+    <p>背景 / 按钮 / 装饰 / 唱片四层全部换用全息歌姬材质，与晨午暮夜零共享元素。</p>
+  </div>
+  <div class="note-grid">
+    <div class="note-card">
+      <div class="note-card__no">01 · 背景</div>
+      <div class="note-card__title">全息舞台</div>
+      <div class="note-card__desc">深空蓝黑纸面，苍绿星尘网格 + 扫描线 + 左右数据流；双马尾化为抽象缎带光轨，唱片刻有全息棱镜与「39」符号。</div>
+    </div>
+    <div class="note-card">
+      <div class="note-card__no">02 · 按钮</div>
+      <div class="note-card__title">全息芯片</div>
+      <div class="note-card__desc">细线描边 + 苍绿辉光，悬停时亮起霓虹描边；播放键为脉冲光环全息球，与四个时段版本的播放键形态完全不同。</div>
+    </div>
+    <div class="note-card">
+      <div class="note-card__no">03 · 装饰</div>
+      <div class="note-card__title">39 缎带 · 音波 · 卡拉OK</div>
+      <div class="note-card__desc">左栏频道号、徽章与时长都埋入 39 语汇；声呐环 + 波形构成全息音场，当前歌词行带逐句扫光。</div>
+    </div>
+    <div class="note-card">
+      <div class="note-card__no">04 · 唱片</div>
+      <div class="note-card__title">全息棱镜唱片</div>
+      <div class="note-card__desc">渐变棱镜盘身 + 旋转「39」标，中心孔是歌姬色光点；悬浮窗与停靠条同步换版。</div>
+    </div>
+  </div>
+</section>
+
+<footer class="canvas-foot">
+  <div class="canvas-foot__box">
+    <strong>本版为概念稿：</strong>封面、曲目、歌词均为占位数据，交付前需替换为真实曲库与授权素材。Tweaks 右下角可切换「苍绿 39 / 樱花粉」主题色与全息特效开关。
+    <ul>
+      <li>下一步建议：确认方向后补齐可点击原型（上传流程 / 空状态 / 加载与错误态），再进 Vue 重构。</li>
+      <li>素材缺口：角色立绘 / 封面图需由用户提供或另行生成，本稿以「LOCAL COVER · 占位」诚实标记。</li>
+    </ul>
+  </div>
+</footer>
+
+<!-- ============ Tweaks ============ -->
+<button class="tweaks-toggle" id="tweaksToggle" aria-expanded="false">Tweaks</button>
+
+<div class="tweaks" id="tweaks">
+  <div class="tweaks__head">
+    <span>Tweaks · MIKU 39</span>
+    <button class="tweaks__close" id="tweaksClose" aria-label="关闭面板">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <div class="tweak-group">
+    <label class="tweak-switch">
+      <span>播放演示</span>
+      <input type="checkbox" id="demoPlay" checked>
+      <span class="toggle is-on"></span>
+    </label>
+    <label class="tweak-switch">
+      <span>侧边设置栏</span>
+      <input type="checkbox" id="demoDrawer" checked>
+      <span class="toggle is-on"></span>
+    </label>
+    <label class="tweak-switch">
+      <span>网易云源（演示）</span>
+      <input type="checkbox" id="demoNetease">
+      <span class="toggle"></span>
+    </label>
+    <label class="tweak-switch">
+      <span>全息特效</span>
+      <input type="checkbox" id="demoFx" checked>
+      <span class="toggle is-on"></span>
+    </label>
+  </div>
+  <div class="tweak-group">
+    <div style="font-size:12px;color:var(--ink);margin-bottom:2px">主题色</div>
+    <div class="tweak-seg" data-theme-seg>
+      <button class="is-on" data-theme-btn="miku">苍绿 39</button>
+      <button data-theme-btn="sakura">樱花粉</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var themeRoot = document.getElementById('themeRoot');
+
+  /* ---- Tweaks 面板 ---- */
+  var tweaks = document.getElementById('tweaks');
+  var tweaksToggle = document.getElementById('tweaksToggle');
+
+  function openTweaks(on) {
+    tweaks.classList.toggle('is-open', on);
+    tweaksToggle.setAttribute('aria-expanded', on ? 'true' : 'false');
+  }
+
+  tweaksToggle.addEventListener('click', function () {
+    openTweaks(!tweaks.classList.contains('is-open'));
+  });
+  document.getElementById('tweaksClose').addEventListener('click', function () {
+    openTweaks(false);
+  });
+
+  /* ---- 播放演示 / 歌词轮播 ---- */
+  var demoPlay = document.getElementById('demoPlay');
+  var lyricLines = Array.prototype.slice.call(document.querySelectorAll('.lyric-line'));
+  var lyricIndex = 2;
+  var lyricTimer = null;
+
+  function renderLyrics() {
+    var track = document.getElementById('lyricTrack');
+    if (!track) return;
+    var count = lyricLines.length;
+    var offset = Math.max(0, Math.min(lyricIndex - 2, count - 4));
+    track.style.transform = 'translateY(calc(-50% - ' + offset * 42 + 'px))';
+    lyricLines.forEach(function (line, i) {
+      line.classList.toggle('is-current', i === lyricIndex);
+      line.classList.toggle('is-near', Math.abs(i - lyricIndex) <= 2 && i !== lyricIndex);
+    });
+  }
+
+  function setPlaying(on) {
+    themeRoot.classList.toggle('is-playing', on);
+    demoPlay.checked = on;
+    clearInterval(lyricTimer);
+    if (on) {
+      lyricTimer = setInterval(function () {
+        lyricIndex = (lyricIndex + 1) % lyricLines.length;
+        renderLyrics();
+      }, 3200);
+    }
+  }
+
+  demoPlay.addEventListener('change', function () {
+    setPlaying(demoPlay.checked);
+  });
+  document.getElementById('mainPlayBtn').addEventListener('click', function () {
+    setPlaying(!themeRoot.classList.contains('is-playing'));
+  });
+  renderLyrics();
+  setPlaying(true);
+
+  /* ---- 侧边设置栏 ---- */
+  var radioBody = document.getElementById('radioBody');
+  var drawerCheck = document.getElementById('demoDrawer');
+
+  function setDrawer(on) {
+    radioBody.classList.toggle('has-drawer', on);
+    drawerCheck.checked = on;
+  }
+
+  document.getElementById('openSettingsBtn').addEventListener('click', function () {
+    setDrawer(true);
+  });
+  document.getElementById('closeSettingsBtn').addEventListener('click', function () {
+    setDrawer(false);
+  });
+  drawerCheck.addEventListener('change', function () {
+    setDrawer(drawerCheck.checked);
+  });
+  setDrawer(true);
+
+  /* ---- 设置项开关 ---- */
+  document.querySelectorAll('[data-toggle]').forEach(function (t) {
+    t.addEventListener('click', function () {
+      if (t.hasAttribute('data-lock')) return;
+      t.classList.toggle('is-on');
+      t.setAttribute('aria-checked', t.classList.contains('is-on') ? 'true' : 'false');
+      if (t.hasAttribute('data-netease')) {
+        document.getElementById('demoNetease').checked = t.classList.contains('is-on');
+      }
+    });
+  });
+
+  var neteaseToggle = document.getElementById('demoNetease');
+  neteaseToggle.addEventListener('change', function () {
+    document.querySelectorAll('[data-netease]').forEach(function (t) {
+      t.classList.toggle('is-on', neteaseToggle.checked);
+      t.setAttribute('aria-checked', neteaseToggle.checked ? 'true' : 'false');
+    });
+  });
+
+  document.querySelectorAll('[data-lyric-seg]').forEach(function (seg) {
+    seg.addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      seg.querySelectorAll('button').forEach(function (b) { b.classList.remove('is-on'); });
+      btn.classList.add('is-on');
+    });
+  });
+
+  /* ---- 全息特效开关 ---- */
+  var fxCheck = document.getElementById('demoFx');
+  fxCheck.addEventListener('change', function () {
+    themeRoot.classList.toggle('fx-reduced', !fxCheck.checked);
+  });
+
+  /* ---- 主题色：苍绿 39 / 樱花粉 ---- */
+  var themeSeg = document.querySelector('[data-theme-seg]');
+  themeSeg.addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-theme-btn]');
+    if (!btn) return;
+    themeRoot.setAttribute('data-theme', btn.getAttribute('data-theme-btn'));
+    themeSeg.querySelectorAll('button').forEach(function (b) { b.classList.remove('is-on'); });
+    btn.classList.add('is-on');
+  });
+
+  /* ---- 键盘 ---- */
+  document.addEventListener('keydown', function (e) {
+    if (e.target instanceof HTMLInputElement) return;
+    if (e.key === 'p' || e.key === 'P') {
+      setPlaying(!themeRoot.classList.contains('is-playing'));
+    }
+  });
+})();
+</script>
+</body>
+</html>

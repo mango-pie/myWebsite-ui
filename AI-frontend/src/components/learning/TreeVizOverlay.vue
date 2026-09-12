@@ -1,13 +1,15 @@
 <script setup lang="ts">
 /**
- * 树图全屏浮层 — 包裹 DomainTreeViz，提供关闭与缩放控制
+ * 树图全屏浮层 — 包裹 DomainTreeViz
+ * 点节点同步左树选中 · 点空白 / 遮罩 / Esc 关闭
  */
-import { ref } from 'vue'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { X, ZoomIn, ZoomOut } from 'lucide-vue-next'
+import { message } from 'ant-design-vue'
 import type { LearningBranchTreeNode } from '@/api/learning.types'
 import DomainTreeViz from './DomainTreeViz.vue'
 
-defineProps<{
+const props = defineProps<{
   open: boolean
   domainName: string
   branches: LearningBranchTreeNode[]
@@ -21,6 +23,7 @@ const emit = defineEmits<{
 }>()
 
 const scale = ref(1)
+const panelRef = ref<HTMLElement | null>(null)
 
 function zoomIn() {
   scale.value = Math.min(1.5, +(scale.value + 0.1).toFixed(2))
@@ -31,8 +34,44 @@ function zoomOut() {
 }
 
 function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') emit('close')
+  if (!props.open) return
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    emit('close')
+  }
 }
+
+function onSelect(id: number | string | null) {
+  emit('update:selected-branch-id', id)
+  if (id == null) return
+  const branch = props.branches.find((b) => String(b.id) === String(id))
+  if (branch) {
+    message.success(`已选中「${branch.title}」· 点空白可关闭`, 1.6)
+  }
+}
+
+watch(
+  () => props.open,
+  async (v) => {
+    if (v) {
+      scale.value = 1
+      await nextTick()
+      panelRef.value?.focus()
+    }
+  },
+)
+
+watch(
+  () => props.open,
+  (v) => {
+    if (v) window.addEventListener('keydown', onKeydown)
+    else window.removeEventListener('keydown', onKeydown)
+  },
+)
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
+})
 </script>
 
 <template>
@@ -40,54 +79,47 @@ function onKeydown(e: KeyboardEvent) {
     <Transition name="viz-fade">
       <div
         v-if="open"
-        class="viz-overlay learning-domain"
+        class="viz-overlay"
         role="dialog"
         aria-modal="true"
         aria-label="知识树图全屏"
-        @keydown="onKeydown"
       >
-        <!-- backdrop -->
         <div class="viz-overlay__backdrop" @click="$emit('close')" />
 
-        <!-- panel -->
-        <div class="viz-overlay__panel">
+        <div
+          ref="panelRef"
+          class="viz-overlay__panel"
+          tabindex="-1"
+          @click.stop
+        >
           <div class="viz-overlay__toolbar">
+            <div class="viz-overlay__title">
+              <span class="viz-overlay__eyebrow">DOMAIN TREE</span>
+              <strong>{{ domainName || '领域知识树' }}</strong>
+            </div>
             <div class="viz-overlay__zoom">
-              <button
-                type="button"
-                class="viz-overlay__zoom-btn"
-                title="缩小"
-                @click="zoomOut"
-              >
+              <button type="button" class="viz-overlay__zoom-btn" title="缩小" @click="zoomOut">
                 <ZoomOut :size="16" />
               </button>
               <span class="viz-overlay__zoom-label">{{ Math.round(scale * 100) }}%</span>
-              <button
-                type="button"
-                class="viz-overlay__zoom-btn"
-                title="放大"
-                @click="zoomIn"
-              >
+              <button type="button" class="viz-overlay__zoom-btn" title="放大" @click="zoomIn">
                 <ZoomIn :size="16" />
               </button>
             </div>
-            <button
-              type="button"
-              class="viz-overlay__close"
-              title="关闭"
-              @click="$emit('close')"
-            >
+            <button type="button" class="viz-overlay__close" title="关闭 Esc" @click="$emit('close')">
               <X :size="18" />
             </button>
           </div>
 
           <div class="viz-overlay__stage" :style="{ transform: `scale(${scale})` }">
             <DomainTreeViz
+              hide-toolbar
               :domain-name="domainName"
               :branches="branches"
               :selected-branch-id="selectedBranchId"
-              @update:selected-branch-id="(id) => $emit('update:selected-branch-id', id)"
+              @update:selected-branch-id="onSelect"
               @learn-empty="(p) => $emit('learn-empty', p)"
+              @blank-click="$emit('close')"
             />
           </div>
         </div>
@@ -100,39 +132,66 @@ function onKeydown(e: KeyboardEvent) {
 .viz-overlay {
   position: fixed;
   inset: 0;
-  z-index: var(--ld-z-modal, 300);
+  z-index: 320;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--ld-space-5, 20px);
+  padding: 20px;
 }
 
 .viz-overlay__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(55, 60, 95, 0.42);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
 }
 
 .viz-overlay__panel {
   position: relative;
-  width: min(960px, 100%);
-  height: min(680px, calc(100vh - 80px));
-  background: var(--ld-color-bg-elevated, rgba(35, 28, 46, 0.96));
-  border: 1px solid var(--ld-color-border, rgba(255, 255, 255, 0.08));
-  border-radius: var(--ld-radius-xl, 16px);
-  box-shadow: var(--ld-shadow-overlay, 0 24px 64px rgba(0, 0, 0, 0.55));
+  width: min(980px, 100%);
+  height: min(700px, calc(100vh - 64px));
+  background:
+    radial-gradient(800px 400px at 20% -10%, rgba(228, 223, 253, 0.9), transparent 60%),
+    radial-gradient(700px 360px at 100% 110%, rgba(246, 242, 255, 0.85), transparent 55%),
+    rgba(255, 255, 255, 0.94);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  border-radius: 24px;
+  box-shadow: 0 24px 64px rgba(70, 80, 130, 0.28);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  outline: none;
 }
 
 .viz-overlay__toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: var(--ld-space-4, 16px) var(--ld-space-5, 20px);
-  border-bottom: 1px solid var(--ld-color-border, rgba(255, 255, 255, 0.08));
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1.5px dashed rgba(165, 172, 196, 0.35);
   flex-shrink: 0;
+}
+
+.viz-overlay__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin-right: auto;
+}
+
+.viz-overlay__eyebrow {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #a5acc4;
+}
+
+.viz-overlay__title strong {
+  font-size: 16px;
+  font-weight: 600;
+  color: #4c5570;
+  letter-spacing: 1px;
 }
 
 .viz-overlay__zoom {
@@ -141,51 +200,35 @@ function onKeydown(e: KeyboardEvent) {
   gap: 8px;
 }
 
-.viz-overlay__zoom-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--ld-color-border, rgba(255, 255, 255, 0.08));
-  border-radius: var(--ld-radius-md, 8px);
-  background: transparent;
-  color: var(--ld-color-text-secondary, #c4b8d0);
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.viz-overlay__zoom-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--ld-color-text-primary, #f5f0f8);
-}
-
-.viz-overlay__zoom-label {
-  font-size: var(--ld-font-size-xs, 0.75rem);
-  color: var(--ld-color-text-secondary, #c4b8d0);
-  min-width: 40px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
+.viz-overlay__zoom-btn,
 .viz-overlay__close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: 1px solid var(--ld-color-border, rgba(255, 255, 255, 0.08));
-  border-radius: var(--ld-radius-md, 8px);
-  background: transparent;
-  color: var(--ld-color-text-secondary, #c4b8d0);
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #7a83a0;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  box-shadow: 0 1px 0 rgba(96, 116, 168, 0.12);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.5, 1), color 0.15s, background 0.15s;
 }
 
+.viz-overlay__zoom-btn:hover,
 .viz-overlay__close:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--ld-color-text-primary, #f5f0f8);
+  color: #9b8ce8;
+  background: #e4dffd;
+  transform: translateY(-1px);
+}
+
+.viz-overlay__zoom-label {
+  font-size: 12px;
+  color: #a5acc4;
+  min-width: 40px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .viz-overlay__stage {
@@ -194,20 +237,18 @@ function onKeydown(e: KeyboardEvent) {
   display: flex;
   flex-direction: column;
   transform-origin: center center;
-  transition: transform 0.2s var(--ld-ease-out, cubic-bezier(0.22, 1, 0.36, 1));
+  transition: transform 0.2s cubic-bezier(0.22, 0.8, 0.32, 1);
   overflow: hidden;
 }
 
-/* transition */
 .viz-fade-enter-active,
 .viz-fade-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity 0.22s ease;
 }
 
 .viz-fade-enter-active .viz-overlay__panel,
 .viz-fade-leave-active .viz-overlay__panel {
-  transition: transform 0.25s var(--ld-ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
-    opacity 0.2s ease;
+  transition: transform 0.28s cubic-bezier(0.22, 0.8, 0.32, 1), opacity 0.22s ease;
 }
 
 .viz-fade-enter-from,
@@ -217,7 +258,7 @@ function onKeydown(e: KeyboardEvent) {
 
 .viz-fade-enter-from .viz-overlay__panel,
 .viz-fade-leave-to .viz-overlay__panel {
-  transform: scale(0.95);
+  transform: translateY(12px) scale(0.96);
   opacity: 0;
 }
 </style>
